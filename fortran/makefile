@@ -10,9 +10,9 @@ MATTS_LIBS =
 #MATTS_LIBS = -L/usr/local/lib -lhdf5 -lhdf5_fortran -lhdf5_hl -lhdf5hl_fortran
 # -L/usr/local/lib/libhdf_hl.a -L/usr/local/lib/libhdf_fortran.a
 
-#include ${PETSC_DIR}/conf/variables
-#include ${PETSC_DIR}/conf/rules
-FLINKER = ftn
+include ${PETSC_DIR}/conf/variables
+include ${PETSC_DIR}/conf/rules
+#FLINKER = ftn
 
 TARGET = perfect
 
@@ -41,13 +41,13 @@ quadpack/quadpack.a:
 	cd quadpack; make all
 
 all: $(OBJS)
-	$(FLINKER) -o $(TARGET) $(OBJS) $(MATTS_LIBS)
+#	$(FLINKER) -o $(TARGET) $(OBJS) $(MATTS_LIBS)
 #	$(FLINKER) -o $(TARGET) $(OBJS) $(MATTS_LIBS) -L$(GSL_DIR)/lib -lgsl
 #	$(FLINKER) -o $(TARGET) $(OBJS) -lm -lc  $(PETSC_LIB) $(MATTS_LIBS) -L$(GSL_DIR)/lib -lgsl
-#	$(FLINKER) -o $(TARGET) $(OBJS) -lm -lc $(MATTS_LIBS) $(PETSC_LIB)
+	$(FLINKER) -o $(TARGET) $(OBJS) -lm -lc $(MATTS_LIBS) $(PETSC_LIB)
 
 cleaner: clean
-clean: 
+#clean: 
 	rm -f *.o *.mod *.a *.dat *~ $(TARGET) *.m *.h5
 	cd quadpack; rm -f *.o *.a
 

@@ -1,4 +1,4 @@
-# Makefile for morpheus, the local tokamak drift-kinetic solver
+# Makefile for PERFECT
 
 # The following 2 lines are required to find the HDF5 libraries and include files on loki:
 #MATTS_INCLUDE = -I/usr/local/include -I$(PETSC_DIR)/$(PETSC_ARCH)/include -OPT:Olimit=0
@@ -14,7 +14,7 @@ include ${PETSC_DIR}/conf/variables
 include ${PETSC_DIR}/conf/rules
 #FLINKER = ftn
 
-TARGET = fickle
+TARGET = perfect
 
 OBJS = $(TARGET).o xGrid.o geometry.o writeHDF5Output.o globalVariables.o scan.o readInput.o \
 	polynomialDiffMatrices.o uniformDiffMatrices.o \
