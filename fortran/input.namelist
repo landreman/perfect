@@ -169,6 +169,9 @@
   ! If you don't want to scan a variable in a convergence scan, set the associated
   ! xxxNumRuns parameter to 0.
   
+  ! This value, when multiplied by the range of normalized psi included in the simulation,
+  ! gives the number of grid points in the radial direction.
+  ! Memory and time requirements DO depend strongly on this parameter.
   NpsiPerDiameter = 100
   NpsiMinFactor = 0.75
   NpsiMaxFactor = 1.5
@@ -184,31 +187,51 @@
   widthExtenderMax = 0.05d+0
   widthExtenderNumRuns = 0
 
+  ! Number of grid points in the poloidal direction.
+  ! Memory and time requirements DO depend strongly on this parameter.
   Ntheta = 11
   NthetaMinFactor = 0.7
   NthetaMaxFactor = 1.6
   NthetaNumRuns = 0
 
+  ! Number of Legendre polynomials used to represent the distribution function.
+  ! Memory and time requirements DO depend strongly on this parameter.
+  ! The value of this parameter required for convergence depends strongly on
+  ! the collisionality. At high collisionality, this parameter can be as low
+  ! as ~ 5. At low collisionality, this parameter may need to be many 10s or
+  ! even > 100 for convergence.
   Nxi = 9
   NxiMinFactor = 0.5
   NxiMaxFactor = 1.5
   NxiNumRuns = 0
   
+  ! Number of Legendre polynomials used to represent the Rosenbluth
+  ! potentials. Except in exceptional circumstances, this number should be 4.
+  ! Memory and time requirements do NOT depend strongly on this parameter.
   NL = 4
   NLMinFactor = 1
   NLMaxFactor = 2
   NLNumRuns = 0
   
+  ! Number of grid points in energy used to represent the distribution function.
+  ! Memory and time requirements DO depend strongly on this parameter.
+  ! This parameter almost always needs to be at least 5.
+  ! Usually a value in the range 5-8 is plenty for convergence.
   Nx = 6
   NxMinFactor = 0.6
   NxMaxFactor = 2.5
   NxNumRuns = 10
 
+  ! Number of grid points in energy used to represent the Rosenbluth potentials.
+  ! Memory and time requirements do NOT depend strongly on this parameter.
   NxPotentialsPerVth = 30d+0
   NxPotentialsPerVthMinFactor = 1
   NxPotentialsPerVthMaxFactor = 4
   NxPotentialsPerVthNumRuns = 0
   
+  ! Maximum normalized speed for the Rosenbluth potential grid.
+  ! Memory and time requirements do NOT depend strongly on this parameter.
+  ! Typically a value of 5 is good.
   xMax = 5.0d+0
   xMaxMinFactor = 0.5
   xMaxMaxFactor = 2
@@ -216,6 +239,9 @@
 
   xMaxForDistribution = 4d+0
 
+  ! Tolerance used to define convergence of the Krylov solver.
+  ! This parameter does not affect memory requirements but it does affect the
+  ! time required for solution somewhat.
   solverTolerance = 1d-5
   solverToleranceMinFactor = 1d-1
   solverToleranceMaxFactor = 1
@@ -241,12 +267,14 @@
   ! 4 = Uniform grid, upwinded finite differences, 4-point stencil
 
   thetaDerivativeScheme = 2
+  ! This parameter should be 2 except in extraordinary circumstances.
   ! Options for thetaDerivativeScheme:
   ! 0 = Uniform grid, Fourier spectral collocation
   ! 1 = Uniform grid, centered finite differences, 3-point stencil
   ! 2 = Uniform grid, centered finite differences, 5-point stencil
 
   xDerivativeScheme = 0
+  ! This parameter should almost always be 0.
   ! Options for xDerivativeScheme:
   ! 0 = Gaussian grid, polynomial spectral collocation
   ! 1 = Uniform grid, centered finite differences, 5-point stencil
