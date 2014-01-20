@@ -214,32 +214,14 @@ subroutine solveDKE()
   ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
 
   select case (psiDerivativeScheme)
-  case (0)
-     ! Chebyshev
-     call ChebyshevGrid(Npsi, psiMin, psiMax, psi, psiWeights, ddpsiLeft)
-     d2dpsi2 = matmul(ddpsiLeft,ddpsiLeft)
   case (1)
-     ! centered finite differences, no upwinding, 3-point stencil
+     ! centered finite differences, 3-point stencil
      scheme = 2
      call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
   case (2)
-     ! centered finite differences, no upwinding, 5-point stencil
+     ! centered finite differences, 5-point stencil
      scheme = 12
      call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
-  case (3)
-     ! upwinded finite differences, 2-point stencil
-     upwinding = .true.
-     scheme = 32
-     call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
-     scheme = 42
-     call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiRight, d2dpsi2)
-  case (4)
-     ! upwinded finite differences, 3-point stencil
-     upwinding = .true.
-     scheme = 52
-     call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
-     scheme = 62
-     call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiRight, d2dpsi2)
   case default
      if (masterProcInSubComm) then
         print *,"[",myCommunicatorIndex,"] Error! Invalid setting for psiDerivativeScheme"
