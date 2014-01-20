@@ -36,7 +36,7 @@ filenameNote='test';
 % generated when saveResults = true.
 
 % **********************************************************************
-% Geometry options
+% Options for the magnetic geometry:
 % **********************************************************************
 
 geometry = 1;
@@ -351,7 +351,6 @@ restart = maxIterations; % Used only for GMRES.
 psiGridMode = 2;
 % This option determines the discretization scheme for the radial
 % coordinate.
-% 0 = Chebyshev grid and differentiation
 % 1 = Uniform grid, finite difference derivatives with a 3-point stencil.
 % 2 = Uniform grid, finite difference derivatives with a 5-point stencil.
 % This parameter should almost always be 2.
@@ -365,14 +364,17 @@ thetaGridMode = 2;
 % 0 = uniform periodic spectral
 % 1 = 2nd order uniform finite-difference
 % 2 = 4th order uniform finite-difference
+% This parameter should almost always be 2
 
 xGridScheme = 0;
 % 0 = New polynomials
-% 1 = Chebyshev on [0.1, 5]
-% 2 = uniform, 5 point stencil
-% 3 = uniform, 5 point stencil, set last 2 points of f to zero
-% 4 = uniform with exp(x^2) weight, no boundary condition at xMax.
+% 1 = uniform, 5 point stencil
+% 2 = uniform, 5 point stencil, set last 2 points of f to zero
+% 3 = uniform with exp(x^2) weight, no boundary condition at xMax.
+% This parameter should almost always be 0.
 
+% The following parameter is the maximum value of normalized speed
+% when xGridScheme > 1, but it is ignored when xGridScheme = 0:
 xMaxForDistribution = 4;
 
 %imposeLocalSolutionWhereTrajectoriesAreParallel = true;
@@ -425,6 +427,9 @@ preconditionerMethod_xi = 0;
 % Plotting options:
 % **********************************************************************
 
+% The following offset is added to all figure numbers. It can sometimes
+% be convenient to change this number if you want to save figures rather
+% than over-write them when re-running the code.
 figureOffset=30;
 
 drawIntroFigures = true;
@@ -2524,16 +2529,12 @@ end
         % Generate abscissae, quadrature weights, and derivative matrix for theta grid.
         % Both abscissae and weights should be column vectors.
         switch psiGridMode
-            case 0
-                % Chebyshev
-                [psi, psiWeights, ddpsi] = multiChebyshevWeightsAndDifferentiation(Npsi, psiMin, psiMax, NpsiIntervals);
-                d2dpsi2 = ddpsi*ddpsi;
             case 1
-                % 2nd order finite difference
+                % Uniform grid, finite differences with a 3-point stencil
                 scheme = 2;
                 [psi, psiWeights, ddpsi, d2dpsi2] = differentiationMatricesForUniformGrid(Npsi, psiMin, psiMax, scheme);
             case 2
-                % 4th order finite difference
+                % Uniform grid, finite differences with a 5-point stencil
                 scheme = 12;
                 [psi, psiWeights, ddpsi, d2dpsi2] = differentiationMatricesForUniformGrid(Npsi, psiMin, psiMax, scheme);
             otherwise
@@ -2615,7 +2616,6 @@ end
                     
                     NpsiFine = 200;
                     NpsiIntervals=1;
-                    %[psiFine, ~, ddpsiForT] = multiChebyshevWeightsAndDifferentiation(NpsiFine, psiMin, psiMax, NpsiIntervals);
                     
                     scheme = 12;
                     [psiFine, ~, ddpsiForT, ~] = differentiationMatricesForUniformGrid(NpsiFine, psiMin-(1e-10), psiMax+(1e-10), scheme);
@@ -2688,7 +2688,6 @@ end
                     
                     NpsiFine = 200;
                     NpsiIntervals=1;
-                    %[psiFine, ~, ddpsiForT] = multiChebyshevWeightsAndDifferentiation(NpsiFine, psiMin, psiMax, NpsiIntervals);
                     
                     scheme = 12;
                     [psiFine, ~, ddpsiForT, ~] = differentiationMatricesForUniformGrid(NpsiFine, psiMin-(1e-10), psiMax+(1e-10), scheme);
@@ -2797,7 +2796,6 @@ end
                     
                     NpsiFine = 200;
                     NpsiIntervals=1;
-                    %[psiFine, ~, ddpsiForT] = multiChebyshevWeightsAndDifferentiation(NpsiFine, psiMin, psiMax, NpsiIntervals);
                     
                     scheme = 12;
                     [psiFine, ~, ddpsiForT, ~] = differentiationMatricesForUniformGrid(NpsiFine, psiMin-(1e-10), psiMax+(1e-10), scheme);
@@ -3173,13 +3171,6 @@ end
                 pointAtZero = false;
                 [x_i, ddx, d2dx2, xWeights_i] = spectralNodesWeightsAndDifferentiationMatricesForV(Nx, powerOfX, scale, pointAtZero);
             case 1
-                % Chebyshev
-                xMin=0.1;
-                xMaxPolynomial = 5;
-                NxIntervals = 1;
-                [x_i, xWeights_i, ddx] = multiChebyshevWeightsAndDifferentiation(Nx, xMin, xMaxPolynomial, NxIntervals);
-                d2dx2 = ddx*ddx;
-            case 2
                 xMin = xMaxForDistribution / (Nx+1) /5;
                 scheme = 12;
                 [x_i, xWeights_i, ddx, d2dx2] = differentiationMatricesForUniformGrid(Nx+1, xMin, xMaxForDistribution, scheme);
@@ -3187,8 +3178,8 @@ end
                 xWeights_i(end)=[];
                 ddx = ddx(1:(end-1), 1:(end-1));
                 d2dx2 = d2dx2(1:(end-1), 1:(end-1));
-            case 3
-                % Same as 2, but set the last 2 points of f to zero.
+            case 2
+                % Same as 1, but set the last 2 points of f to zero.
                 xMin = xMaxForDistribution / (Nx+1) /5;
                 scheme = 12;
                 [x_i, xWeights_i, ddx, d2dx2] = differentiationMatricesForUniformGrid(Nx+2, xMin, xMaxForDistribution, scheme);
@@ -3196,7 +3187,7 @@ end
                 xWeights_i(end-1:end)=[];
                 ddx = ddx(1:(end-2), 1:(end-2));
                 d2dx2 = d2dx2(1:(end-2), 1:(end-2));
-            case 4
+            case 3
                 xMin = xMaxForDistribution / (Nx+1) /5;
                 scheme = 12;
                 [x_i, xWeights_i, dgdx, d2gdx2] = differentiationMatricesForUniformGrid(Nx, xMin, xMaxForDistribution, scheme);
