@@ -142,7 +142,7 @@
 !  includeddpsiTerm = .false.
 
   leftBoundaryShift = 0
-  rightBoundaryShift = -0.125d+0
+  rightBoundaryShift = 0
 
   !Options for leftBoundaryScheme and rightBoundaryScheme:
   ! 0: Impose f_1 = 0
@@ -260,11 +260,8 @@
   psiDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.
   ! Options for psiDerivativeScheme:
-  ! 0 = Chebyshev grid with spectral differentiation
   ! 1 = Uniform grid, centered finite differences, 3-point stencil
   ! 2 = Uniform grid, centered finite differences, 5-point stencil
-  ! 3 = Uniform grid, upwinded finite differences, 2-point stencil
-  ! 4 = Uniform grid, upwinded finite differences, 4-point stencil
 
   thetaDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.
