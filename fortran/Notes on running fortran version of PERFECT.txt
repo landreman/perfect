@@ -1,0 +1,13 @@
+If you run PERFECT with the -help flag, a bunch of command-line options are printed out. All of these options are 
+associated withe the PETSc library. 
+
+The documentation for the PETSc library can be found here:
+http://www.mcs.anl.gov/petsc/petsc-current/docs/index.html
+
+The default Krylov solver in the fortran version of PERFECT is BiCGStab(l), and it is set in solveDKE.F90 with the command
+call KSPSetType(KSPInstance, KSPBCGSL, ierr)
+You can change the solver without recompiling using the command-line option
+-ksp_type <solvername>
+Probably the only other solver you might consider trying is GMRES, which you invoke using the command-line flags
+-ksp_type gmres
+To see the list of all available solvers, you can run PERFECT with the -help flag, and look for the lines about -ksp_type.
