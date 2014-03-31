@@ -167,6 +167,9 @@ module globalVariables
 
   logical :: forceOddNtheta
 
+  integer :: NxUniform, NxiUniform
+  PetscScalar :: xUniformMax
+
   ! ********************************************************
   ! ********************************************************
   !
@@ -236,6 +239,9 @@ module globalVariables
 !  PetscScalar, dimension(:,:), allocatable :: pPerpTermInKThetaBeforePsiDerivative
   PetscScalar, dimension(:,:), allocatable :: nuPrimeProfile, nuStarProfile
   PetscScalar, dimension(:,:), allocatable :: deltaN, deltaT, deltaEta, U, r
+  PetscScalar, dimension(:), allocatable :: xUniform, xiUniform
+  integer :: thetaIndexForOutboard
+  PetscScalar, dimension(:,:,:,:), allocatable :: deltaFOutboard, fullFOutboard
 
   PetscLogDouble :: elapsedTime
   integer :: didItConverge
@@ -270,6 +276,8 @@ contains
 
     deallocate(psi)
     deallocate(theta)
+    deallocate(xUniform)
+    deallocate(xiUniform)
     deallocate(JHat)
     deallocate(BHat)
     deallocate(dBHatdpsi)
@@ -320,6 +328,8 @@ contains
        deallocate(particleFlux)
        deallocate(momentumFlux)
        deallocate(heatFlux)
+       deallocate(deltaFOutboard)
+       deallocate(fullFOutboard)
 
 !       deallocate(kThetaWith3PointStencil)
 !       deallocate(kThetaWith5PointStencil)

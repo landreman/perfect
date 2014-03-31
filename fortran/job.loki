@@ -1,14 +1,14 @@
 #!/bin/bash
 
 ### Set the job name
-#PBS -N globalNxScan
+#PBS -N perfect_test
 
 ### Set the queue to submit this job.
 #PBS -q default 
 
 ### Set the number of nodes that will be used.
-#PBS -l nodes=10:ppn=8
-#PBS -l walltime=12:00:00
+#PBS -l nodes=1 :ppn=8
+#PBS -l walltime=00:10:00
 
 # #PBS -m ae
 #PBS -m n

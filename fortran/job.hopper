@@ -1,11 +1,11 @@
 #!/bin/bash
 
 ### Set the job name
-#PBS -N U0_8
+#PBS -N perfect
 
 ### Set the number of nodes that will be used.
-#PBS -l mppwidth=288
-#PBS -l walltime=04:00:00
+#PBS -l mppwidth=24
+#PBS -l walltime=00:10:00
 
 ### Set the queue to submit this job.
 #PBS -q regular
@@ -14,4 +14,4 @@
 #PBS -j oe
 
 cd $PBS_O_WORKDIR
-aprun -N 1 -n 12 ./morpheus -ksp_monitor
+aprun -N 4 -n 4 ./perfect -ksp_monitor

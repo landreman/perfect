@@ -41,7 +41,7 @@ contains
          xMax, xMaxMaxFactor, xMaxMinFactor, xMaxNumRuns, &
          solverTolerance, solverToleranceMinFactor, solverToleranceMaxFactor, solverToleranceNumRuns, &
          NxPotentialsPerVth, NxPotentialsPerVthMaxFactor, NxPotentialsPerVthMinFactor, NxPotentialsPerVthNumRuns, &
-         xMaxForDistribution
+         xMaxForDistribution, NxUniform, NxiUniform, xUniformMax
 
     namelist / otherNumericalParameters / thresh, xScaleFactor, &
          useIterativeSolver, &
@@ -187,6 +187,13 @@ contains
     end if
 
     numSpecies = numCharges
+
+    ! Other input validation
+
+    if (outputScheme < 0 .or. outputScheme > 2) then
+       print *,"Error: outputScheme must be 0, 1, or 2."
+       stop
+    end if
 
   end subroutine readNamelistInput
 

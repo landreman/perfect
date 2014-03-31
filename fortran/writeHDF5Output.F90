@@ -19,6 +19,9 @@ module writeHDF5Output
   integer(HID_T), dimension(:), allocatable, private :: dspaceIDForTheta
   integer(HID_T), dimension(:), allocatable, private :: dspaceIDForThetaPsi
   integer(HID_T), dimension(:), allocatable, private :: dspaceIDForSpeciesThetaPsi
+  integer(HID_T), dimension(:), allocatable, private :: dspaceIDForXUniform
+  integer(HID_T), dimension(:), allocatable, private :: dspaceIDForXiUniform
+  integer(HID_T), dimension(:), allocatable, private :: dspaceIDForSpeciesPsiXUniformXiUniform
   integer(HID_T), dimension(:), allocatable, private :: groupIDs
 
   integer(HID_T), private :: dsetID_programMode
@@ -31,6 +34,7 @@ module writeHDF5Output
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_Npsi
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_psiDiameter
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_widthExtender
+  integer(HID_T), dimension(:), allocatable, private :: dsetIDs_Nspecies
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_Ntheta
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_Nxi
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_NL
@@ -123,9 +127,14 @@ module writeHDF5Output
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_preconditioner_theta
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_preconditioner_psi
   integer(HID_T), dimension(:), allocatable, private :: dsetIDs_layout
+  integer(HID_T), dimension(:), allocatable, private :: dsetIDs_NxUniform
+  integer(HID_T), dimension(:), allocatable, private :: dsetIDs_NxiUniform
+  integer(HID_T), dimension(:), allocatable, private :: dsetIDs_xUniform
+  integer(HID_T), dimension(:), allocatable, private :: dsetIDs_xiUniform
+  integer(HID_T), dimension(:), allocatable, private :: dsetIDs_thetaIndexForOutboard
+  integer(HID_T), dimension(:), allocatable, private :: dsetIDs_deltaFOutboard
+  integer(HID_T), dimension(:), allocatable, private :: dsetIDs_fullFOutboard
 
-
-  !  integer(HSIZE_T), parameter, private :: dimForScalar = 1
   integer(HSIZE_T), dimension(1), parameter, private :: dimForScalar = 1
   integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForSpecies
   integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForProfile
@@ -133,6 +142,9 @@ module writeHDF5Output
   integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForTheta
   integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForThetaPsi
   integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForSpeciesThetaPsi
+  integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForXUniform
+  integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForXiUniform
+  integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForSpeciesPsiXUniformXiUniform
 
 contains
 
@@ -195,6 +207,7 @@ contains
        allocate(dsetIDs_Npsi(numRunsInScan))
        allocate(dsetIDs_psiDiameter(numRunsInScan))
        allocate(dsetIDs_widthExtender(numRunsInScan))
+       allocate(dsetIDs_Nspecies(numRunsInScan))
        allocate(dsetIDs_Ntheta(numRunsInScan))
        allocate(dsetIDs_Nxi(numRunsInScan))
        allocate(dsetIDs_NL(numRunsInScan))
@@ -287,6 +300,13 @@ contains
        allocate(dsetIDs_preconditioner_theta(numRunsInScan))
        allocate(dsetIDs_preconditioner_psi(numRunsInScan))
        allocate(dsetIDs_layout(numRunsInScan))
+       allocate(dsetIDs_NxUniform(numRunsInScan))
+       allocate(dsetIDs_NxiUniform(numRunsInScan))
+       allocate(dsetIDs_xUniform(numRunsInScan))
+       allocate(dsetIDs_xiUniform(numRunsInScan))
+       allocate(dsetIDs_thetaIndexForOutboard(numRunsInScan))
+       allocate(dsetIDs_deltaFOutboard(numRunsInScan))
+       allocate(dsetIDs_fullFOutboard(numRunsInScan))
 
        allocate(dspaceIDForSpecies(numRunsInScan))
        allocate(dspaceIDForProfile(numRunsInScan))
@@ -294,6 +314,9 @@ contains
        allocate(dspaceIDForTheta(numRunsInScan))
        allocate(dspaceIDForThetaPsi(numRunsInScan))
        allocate(dspaceIDForSpeciesThetaPsi(numRunsInScan))
+       allocate(dspaceIDForXUniform(numRunsInScan))
+       allocate(dspaceIDForXiUniform(numRunsInScan))
+       allocate(dspaceIDForSpeciesPsiXUniformXiUniform(numRunsInScan))
 
        allocate(dimForSpecies(numRunsInScan,1))
        allocate(dimForProfile(numRunsInScan,1))
@@ -301,6 +324,9 @@ contains
        allocate(dimForTheta(numRunsInScan,1))
        allocate(dimForThetaPsi(numRunsInScan,2))
        allocate(dimForSpeciesThetaPsi(numRunsInScan,3))
+       allocate(dimForXUniform(numRunsInScan,1))
+       allocate(dimForXiUniform(numRunsInScan,1))
+       allocate(dimForSpeciesPsiXUniformXiUniform(numRunsInScan,4))
 
        ! Create a dataspace for storing single numbers:
        rank = 0
@@ -330,6 +356,12 @@ contains
           dimForSpecies(i,1)=numSpecies
           call h5screate_simple_f(rank, dimForSpecies(i,:), dspaceIDForSpecies(i), HDF5Error)
 
+          dimForXUniform(i,1)=NxUniform
+          call h5screate_simple_f(rank, dimForXUniform(i,:), dspaceIDForXUniform(i), HDF5Error)
+
+          dimForXiUniform(i,1)=NxiUniform
+          call h5screate_simple_f(rank, dimForXiUniform(i,:), dspaceIDForXiUniform(i), HDF5Error)
+
           rank = 2
           dimForSpeciesProfile(i,1)=numSpecies
           dimForSpeciesProfile(i,2)=NpsisForScan(i)
@@ -345,6 +377,14 @@ contains
           dimForSpeciesThetaPsi(i,2)=NthetasForScan(i)
           dimForSpeciesThetaPsi(i,3)=NpsisForScan(i)
           call h5screate_simple_f(rank, dimForSpeciesThetaPsi(i,:), dspaceIDForSpeciesThetaPsi(i), HDF5Error)
+
+          rank = 4
+          dimForSpeciesPsiXUniformXiUniform(i,1)=numSpecies
+          dimForSpeciesPsiXUniformXiUniform(i,2)=NpsisForScan(i)
+          dimForSpeciesPsiXUniformXiUniform(i,3)=NxUniform
+          dimForSpeciesPsiXUniformXiUniform(i,4)=NxiUniform
+          call h5screate_simple_f(rank, dimForSpeciesPsiXUniformXiUniform(i,:), &
+               dspaceIDForSpeciesPsiXUniformXiUniform(i), HDF5Error)
 
           ! Create datasets for each quantity in each run:
           call h5dcreate_f(groupIDs(i), "charges", H5T_NATIVE_DOUBLE, dspaceIDForSpecies(i), &
@@ -370,6 +410,9 @@ contains
 
           call h5dcreate_f(groupIDs(i), "widthExtender", H5T_NATIVE_DOUBLE, dspaceIDForScalar, &
                dsetIDs_widthExtender(i), HDF5Error)
+
+          call h5dcreate_f(groupIDs(i), "Nspecies", H5T_NATIVE_INTEGER, dspaceIDForScalar, &
+               dsetIDs_Nspecies(i), HDF5Error)
 
           call h5dcreate_f(groupIDs(i), "Ntheta", H5T_NATIVE_INTEGER, dspaceIDForScalar, &
                dsetIDs_Ntheta(i), HDF5Error)
@@ -647,6 +690,28 @@ contains
           call h5dcreate_f(groupIDs(i), "layout", H5T_NATIVE_INTEGER, dspaceIDForScalar, &
                dsetIDs_layout(i), HDF5Error)
 
+          call h5dcreate_f(groupIDs(i), "NxUniform", H5T_NATIVE_INTEGER, dspaceIDForScalar, &
+               dsetIDs_NxUniform(i), HDF5Error)
+
+          call h5dcreate_f(groupIDs(i), "NxiUniform", H5T_NATIVE_INTEGER, dspaceIDForScalar, &
+               dsetIDs_NxiUniform(i), HDF5Error)
+
+          call h5dcreate_f(groupIDs(i), "xUniform", H5T_NATIVE_DOUBLE, dspaceIDForXUniform(i), &
+               dsetIDs_xUniform(i), HDF5Error)
+
+          call h5dcreate_f(groupIDs(i), "xiUniform", H5T_NATIVE_DOUBLE, dspaceIDForXiUniform(i), &
+               dsetIDs_xiUniform(i), HDF5Error)
+
+          call h5dcreate_f(groupIDs(i), "thetaIndexForOutboard", H5T_NATIVE_INTEGER, dspaceIDForScalar, &
+               dsetIDs_thetaIndexForOutboard(i), HDF5Error)
+
+          if (outputScheme > 1) then
+             call h5dcreate_f(groupIDs(i), "deltaFOutboard", H5T_NATIVE_DOUBLE, dspaceIDForSpeciesPsiXUniformXiUniform(i), &
+                  dsetIDs_deltaFOutboard(i), HDF5Error)
+
+             call h5dcreate_f(groupIDs(i), "fullFOutboard", H5T_NATIVE_DOUBLE, dspaceIDForSpeciesPsiXUniformXiUniform(i), &
+                  dsetIDs_fullFOutboard(i), HDF5Error)
+          end if
 
        end do
     end if
@@ -687,6 +752,9 @@ contains
 
        call h5dwrite_f(dsetIDs_widthExtender(runNum), H5T_NATIVE_DOUBLE, &
             widthExtender, dimForScalar, HDF5Error)
+
+       call h5dwrite_f(dsetIDs_Nspecies(runNum), H5T_NATIVE_INTEGER, &
+            numSpecies, dimForScalar, HDF5Error)
 
        call h5dwrite_f(dsetIDs_Ntheta(runNum), H5T_NATIVE_INTEGER, &
             Ntheta, dimForScalar, HDF5Error)
@@ -984,6 +1052,28 @@ contains
        call h5dwrite_f(dsetIDs_layout(runNum), H5T_NATIVE_INTEGER, &
             layout, dimForScalar, HDF5Error)
 
+       call h5dwrite_f(dsetIDs_NxUniform(runNum), H5T_NATIVE_INTEGER, &
+            NxUniform, dimForScalar, HDF5Error)
+
+       call h5dwrite_f(dsetIDs_NxiUniform(runNum), H5T_NATIVE_INTEGER, &
+            NxiUniform, dimForScalar, HDF5Error)
+
+       call h5dwrite_f(dsetIDs_xUniform(runNum), H5T_NATIVE_DOUBLE, &
+            xUniform, dimForXUniform(runNum,:), HDF5Error)
+
+       call h5dwrite_f(dsetIDs_xiUniform(runNum), H5T_NATIVE_DOUBLE, &
+            xiUniform, dimForXiUniform(runNum,:), HDF5Error)
+
+       call h5dwrite_f(dsetIDs_thetaIndexForOutboard(runNum), H5T_NATIVE_INTEGER, &
+            thetaIndexForOutboard, dimForScalar, HDF5Error)
+
+       if (outputScheme > 1) then
+          call h5dwrite_f(dsetIDs_deltaFOutboard(runNum), H5T_NATIVE_DOUBLE, &
+               deltaFOutboard, dimForSpeciesPsiXUniformXiUniform(runNum,:), HDF5Error)
+
+          call h5dwrite_f(dsetIDs_fullFOutboard(runNum), H5T_NATIVE_DOUBLE, &
+               fullFOutboard, dimForSpeciesPsiXUniformXiUniform(runNum,:), HDF5Error)
+       end if
     end if
 
   end subroutine writeRunToOutputFile
@@ -1011,6 +1101,7 @@ contains
           call h5dclose_f(dsetIDs_Npsi(i), HDF5Error)
           call h5dclose_f(dsetIDs_psiDiameter(i), HDF5Error)
           call h5dclose_f(dsetIDs_widthExtender(i), HDF5Error)
+          call h5dclose_f(dsetIDs_Nspecies(i), HDF5Error)
           call h5dclose_f(dsetIDs_Ntheta(i), HDF5Error)
           call h5dclose_f(dsetIDs_Nxi(i), HDF5Error)
           call h5dclose_f(dsetIDs_NL(i), HDF5Error)
@@ -1103,6 +1194,15 @@ contains
           call h5dclose_f(dsetIDs_preconditioner_theta(i), HDF5Error)
           call h5dclose_f(dsetIDs_preconditioner_psi(i), HDF5Error)
           call h5dclose_f(dsetIDs_layout(i), HDF5Error)
+          call h5dclose_f(dsetIDs_NxUniform(i), HDF5Error)
+          call h5dclose_f(dsetIDs_NxiUniform(i), HDF5Error)
+          call h5dclose_f(dsetIDs_xUniform(i), HDF5Error)
+          call h5dclose_f(dsetIDs_xiUniform(i), HDF5Error)
+          call h5dclose_f(dsetIDs_thetaIndexForOutboard(i), HDF5Error)
+          if (outputScheme > 1) then
+             call h5dclose_f(dsetIDs_deltaFOutboard(i), HDF5Error)
+             call h5dclose_f(dsetIDs_fullFOutboard(i), HDF5Error)
+          end if
 
           call h5gclose_f(groupIDs(i), HDF5Error)
 

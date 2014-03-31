@@ -15,10 +15,11 @@
 
   outputFilename = "PERFECTOutput.h5"
 
-  outputScheme = 1
+  outputScheme = 2
   ! Options for outputScheme:
   ! 0 = Do not save any HDF5 file.
-  ! 1 = Do save an HDF5 file with the program inputs and outputs.
+  ! 1 = Do save an HDF5 file with the program inputs and outputs, but do not include the distribution function.
+  ! 2 = Also include the distribution functions at the outboard side.
 
   ! If the following switch is set to true, a Matlab m-file is created which
   ! stores the matrix, right-hand side, and solution vector.  If an iterative solver is used,
@@ -133,8 +134,8 @@
   ! 0 = Sources are constant in theta
   ! 1 = Sources vary as (1 + cos(theta))
 
-!  makeLocalApproximation = .true.
-  makeLocalApproximation = .false.
+  makeLocalApproximation = .true.
+!  makeLocalApproximation = .false.
   ! If makeLocalApproximation is set to true, the conventional radially local
   ! kinetic equation is solved instead of the radially global kinetic equation.
 
@@ -250,6 +251,13 @@
   forceOddNtheta = .true.
   ! If forceOddNtheta is set to true, 1 is added to Ntheta any time a run is attempted with even Ntheta.
   ! This can be useful because the iterative solvers sometimes do not work with even Ntheta.
+
+  ! The next 2 parameters are used only for saving slices of the distribution function,
+  ! remapping the solution to uniform grids in x and xi.  These parameters therefore do not 
+  ! the solution itself, or convergence of the solution with respect to the real resolution parameters, Nx and Nxi.
+  NxUniform = 25
+  NxiUniform = 31
+  xUniformMax = 3d+0
 /
 
 &otherNumericalParameters
