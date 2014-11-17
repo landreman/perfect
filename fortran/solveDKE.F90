@@ -4,20 +4,9 @@
 
 #include <finclude/petsckspdef.h>
 #include <finclude/petscdmdadef.h>
-#include <petscversion.h>
+
+#include "PETScVersions.F90"
   
-! For PETSc versions prior to 3.3, the MatCreateAIJ subroutine was called MatCreateMPIAIJ.
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 3))
-#define MatCreateAIJ MatCreateMPIAIJ
-#endif
-! Hereafter in this code, use MatCreateAIJ.
-
-! For PETSc versions prior to 3.4, the PetscTime subroutine was called PetscGetTime.
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 4))
-#define PetscTime PetscGetTime
-#endif
-!Hereafter in this code, use PetscTime.
-
 subroutine solveDKE()
 
   use geometry
@@ -167,7 +156,7 @@ subroutine solveDKE()
 
   ! Assign a range of psi indices to each processor.
   ! This is done by creating a PETSc DM that is not actually used for anything else.
-  call DMDACreate1d(MPIComm, DMDA_BOUNDARY_NONE, Npsi, 1, 0, PETSC_NULL_INTEGER, myDM, ierr)
+  call DMDACreate1d(MPIComm, DM_BOUNDARY_NONE, Npsi, 1, 0, PETSC_NULL_INTEGER, myDM, ierr)
   call DMDAGetCorners(myDM, ipsiMin, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, &
        localNpsi, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, ierr)
   ! Switch to 1-based indices:
@@ -1896,17 +1885,29 @@ subroutine solveDKE()
       call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
       if (useIterativeSolver) then
          ! Use iterative solver
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+         ! Syntax for PETSc versions up through 3.4:
          call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, SAME_PRECONDITIONER, ierr)
+#else
+         ! Syntax for PETSc version 3.5 and later
+         call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, ierr)
+#endif
          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
          call PCSetType(PCBoundary, PCLU, ierr)
          call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
-         call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_DOUBLE_PRECISION, &
-              PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_INTEGER, ierr)
+         call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_REAL, &
+              PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
          call KSPSetFromOptions(KSPBoundary, ierr)
          call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
       else
          ! Direct solver:
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+         ! Syntax for PETSc versions up through 3.4:
          call KSPSetOperators(KSPBoundary, leftMatrix, leftMatrix, SAME_PRECONDITIONER, ierr)
+#else
+         ! Syntax for PETSc version 3.5 and later
+         call KSPSetOperators(KSPBoundary, leftMatrix, leftMatrix, ierr)
+#endif
          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
          call PCSetType(PCBoundary, PCLU, ierr)
          call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
@@ -1986,17 +1987,29 @@ subroutine solveDKE()
       call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
       if (useIterativeSolver) then
          ! Use iterative solver
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+         ! Syntax for PETSc versions up through 3.4:
          call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, SAME_PRECONDITIONER, ierr)
+#else
+         ! Syntax for PETSc version 3.5 and later
+         call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, ierr)
+#endif
          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
          call PCSetType(PCBoundary, PCLU, ierr)
          call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
-         call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_DOUBLE_PRECISION, &
-              PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_INTEGER, ierr)
+         call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_REAL, &
+              PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
          call KSPSetFromOptions(KSPBoundary, ierr)
          call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
       else
          ! Direct solver:
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+         ! Syntax for PETSc versions up through 3.4:
          call KSPSetOperators(KSPBoundary, rightMatrix, rightMatrix, SAME_PRECONDITIONER, ierr)
+#else
+         ! Syntax for PETSc version 3.5 and later
+         call KSPSetOperators(KSPBoundary, rightMatrix, rightMatrix, ierr)
+#endif
          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
          call PCSetType(PCBoundary, PCLU, ierr)
          call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
@@ -2178,7 +2191,13 @@ subroutine solveDKE()
    CHKERRQ(ierr)
 
    if (useIterativeSolver) then
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+         ! Syntax for PETSc versions up through 3.4:
       call KSPSetOperators(KSPInstance, matrix, preconditionerMatrix, SAME_PRECONDITIONER, ierr)
+#else
+         ! Syntax for PETSc version 3.5 and later
+      call KSPSetOperators(KSPInstance, matrix, preconditionerMatrix, ierr)
+#endif
       CHKERRQ(ierr)
       call KSPGetPC(KSPInstance, preconditionerContext, ierr)
       CHKERRQ(ierr)
@@ -2186,15 +2205,21 @@ subroutine solveDKE()
       CHKERRQ(ierr)
       call KSPSetType(KSPInstance, KSPBCGSL, ierr)
       CHKERRQ(ierr)
-      call KSPSetTolerances(KSPInstance, solverTolerance, PETSC_DEFAULT_DOUBLE_PRECISION, &
-           PETSC_DEFAULT_DOUBLE_PRECISION, PETSC_DEFAULT_INTEGER, ierr)
+      call KSPSetTolerances(KSPInstance, solverTolerance, PETSC_DEFAULT_REAL, &
+           PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
       CHKERRQ(ierr)
       call KSPSetFromOptions(KSPInstance, ierr)
       CHKERRQ(ierr)
       call KSPMonitorSet(KSPInstance, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
    else
       ! Direct solver:
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+         ! Syntax for PETSc versions up through 3.4:
       call KSPSetOperators(KSPInstance, matrix, matrix, SAME_PRECONDITIONER, ierr)
+#else
+         ! Syntax for PETSc version 3.5 and later
+      call KSPSetOperators(KSPInstance, matrix, matrix, ierr)
+#endif
       CHKERRQ(ierr)
       call KSPGetPC(KSPInstance, preconditionerContext, ierr)
       CHKERRQ(ierr)

@@ -15,7 +15,7 @@
 
   outputFilename = "perfectOutput.h5"
 
-  outputScheme = 2
+  outputScheme = 1
   ! Options for outputScheme:
   ! 0 = Do not save any HDF5 file.
   ! 1 = Do save an HDF5 file with the program inputs and outputs, but do not include the distribution function.

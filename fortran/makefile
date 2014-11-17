@@ -1,42 +1,69 @@
-# Makefile for PERFECT
+# Common commands
+# -------------------------------
+# To build PERFECT:
+#   make
+# or, equivalently,
+#   make all
+#
+# To run tests:
+#   make test
+#
+# To run tests on perfectOutput.h5 for all examples that would be run for this system with "make test", without actually re-running these examples:
+#   make retest
+#
+# To delete .mod and .o files:
+#   make clean
 
-MATTS_INCLUDE =
-MATTS_LIBS =
+# First, make sure the environment variable PERFECT_SYSTEM is set appropriately:
 
-include ${PETSC_DIR}/conf/variables
-include ${PETSC_DIR}/conf/rules
-#FLINKER = ftn
+ifndef PERFECT_SYSTEM
+$(error You must set the environment variable PERFECT_SYSTEM to select which makefile to use. For example, to use makefiles/makefile.edison, set PERFECT_SYSTEM=edison. To set this environment variable, use the export or setenv command, depending on your shell)
+endif
+
+SYSTEM_MAKEFILE = makefiles/makefile.$(PERFECT_SYSTEM)
+ifeq ($(wildcard $(SYSTEM_MAKEFILE)),)
+$(error Based on the environment variable PERFECT_SYSTEM, make is trying to include the file $(SYSTEM_MAKEFILE), but this file does not exist)
+endif
 
 TARGET = perfect
 
-OBJS = $(TARGET).o xGrid.o geometry.o writeHDF5Output.o globalVariables.o scan.o readInput.o \
-	polynomialDiffMatrices.o uniformDiffMatrices.o \
-	uniformInterpolationMatrix.o printToStdout.o \
-	profiles.o sparsify.o \
-	polynomialInterpolationMatrix.o solveDKE.o quadpack/quadpack.a 
+.PHONY: all clean test retest
 
-# Dependencies:
-geometry.o: globalVariables.o
-writeHDF5Output.o: globalVariables.o scan.o
-printToStdout.o: globalVariables.o
-readInput.o: globalVariables.o
-solveDKE.o: globalVariables.o xGrid.o geometry.o polynomialDiffMatrices.o printToStdout.o profiles.o sparsify.o
-scan.o: globalVariables.o
-$(TARGET).o: globalVariables.o geometry.o writeHDF5Output.o printToStdout.o solveDKE.o readInput.o scan.o
+all: $(TARGET)
+
+include $(SYSTEM_MAKEFILE)
+
+include makefile.depend
+
+# Export variables that will be used in the quadpack subdirectory or for "make test":
+export
 
 %.o: %.F90
-	$(FLINKER) $(MATTS_INCLUDE) -c $<
-
-#erf.o: erf.c
-#	$(CC) -o erf.o -c erf.c -I$(GSL_DIR)/include
+	$(FC) $(EXTRA_COMPILE_FLAGS) -c $<
 
 quadpack/quadpack.a:
-	cd quadpack; make all
+	$(MAKE) -C quadpack
 
-all: $(OBJS)
-	$(FLINKER) -o $(TARGET) $(OBJS) $(MATTS_LIBS) $(PETSC_LIB)
+$(TARGET): $(OBJ_FILES)
+	$(FLINKER) -o $(TARGET) $(OBJ_FILES) $(EXTRA_LINK_FLAGS) $(PETSC_LIB)
 
-cleaner:
-	rm -f *.o *.mod *.a *.dat *~ $(TARGET) *.m *.h5
+# Since the sometimes-included PETSc makefile uses a double-colon to define clean, we must do the same here:
+clean::
+	rm -f *.o *.mod *.a *.dat *~ $(TARGET) perfectMatrices.m perfectOutput.h5
 	cd quadpack; rm -f *.o *.a
 
+test_make:
+	@echo PERFECT_SYSTEM is $(PERFECT_SYSTEM)
+	@echo FC is $(FC)
+	@echo FLINKER is $(FLINKER)
+	@echo EXTRA_COMPILE_FLAGS is $(EXTRA_COMPILE_FLAGS)
+	@echo EXTRA_LINK_FLAGS is $(EXTRA_LINK_FLAGS)
+	@echo PETSC_LIB is $(PETSC_LIB)
+	@echo TARGET is $(TARGET)
+	@echo OBJ_FILES is $(OBJ_FILES)
+
+test: $(TARGET)
+	@echo "Beginning functional tests." && cd examples && export PERFECT_RETEST=no && ./runExamples.py
+
+retest: $(TARGET)
+	@echo "Testing perfectOutput.h5 for examples without re-running then." && cd examples && export PERFECT_RETEST=yes && ./runExamples.py
