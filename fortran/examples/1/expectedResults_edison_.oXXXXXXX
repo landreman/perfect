@@ -1,0 +1,172 @@
+ ****************************************************************************
+ PERFECT: Pedestal and Edge Radially-global Fokker-Planck Evaluation of Collisio
+ nal Transport.
+ Using double precision.
+ Parallel job (  24 processes) detected.
+ Successfully read parameters from flowControl namelist in input.namelist.
+ Successfully read parameters from geometryParameters namelist in input.namelist
+ .
+ Successfully read parameters from speciesParameters namelist in input.namelist.
+ Successfully read parameters from physicsParameters namelist in input.namelist.
+ Successfully read parameters from resolutionParameters namelist in 
+ input.namelist.
+ Successfully read parameters from otherNumericalParameters namelist in 
+ input.namelist.
+ Successfully read parameters from preconditionerOptions namelist in 
+ input.namelist.
+ mumps detected
+ superlu_dist detected
+ [           1 ] ---- Physics parameters: ----
+ [           1 ] number of species =            2
+ [           1 ] masses =    1.00000000000000       2.720000000000000E-004
+ [           1 ] charges =    1.00000000000000       -1.00000000000000     
+ [           1 ] desiredU =   0.500000000000000     
+ [           1 ] epsilon =   0.300000000000000     
+ [           1 ] nu_r =   0.100000000000000     
+ [           1 ] Geometry scheme:            1
+ [           1 ] Making the local approximation
+ [           1 ] ---- Numerical parameters: ----
+ [           1 ] NpsiPerDiameter    =    100.000000000000     
+ [           1 ] psiDiameter        =   0.250000000000000     
+ [           1 ] widthExtender      =   0.000000000000000E+000
+ [           1 ] Npsi               =           26
+ [           1 ] Ntheta             =           11
+ [           1 ] Nxi                =            9
+ [           1 ] NL                 =            4
+ [           1 ] Nx                 =            6
+ [           1 ] NxPotentialsPerVth =    30.0000000000000     
+ [           1 ] xMax               =    5.00000000000000     
+ [           1 ] solverTolerance    =   1.000000000000000E-005
+ [           1 ] xScaleFactor       =    1.00000000000000     
+ [           1 ] Psi derivative: centered finite differences, 5-point stencil
+ [           1 ] Theta derivative: centered finite differences, 5-point stencil
+ [           1 ] Using iterative solver
+ [           1 ] The matrix is        30992 x       30992  elements.
+ [           1 ] Processor            1  owns psi indices            1  to 
+           2
+ [           1 ] Processor            8  owns psi indices           10  to 
+ [           1 ] Processor            2  owns psi indices            3  to 
+ [           1 ] Processor           12  owns psi indices           14  to 
+           4
+ [           1 ] Processor            6  owns psi indices            8  to 
+          14
+          10
+           8
+ [           1 ] Processor           10  owns psi indices           12  to 
+          12
+ [           1 ] Processor           11  owns psi indices           13  to 
+ [           1 ] Processor           20  owns psi indices           22  to 
+ [           1 ] Processor            3  owns psi indices            5  to 
+          22
+           5
+          13
+ [           1 ] Processor           18  owns psi indices           20  to 
+ [           1 ] Processor            4  owns psi indices            6  to 
+ [           1 ] Processor            7  owns psi indices            9  to 
+ [           1 ] Processor            5  owns psi indices            7  to 
+           6
+ [           1 ] Processor           21  owns psi indices           23  to 
+           7
+          20
+ [           1 ] Processor           24  owns psi indices           26  to 
+          23
+ [           1 ] Processor            9  owns psi indices           11  to 
+          26
+ [           1 ] Processor           19  owns psi indices           21  to 
+          11
+          21
+ [           1 ] Processor           16  owns psi indices           18  to 
+ [           1 ] Processor           14  owns psi indices           16  to 
+          18
+          16
+ [           1 ] Processor           15  owns psi indices           17  to 
+ [           1 ] Processor           17  owns psi indices           19  to 
+          17
+ [           1 ] Processor           22  owns psi indices           24  to 
+          19
+          24
+           9
+ [           1 ] Processor           13  owns psi indices           15  to 
+ [           1 ] Processor           23  owns psi indices           25  to 
+          15
+          25
+ [           1 ] Time to pre-assemble preconditioner matrix: 
+  6.505107879638672E-002  seconds.
+ [           1 ] Time to assemble preconditioner matrices: 
+  5.910873413085938E-003  seconds.
+ [           1 ] Time to pre-assemble matrix:   8.802700042724609E-002  seconds.
+ [           1 ] Time to assemble matrices:   8.344173431396484E-003  seconds.
+ [           1 ] Proc          24 
+  is solving local kinetic equation at right boundary ...
+ [           1 ] Proc           1 
+  is solving local kinetic equation at left boundary ...
+  0 KSP Residual norm 2.231356130190e+00 
+  0 KSP Residual norm 2.123744167629e+00 
+  2 KSP Residual norm 8.820486221297e-01 
+  2 KSP Residual norm 9.922815998007e-01 
+  4 KSP Residual norm 4.394384367539e-01 
+  4 KSP Residual norm 6.480426134867e-01 
+  6 KSP Residual norm 2.879033217925e-01 
+  6 KSP Residual norm 3.175307954859e-01 
+  8 KSP Residual norm 1.148513358054e-02 
+  8 KSP Residual norm 1.177577689899e-01 
+ 10 KSP Residual norm 1.099720373238e-03 
+ 10 KSP Residual norm 7.791653194053e-02 
+ 12 KSP Residual norm 8.562405976740e-05 
+ 12 KSP Residual norm 2.506115718145e-02 
+ 14 KSP Residual norm 1.553489937633e-05 
+ [           1 ] Done solving for right boundary.  Time to solve: 
+  4.733085632324219E-003  seconds.
+ [           1 ] Solution at right boundary converged!  KSPConvergedReason = 
+           2
+ 14 KSP Residual norm 1.614844259520e-03 
+ 16 KSP Residual norm 1.127582133634e-03 
+ 18 KSP Residual norm 3.472283580608e-04 
+ 20 KSP Residual norm 2.138364472469e-04 
+ 22 KSP Residual norm 3.189086592366e-05 
+ [           1 ] Done solving for left boundary.  Time to solve: 
+  6.248950958251953E-003  seconds.
+ [           1 ] Solution at left boundary converged!  KSPConvergedReason = 
+           2
+ [           1 ] Using mumps to factorize the preconditioner.
+ [           1 ] # of nonzeros in matrix:      572365 
+ , # of nonzeros in preconditioner:      301344 , ratio:  0.526489215797612     
+ [           1 ] Beginning the main solve.  This could take a while ...
+  0 KSP Residual norm 1.879049280270e+01 
+  2 KSP Residual norm 1.006308063431e+01 
+  4 KSP Residual norm 1.015196926131e+01 
+  6 KSP Residual norm 1.532657201292e+00 
+  8 KSP Residual norm 6.254892566076e-01 
+ 10 KSP Residual norm 3.088087522113e-01 
+ 12 KSP Residual norm 1.474035994247e-01 
+ 14 KSP Residual norm 9.269617982470e-02 
+ 16 KSP Residual norm 4.042807509164e-02 
+ 18 KSP Residual norm 1.728730289045e-02 
+ 20 KSP Residual norm 1.951727358028e-02 
+ 22 KSP Residual norm 1.299651502420e-03 
+ 24 KSP Residual norm 6.703255986960e-04 
+ 26 KSP Residual norm 1.668634573860e-04 
+ 28 KSP Residual norm 9.677473556577e-05 
+ [           1 ] Done with the main solve.  Time to solve: 
+  0.299906969070435       seconds.
+ [           1 ] Converged!  KSPConvergedReason =            2
+ [           1 ] Total elapsed time:   0.484436988830566       seconds.
+Application 8484061 resources: utime ~18s, stime ~2s, Rss ~40096, inblocks ~57622, outblocks ~149988
+
+ + --------------------------------------------------------------------------
+ +        Job name: perfect
+ +          Job Id: 2053042.edique02
+ +          System: edison
+ +     Queued Time: Mon Nov 17 12:26:52 2014
+ +      Start Time: Mon Nov 17 12:27:38 2014
+ + Completion Time: Mon Nov 17 12:27:46 2014
+ +            User: landrema
+ +        MOM Host: nid02048
+ +           Queue: debug
+ +  Req. Resources: mppnodect=1,mppnppn=24,mppwidth=24,walltime=00:10:00
+ +  Used Resources: cput=00:00:01,mem=0kb,vmem=0kb,walltime=00:00:09
+ +     Acct String: mp217
+ +   PBS_O_WORKDIR: /global/scratch2/sd/landrema/perfect/fortran/examples/1
+ +     Submit Args: job.edison
+ + --------------------------------------------------------------------------
+
