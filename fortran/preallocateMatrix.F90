@@ -100,6 +100,7 @@ subroutine preallocateMatrix(matrix, whichMatrix)
         do ipsi = 1, Npsi
            index = Npsi*localMatrixSize + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 1
            predictedNNZsForEachRow(index) = Ntheta*Nx + 1  !+1 for diagonal
+           predictedNNZsForEachRow(index+1) = Ntheta*Nx + 1  !+1 for diagonal
         end do
      end do
   end if

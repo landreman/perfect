@@ -648,6 +648,25 @@ subroutine solveDKE()
          call preallocateMatrix(rightMatrix, 1)
       end if
 
+      ! Sometimes PETSc complains if any of the diagonal elements are not set.
+      ! Therefore, set the entire diagonal to 0 to be safe.
+      if (masterProcInSubComm) then
+         do i=1,matrixSize
+            call MatSetValue(matrix, i-1, i-1, zero, ADD_VALUES, ierr)
+         end do
+      end if
+      if (procThatHandlesLeftBoundary) then
+         do i=1,localMatrixSize
+            call MatSetValue(leftMatrix, i-1, i-1, zero, ADD_VALUES, ierr)
+         end do
+      end if
+      if (procThatHandlesRightBoundary) then
+         do i=1,localMatrixSize
+            call MatSetValue(rightMatrix, i-1, i-1, zero, ADD_VALUES, ierr)
+         end do
+      end if
+
+
       ! *********************************************************
       ! Add the streaming and mirror terms which persist even 
       ! in the (delta,omega)=(0,0) limit:
