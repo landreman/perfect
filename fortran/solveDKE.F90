@@ -33,7 +33,7 @@ subroutine solveDKE()
   PetscScalar, dimension(:), allocatable :: thetaWeights, rSingleSpecies
   PetscScalar, dimension(:,:), allocatable :: ddtheta, d2dtheta2, thetaPartMatrix
   PetscScalar, dimension(:,:), allocatable :: thetaPartOfStreamingTerm, xPartOfXDot
-  integer :: i, j, ix, itheta, ipsi, L, NxPotentials, matrixSize, localMatrixSize, index
+  integer :: i, j, ix, itheta, ipsi, L, NxPotentials, index
   integer :: ispecies, iSpeciesA, iSpeciesB
   integer :: ithetaRow, ithetaCol, scheme, ipsiMinInterior, ipsiMaxInterior, ell
   PetscScalar, dimension(:), allocatable :: x, xWeights, xPotentials, xWeightsPotentials
@@ -52,8 +52,7 @@ subroutine solveDKE()
   PetscScalar, dimension(:,:), allocatable :: M22BackslashM21, M33BackslashM32, ddpsiToUse
   PetscScalar, dimension(:,:,:), allocatable :: M22BackslashM21s, M33BackslashM32s
   integer, dimension(:), allocatable :: IPIV  ! Needed by LAPACK
-  integer :: LAPACKInfo, predictedNNZForEachRowOfPreconditioner, predictedNNZForEachRowOfTotalMatrix
-  integer :: predictedNNZForEachRowOfPreconditionerBoundary, predictedNNZForEachRowOfTotalMatrixBoundary
+  integer :: LAPACKInfo
   PetscScalar :: xDotFactor, LFactor, temp, temp1, temp2, speciesFactor, speciesFactor2
   PetscScalar, dimension(:), allocatable :: thetaPartOfPsiDot
   PetscScalar, dimension(:,:), allocatable :: localddpsiToUse, everythingButLInPsiDot, ddpsiForKTheta
@@ -621,17 +620,8 @@ subroutine solveDKE()
    allocate(KWithoutThetaPart(Nx,Nx))
    allocate(IPIV(NxPotentials))
 
-   !predictedNNZForEachRowOfTotalMatrix = (2*Ntheta + 2 + Nx)*Npsi
+   !predictedNNZForEachRowOfTotalMatrix = 5*(Nx + 5*3 + 5*5 + 3*Nx + 5 +2)
    !predictedNNZForEachRowOfTotalMatrixBoundary = (2*Ntheta + 2 + Nx)
-
-   predictedNNZForEachRowOfTotalMatrix = 5*(Nx + 5*3 + 5*5 + 3*Nx + 5 +2)
-   predictedNNZForEachRowOfTotalMatrixBoundary = (2*Ntheta + 2 + Nx)
-
-   !predictedNNZForEachRowOfPreconditioner = (2*Ntheta + 2 + 1)*Npsi
-   !predictedNNZForEachRowOfPreconditionerBoundary = (2*Ntheta + 2 + 1)
-
-   predictedNNZForEachRowOfPreconditioner = predictedNNZForEachRowOfTotalMatrix
-   predictedNNZForEachRowOfPreconditionerBoundary = predictedNNZForEachRowOfTotalMatrixBoundary
 
    makeLocalApproximationOriginal = makeLocalApproximation
 
@@ -649,53 +639,14 @@ subroutine solveDKE()
          makeLocalApproximation = .true.
       end if
 
-      ! Allocate the main global matrix:
-      if (whichMatrix==0) then
-         call MatCreateAIJ(MPIComm, PETSC_DECIDE, PETSC_DECIDE, matrixSize, matrixSize, &
-              predictedNNZForEachRowOfPreconditioner, PETSC_NULL_INTEGER, &
-              predictedNNZForEachRowOfPreconditioner, PETSC_NULL_INTEGER, &
-              matrix, ierr)
-      else
-         call MatCreateAIJ(MPIComm, PETSC_DECIDE, PETSC_DECIDE, matrixSize, matrixSize, &
-              predictedNNZForEachRowOfTotalMatrix, PETSC_NULL_INTEGER, &
-              predictedNNZForEachRowOfTotalMatrix, PETSC_NULL_INTEGER, &
-              matrix, ierr)
-      end if
-      CHKERRQ(ierr)
-
-      ! Allocate the local matrix for the left boundary:
+      ! In  preallocateMatrix, the last parameter is 0 for the global matrix, or 1 for the local matrices.
+      call preallocateMatrix(matrix, 0)
       if (procThatHandlesLeftBoundary) then
-         ! This process handles the left boundary
-         if (whichMatrix==0) then
-            call MatCreateAIJ(PETSC_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, localMatrixSize, localMatrixSize, &
-                 predictedNNZForEachRowOfPreconditionerBoundary, PETSC_NULL_INTEGER, &
-                 predictedNNZForEachRowOfPreconditionerBoundary, PETSC_NULL_INTEGER, &
-                 leftMatrix, ierr)
-            CHKERRQ(ierr)
-         else
-            call MatCreateAIJ(PETSC_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, localMatrixSize, localMatrixSize, &
-                 predictedNNZForEachRowOfTotalMatrixBoundary, PETSC_NULL_INTEGER, &
-                 predictedNNZForEachRowOfTotalMatrixBoundary, PETSC_NULL_INTEGER, &
-                 leftMatrix, ierr)
-         end if
+         call preallocateMatrix(leftMatrix, 1)
       end if
-
-      ! Allocate the local matrix for the right boundary:
       if (procThatHandlesRightBoundary) then
-         ! This process handles the right boundary
-         if (whichMatrix==0) then
-            call MatCreateAIJ(PETSC_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, localMatrixSize, localMatrixSize, &
-                 predictedNNZForEachRowOfPreconditionerBoundary, PETSC_NULL_INTEGER, &
-                 predictedNNZForEachRowOfPreconditionerBoundary, PETSC_NULL_INTEGER, &
-                 rightMatrix, ierr)
-         else
-            call MatCreateAIJ(PETSC_COMM_SELF, PETSC_DECIDE, PETSC_DECIDE, localMatrixSize, localMatrixSize, &
-                 predictedNNZForEachRowOfTotalMatrixBoundary, PETSC_NULL_INTEGER, &
-                 predictedNNZForEachRowOfTotalMatrixBoundary, PETSC_NULL_INTEGER, &
-                 rightMatrix, ierr)
-         end if
+         call preallocateMatrix(rightMatrix, 1)
       end if
-      CHKERRQ(ierr)
 
       ! *********************************************************
       ! Add the streaming and mirror terms which persist even 

@@ -170,6 +170,8 @@ module globalVariables
   integer :: NxUniform = 25, NxiUniform = 31
   PetscScalar :: xUniformMax = 3d+0
 
+  integer :: matrixSize, localMatrixSize
+
   ! ********************************************************
   ! ********************************************************
   !
@@ -194,6 +196,8 @@ module globalVariables
 
   integer :: layout = 0
   ! layout is not presently used.
+
+  integer :: PETSCPreallocationStrategy = 1
 
   ! ********************************************************
   ! ********************************************************
