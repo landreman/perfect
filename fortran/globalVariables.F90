@@ -21,19 +21,19 @@ module globalVariables
   ! ********************************************************
   ! ********************************************************
 
-  integer :: programMode
+  integer :: programMode = 1
 
-  character(len=200) :: outputFilename
+  character(len=200) :: outputFilename = 'PERFECTOutput.h5'
 
-  integer :: outputScheme
+  integer :: outputScheme = 1
 
-  logical :: saveMatlabOutput
+  logical :: saveMatlabOutput = .false.
 
-  character(len=200) :: MatlabOutputFilename
+  character(len=200) :: MatlabOutputFilename = 'PERFECT.m'
 
-  logical :: parallelizeOverScan
+  logical :: parallelizeOverScan = .true.
 
-  logical :: solveSystem
+  logical :: solveSystem = .true.
 
   ! ********************************************************
   ! ********************************************************
@@ -45,15 +45,15 @@ module globalVariables
 
   integer :: geometryToUse = 0
 
-  PetscScalar :: epsil
+  PetscScalar :: epsil = 0.1d+0
 
   ! Miller parameters: (these are only used when geometryToUse = 1.)
-  PetscScalar :: Miller_kappa
-  PetscScalar :: Miller_delta
-  PetscScalar :: Miller_s_delta
-  PetscScalar :: Miller_s_kappa
-  PetscScalar :: Miller_dRdr
-  PetscScalar :: Miller_q
+  PetscScalar :: Miller_kappa = 1.66d+0
+  PetscScalar :: Miller_delta = 0.416d+0
+  PetscScalar :: Miller_s_delta = 1.37d+0
+  PetscScalar :: Miller_s_kappa = 0.7d+0
+  PetscScalar :: Miller_dRdr = -0.354d+0
+  PetscScalar :: Miller_q = 3.0d+0
   ! The inverse aspect ratio epsil is also used for Miller geometry.
 
   ! ********************************************************
@@ -72,8 +72,8 @@ module globalVariables
   PetscScalar :: dTHatdpsiScalar
   PetscScalar :: detaHatdpsiScalar
 
-  PetscScalar :: delta
-  PetscScalar :: omega
+  PetscScalar :: delta = 0.0011d+0
+  PetscScalar :: omega = 0.0014d+0
   PetscScalar :: psiAHat
 
   PetscScalar :: psiMid, psiMin, psiMax
@@ -94,8 +94,8 @@ module globalVariables
 
   logical :: includeddpsiTerm
 
-  PetscScalar :: leftBoundaryShift, rightBoundaryShift
-  integer :: leftBoundaryScheme, rightBoundaryScheme
+  PetscScalar :: leftBoundaryShift=0, rightBoundaryShift=0
+  integer :: leftBoundaryScheme=1, rightBoundaryScheme=1
 
   ! ********************************************************
   ! ********************************************************
@@ -165,10 +165,10 @@ module globalVariables
   PetscScalar :: solverToleranceMaxFactor
   integer :: solverToleranceNumRuns
 
-  logical :: forceOddNtheta
+  logical :: forceOddNtheta = .true.
 
-  integer :: NxUniform, NxiUniform
-  PetscScalar :: xUniformMax
+  integer :: NxUniform = 25, NxiUniform = 31
+  PetscScalar :: xUniformMax = 3d+0
 
   ! ********************************************************
   ! ********************************************************
@@ -184,15 +184,15 @@ module globalVariables
 
   PetscScalar :: thresh
 
-  PetscScalar :: xScaleFactor
+  PetscScalar :: xScaleFactor = 1
 
-  logical :: useIterativeSolver
+  logical :: useIterativeSolver = .true.
 
   integer :: whichParallelSolverToFactorPreconditioner
 
   logical :: isAParallelDirectSolverInstalled
 
-  integer :: layout
+  integer :: layout = 0
   ! layout is not presently used.
 
   ! ********************************************************
