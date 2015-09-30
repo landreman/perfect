@@ -5,6 +5,7 @@
 module profiles
 
   use globalVariables
+  use HDF5
 
   implicit none
 
@@ -42,19 +43,185 @@ contains
     PetscScalar, dimension(:,:), allocatable :: temp_d2dpsi2
     PetscScalar, allocatable, dimension(:,:) :: TInterpolationRowVec
     PetscScalar, dimension(1) :: TAtPsiMid
+    integer :: HDF5Error
+    integer(HID_T) :: HDF5FileID, HDF5GroupID, HDF5DatasetID, parallelID
+    character(len=100) :: HDF5Groupname
+    integer(HSIZE_T), dimension(1) :: arraydims1d
+    integer(HSIZE_T), dimension(2) :: arraydims2d
 
     if (profilesScheme .eq. 7) then
-       ! Interface to experimental data goes here.
+       ! Read in profiles from file
 
-       ! Here we must fill the following arrays, which have all already been allocated:
-       ! PhiHat(Npsi)
-       ! dPhiHatdpsi(Npsi)
-       ! THats(numSpecies,Npsi)
-       ! dTHatdpsis(numSpecies,Npsi)
-       ! nHats(numSpecies,Npsi)
-       ! dnHatdpsis(numSpecies,NPsi)
-       ! etaHats(numSpecies,Npsi)
-       ! detaHatdpsis(numSpecies,Npsi)
+       ! Open input file
+       if (.not. len(profilesFilename)>=0) then
+          print *,"If profilesScheme==7 then profilesFilename must be set."
+          stop
+       end if
+       call h5fopen_f(trim(profilesFilename), H5F_ACC_RDONLY_F, HDF5FileID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening profiles input file"
+          stop
+       end if
+       
+       ! Get group for radial profiles
+       write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+       call h5gopen_f(HDF5FileID, trim(HDF5Groupname), HDF5GroupID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening group for profiles with Npsi=",Npsi
+          stop
+       end if
+
+       ! Read in profiles from datasets in the group that was just opened
+       ! PhiHat
+       arraydims1d(1) = Npsi
+       call h5dopen_f(HDF5GroupID, "PhiHat", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening PhiHat dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, PhiHat, arraydims1d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading PhiHat"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing PhiHat dataset"
+          stop
+       end if
+
+       ! dPhiHatdpsi
+       call h5dopen_f(HDF5GroupID, "dPhiHatdpsi", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dPhiHatdpsi dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dPhiHatdpsi, arraydims1d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dPhiHatdpsi"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dPhiHatdpsi dataset"
+          stop
+       end if
+
+       arraydims2d(1) = numSpecies
+       arraydims2d(2) = Npsi
+       ! THats
+       call h5dopen_f(HDF5GroupID, "THats", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening THats dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, THats, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading THats"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing THats dataset"
+          stop
+       end if
+
+       ! dTHatdpsis
+       call h5dopen_f(HDF5GroupID, "dTHatdpsis", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dTHatdpsis dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dTHatdpsis, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dTHatdpsis"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dTHatdpsis dataset"
+          stop
+       end if
+
+       ! nHats
+       call h5dopen_f(HDF5GroupID, "nHats", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening nHats dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, nHats, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading nHats"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing nHats dataset"
+          stop
+       end if
+
+       ! dnHatdpsis
+       call h5dopen_f(HDF5GroupID, "dnHatdpsis", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dnHatdpsis dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dnHatdpsis, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dnHatdpsis"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dnHatdpsis dataset"
+          stop
+       end if
+
+       ! etaHats
+       call h5dopen_f(HDF5GroupID, "etaHats", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening etaHats dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, etaHats, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading etaHats"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing etaHats dataset"
+          stop
+       end if
+
+       ! detaHatdpsis
+       call h5dopen_f(HDF5GroupID, "detaHatdpsis", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening detaHatdpsis dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, detaHatdpsis, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading detaHatdpsis"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing detaHatdpsis dataset"
+          stop
+       end if
+
+       call h5gclose_f(HDF5GroupID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing profiles group"
+          stop
+       end if
+
+       call h5fclose_f(HDF5FileID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing profiles file"
+          stop
+       end if
 
     else
 

@@ -123,7 +123,8 @@
   ! 4 = Profiles with constant analytic plateau-regime heat flux according to the new (corrected) theory, Gaussian U
   ! 5 = Profiles with constant analytic plateau-regime heat flux according to the new (corrected) theory, flat U
   ! 6 = Profiles with constant n^(exponent) * (dT/dpsi), Gaussian U
-  ! 7 = Read in experimental profiles. (Not yet implemented)
+  ! 7 = Read in (experimental?) profiles.
+  profilesFilename = "input.profiles.h5" ! if(profilesScheme == 7) then get profiles from this file
 
   exponent = 2
 

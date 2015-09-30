@@ -83,6 +83,7 @@ module globalVariables
   PetscScalar :: nu_r
 
   integer :: profilesScheme
+  character(len=100) :: profilesFilename
 
   PetscScalar :: exponent
 
