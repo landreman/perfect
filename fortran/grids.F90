@@ -1,8 +1,3 @@
-#include <finclude/petsckspdef.h>
-!#include <finclude/petscdmdadef.h>
-
-!#include "PETScVersions.F90"
-
 module grids
 
   use globalVariables
@@ -11,6 +6,11 @@ module grids
   use polynomialDiffMatrices
   use printToStdout
   use xGrid
+
+#include <finclude/petsckspdef.h>
+!#include <finclude/petscdmdadef.h>
+
+!#include "PETScVersions.F90"
 
   implicit none
 
