@@ -2,14 +2,16 @@ OBJ_FILES = perfect.o xGrid.o geometry.o writeHDF5Output.o globalVariables.o sca
 	polynomialDiffMatrices.o uniformDiffMatrices.o \
 	uniformInterpolationMatrix.o printToStdout.o \
 	profiles.o sparsify.o preallocateMatrix.o \
-	polynomialInterpolationMatrix.o solveDKE.o quadpack/quadpack.a 
+	polynomialInterpolationMatrix.o grids.o \
+        solveDKE.o quadpack/quadpack.a 
 
 # Dependencies:
 geometry.o: globalVariables.o
+grids.o: globalVariables.o polynomialDiffMatrices.o printToStdout.o xGrid.o
 perfect.o: globalVariables.o geometry.o writeHDF5Output.o printToStdout.o solveDKE.o readInput.o scan.o
 preallocateMatrix.o: globalVariables.o
 printToStdout.o: globalVariables.o
 readInput.o: globalVariables.o
 scan.o: globalVariables.o
-solveDKE.o: globalVariables.o xGrid.o geometry.o polynomialDiffMatrices.o printToStdout.o profiles.o sparsify.o
+solveDKE.o: globalVariables.o geometry.o profiles.o sparsify.o grids.o
 writeHDF5Output.o: globalVariables.o scan.o
