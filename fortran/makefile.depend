@@ -6,11 +6,12 @@ OBJ_FILES = perfect.o xGrid.o geometry.o writeHDF5Output.o globalVariables.o sca
         solveDKE.o quadpack/quadpack.a 
 
 # Dependencies:
-geometry.o: globalVariables.o
+geometry.o: globalVariables.o grids.o
 grids.o: globalVariables.o polynomialDiffMatrices.o printToStdout.o xGrid.o
 perfect.o: globalVariables.o geometry.o writeHDF5Output.o printToStdout.o solveDKE.o readInput.o scan.o
 preallocateMatrix.o: globalVariables.o
 printToStdout.o: globalVariables.o
+profiles.o: globalVariables.o grids.o
 readInput.o: globalVariables.o
 scan.o: globalVariables.o
 solveDKE.o: globalVariables.o geometry.o profiles.o sparsify.o grids.o

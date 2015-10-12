@@ -252,6 +252,14 @@ module globalVariables
 
   ! ********************************************************
   !
+  !  Useful intermediate variables
+  !
+  ! ********************************************************
+
+  PetscScalar, dimension(:,:), allocatable :: sqrtTHats
+
+  ! ********************************************************
+  !
   !  Variables related to parallelization:
   !
   ! ********************************************************
@@ -307,6 +315,8 @@ contains
     deallocate(typicalB)
     deallocate(U)
     deallocate(r)
+
+    deallocate(sqrtTHats)
 
     if (masterProcInSubComm) then
        deallocate(particleSourceProfile)

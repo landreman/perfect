@@ -2,6 +2,7 @@ module geometry
   ! Subroutines and functions related to determining B(theta).
 
   use globalVariables
+  use grids
 
   implicit none
 
@@ -76,6 +77,13 @@ contains
     PetscScalar, allocatable, dimension(:) :: bs_1D, dbdthetas_1D, oneOverqRbDotGradThetas_1D
     integer :: i
 
+    allocate(BHat(Ntheta,Npsi))
+    allocate(dBHatdpsi(Ntheta,Npsi))
+    allocate(dBHatdtheta(Ntheta,Npsi))
+    allocate(JHat(Ntheta,Npsi))
+    allocate(IHat(Npsi))
+    allocate(dIHatdpsi(Npsi))
+
     select case (geometryToUse)
     case (0,1,2)
        ! Simplistic profiles in which magnetic quantities have no radial variation
@@ -112,6 +120,22 @@ contains
     end select
 
   end subroutine computeMagneticQuantitiesOnGrids
+
+  ! Fill arrays that can be calculated from the magnetic geometry.
+  subroutine computeDerivedMagneticQuantities()
+    integer :: i
+
+    allocate(VPrimeHat(Npsi))
+    allocate(FSABHat2(Npsi))
+    allocate(typicalB(Npsi))
+
+    do i=1,Npsi
+       VPrimeHat(i) = dot_product(thetaWeights, 1/JHat(:,i))
+       FSABHat2(i) = dot_product(thetaWeights, BHat(:,i) * BHat(:,i) / JHat(:,i)) / VPrimeHat(i)
+       typicalB(i) = sqrt(FSABHat2(i))
+    end do
+
+  end subroutine
 
   !-----------------------------------------------------------------------------------------
   ! Next are a set of functions needed only for simplistic profiles

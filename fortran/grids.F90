@@ -36,7 +36,7 @@ module grids
 
   contains
 
-  subroutine create_grids(upwinding)
+  subroutine createGrids(upwinding)
     PetscScalar, dimension(:,:), allocatable :: localddpsiLeftInterior, localddpsiRightInterior
     PetscScalar, dimension(:), allocatable :: theta_preconditioner, thetaWeights_preconditioner
     PetscScalar, dimension(:), allocatable :: xWeightsPotentials
@@ -392,13 +392,13 @@ module grids
      call polynomialInterpolationMatrix(Nx, NxUniform, x, xUniform, &
           exp(-x*x), exp(-xUniform*xUniform), regridPolynomialToUniformForDiagnostics)
 
-  end subroutine create_grids
+  end subroutine createGrids
 
-  subroutine deallocate_initialization_grid_arrays
+  subroutine deallocateInitializationGridArrays()
 
     deallocate(ddpsi_accurate)
     deallocate(expx2)
 
-  end subroutine deallocate_initialization_grid_arrays
+  end subroutine deallocateInitializationGridArrays
 
 end module grids

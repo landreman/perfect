@@ -5,6 +5,7 @@
 module profiles
 
   use globalVariables
+  use grids
 
   implicit none
 
@@ -42,6 +43,15 @@ contains
     PetscScalar, dimension(:,:), allocatable :: temp_d2dpsi2
     PetscScalar, allocatable, dimension(:,:) :: TInterpolationRowVec
     PetscScalar, dimension(1) :: TAtPsiMid
+
+    allocate(PhiHat(Npsi))
+    allocate(dPhiHatdpsi(Npsi))
+    allocate(THats(numSpecies,Npsi))
+    allocate(dTHatdpsis(numSpecies,Npsi))
+    allocate(etaHats(numSpecies,Npsi))
+    allocate(detaHatdpsis(numSpecies,Npsi))
+    allocate(nHats(numSpecies,Npsi))
+    allocate(dnHatdpsis(numSpecies,Npsi))
 
     if (profilesScheme .eq. 7) then
        ! Interface to experimental data goes here.
@@ -602,6 +612,82 @@ contains
     end if
 
   end subroutine initializeProfiles
+
+  ! Fill some arrays that can be computed from the radial physics profiles.
+  subroutine computeDerivedProfileQuantities()
+
+    PetscScalar, dimension(:), allocatable :: rSingleSpecies
+    integer, dimension(:), allocatable :: IPIV  ! Needed by LAPACK
+    integer :: i, iSpecies
+    integer :: scheme
+    integer :: LAPACKInfo
+
+    allocate(nuPrimeProfile(numSpecies,Npsi))
+    allocate(nuStarProfile(numSpecies,Npsi))
+    allocate(deltaN(numSpecies,Npsi))
+    allocate(deltaT(numSpecies,Npsi))
+    allocate(deltaEta(numSpecies,Npsi))
+    allocate(U(numSpecies,Npsi))
+    allocate(r(numSpecies,Npsi))
+    allocate(rSingleSpecies(Npsi))
+
+    do ispecies = 1,numSpecies
+
+       do i=1,Npsi
+          deltaT(ispecies,i) = abs(delta*sqrt(masses(ispecies))*IHat(i)/(psiAHat*typicalB(i) &
+               *charges(ispecies)*sqrt(THats(ispecies,i)))*dTHatdpsis(ispecies,i))
+          deltaN(ispecies,i) = abs(delta*sqrt(masses(ispecies)*THats(ispecies,i))*IHat(i) &
+               / (psiAHat*charges(ispecies)*typicalB(i)*nHats(ispecies,i)) * dnHatdpsis(ispecies,i))
+          deltaEta(ispecies,i) = abs(delta*sqrt(masses(ispecies)*THats(ispecies,i))*IHat(i) &
+               / (psiAHat*charges(ispecies)*typicalB(i)*etaHats(ispecies,i)) * detaHatdpsis(ispecies,i))
+       end do
+
+       do i=1,Npsi
+          nuPrimeProfile(ispecies,i) = nu_r * Miller_q * nHats(ispecies,i) / (THats(ispecies,i)*THats(ispecies,i))
+          nuStarProfile(ispecies,i) = nuPrimeProfile(ispecies,i) / (epsil*sqrt(epsil))
+       end do
+
+       U(ispecies,:) = omega*IHat*dPhiHatdpsi/psiAHat*sqrt(masses(ispecies)/(FSABHat2*THats(ispecies,:)))
+
+       ! Next, compute r.
+       ! Store dr/dpsi in the variable r, since LAPACK will over-write dr/dpsi with r in a few lines:
+       rSingleSpecies = psiAHat / delta * sqrt(FSABHat2 / THats(ispecies,:)) / IHat
+
+       ! Re-create ddpsi_accurate, since it is over-written in the loop.
+       ! centered finite differences, no upwinding, 5-point stencil
+       scheme = 12
+       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsi_accurate, d2dpsi2)
+       ! Change first row of ddpsi matrix so matrix is nonsingular:
+       ddpsi_accurate(1,:) = 0
+       ddpsi_accurate(1,1) = 1
+
+       allocate(IPIV(Npsi))
+       ! The command below overwrites both ddpsi_accurate and r:
+#if defined(PETSC_USE_REAL_SINGLE)
+       call SGESV(Npsi, 1, ddpsi_accurate, Npsi, IPIV, rSingleSpecies, Npsi, LAPACKInfo)
+#else
+       call DGESV(Npsi, 1, ddpsi_accurate, Npsi, IPIV, rSingleSpecies, Npsi, LAPACKInfo)
+#endif
+       if (LAPACKInfo /= 0) then
+          print *,"LAPACK error 2!!  Info = ",LAPACKInfo
+          stop
+        end if
+       deallocate(IPIV)
+       ! Finally, shift r so its value is 0 at psiMid:
+       if (mod(Npsi,2)==1) then
+          rSingleSpecies = rSingleSpecies - rSingleSpecies((Npsi+1)/2)
+       else
+          rSingleSpecies = rSingleSpecies - (rSingleSpecies(Npsi/2) + rSingleSpecies(Npsi/2+1))/2
+       end if
+
+       r(ispecies,:) = rSingleSpecies
+    end do
+
+    deallocate(rSingleSpecies)
+    allocate(sqrtTHats(numSpecies,Npsi))
+    sqrtTHats = sqrt(THats)
+
+  end subroutine computeDerivedProfileQuantities
 
   !----------------------------------------------------------------------
   ! The subroutines below are used for simplisitic model profiles.
