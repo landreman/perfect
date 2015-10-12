@@ -9,6 +9,7 @@ module solveDKE
   use geometry
   use globalVariables
   use grids
+  use matlabOutput
   use moments
   use profiles
   use sparsify
@@ -29,7 +30,6 @@ contains
   subroutine solveDKEMain()
 
     PetscErrorCode :: ierr
-    PetscViewer MatlabOutput
     ! integer :: scheme
     ! PetscScalar, dimension(:,:), allocatable :: ddpsiForKTheta
     logical :: upwinding
@@ -154,45 +154,10 @@ contains
 
 
     ! *********************************************************
-    ! Create a PETSc viewer to record output
+    ! Create a PETSc viewer to record output for Matlab
     ! *********************************************************
-
     if (saveMatlabOutput) then
-       call PetscViewerASCIIOpen(MPIComm, &
-            & MatlabOutputFilename,&
-            & MatlabOutput, ierr)
-       CHKERRQ(ierr)
-       call PetscViewerSetFormat(MatlabOutput, PETSC_VIEWER_ASCII_MATLAB, ierr)
-       CHKERRQ(ierr)
-
-       call PetscObjectSetName(rhs, "rhs", ierr)
-       CHKERRQ(ierr)
-       call VecView(rhs, MatlabOutput, ierr)
-       CHKERRQ(ierr)
-       call PetscObjectSetName(soln, "soln", ierr)
-       CHKERRQ(ierr)
-       call VecView(soln, MatlabOutput, ierr)
-       CHKERRQ(ierr)
-
-       if (useIterativeSolver) then
-          call PetscObjectSetName(preconditionerMatrix, "preconditionerMatrix", ierr)
-          CHKERRQ(ierr)
-          call MatView(preconditionerMatrix, MatlabOutput, ierr)
-          CHKERRQ(ierr)
-       end if
-       call PetscObjectSetName(matrix, "matrix", ierr)
-       CHKERRQ(ierr)
-       call MatView(matrix, MatlabOutput, ierr)
-       CHKERRQ(ierr)
-
-       call PetscTime(time2, ierr)
-       if (masterProcInSubComm) then
-          print *,"[",myCommunicatorIndex,"] Time to write output: ", time2-time1, " seconds."
-       end if
-       call PetscTime(time1, ierr)
-
-       call PetscViewerDestroy(MatlabOutput, ierr)
-       CHKERRQ(ierr)
+      call writeMatlabOutput(soln,time1)
     end if
 
     ! Clean up PETSc objects
