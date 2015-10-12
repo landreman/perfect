@@ -158,6 +158,7 @@ subroutine solveDKE()
   call DMDACreate1d(MPIComm, DM_BOUNDARY_NONE, Npsi, 1, 0, PETSC_NULL_INTEGER, myDM, ierr)
   call DMDAGetCorners(myDM, ipsiMin, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, &
        localNpsi, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, ierr)
+  call DMDestroy(myDM, ierr) ! dubious
   ! Switch to 1-based indices:
   ipsiMin = ipsiMin + 1
 
@@ -190,7 +191,6 @@ subroutine solveDKE()
   ! *******************************************************************************
   ! Build psi grid, integration weights, and differentiation matrices:
   ! *******************************************************************************
-
   psiMin = psiMid - psiDiameter/two - widthExtender + leftBoundaryShift
   psiMax = psiMid + psiDiameter/two + widthExtender + rightBoundaryShift
 
@@ -470,6 +470,7 @@ subroutine solveDKE()
    allocate(IHat(Npsi))
    allocate(dIHatdpsi(Npsi))
 
+
    ! This subroutine to initialize the magnetic geometry is in geometry.F90.
    ! It must fill the following arrays:
    ! BHat(Npsi,Ntheta)
@@ -479,6 +480,7 @@ subroutine solveDKE()
    ! IHat(Npsi)
    ! dIHatdpsi(Npsi)
    call computeMagneticQuantitiesOnGrids()
+
 
    ! Initialize some arrays that can be calculated from the magnetic geometry.
    allocate(VPrimeHat(Npsi))
@@ -1862,6 +1864,9 @@ subroutine solveDKE()
          ! Syntax for PETSc version 3.5 and later
          call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, ierr)
 #endif
+
+         call MatDestroy(leftPreconditionerMatrix, ierr) !dubious
+         
          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
          call PCSetType(PCBoundary, PCLU, ierr)
          call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
@@ -1882,7 +1887,10 @@ subroutine solveDKE()
          call PCSetType(PCBoundary, PCLU, ierr)
          call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
          call KSPSetFromOptions(KSPBoundary, ierr)
+         
       end if
+
+      call MatDestroy(leftMatrix, ierr) !my dubious addition
 
       call VecDuplicate(rhsLeft, solnLeft, ierr)
       CHKERRQ(ierr)
@@ -1964,6 +1972,9 @@ subroutine solveDKE()
          ! Syntax for PETSc version 3.5 and later
          call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, ierr)
 #endif
+         
+         call MatDestroy(rightPreconditionerMatrix, ierr) !dubious
+         
          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
          call PCSetType(PCBoundary, PCLU, ierr)
          call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
@@ -1984,7 +1995,10 @@ subroutine solveDKE()
          call PCSetType(PCBoundary, PCLU, ierr)
          call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
          call KSPSetFromOptions(KSPBoundary, ierr)
+
       end if
+     
+      call MatDestroy(rightMatrix, ierr) !dubious
 
       call VecDuplicate(rhsRight, solnRight, ierr)
       CHKERRQ(ierr)
@@ -2596,6 +2610,8 @@ subroutine solveDKE()
 
      call VecRestoreArrayF90(solnOnProc0, solnArray, ierr)
      CHKERRQ(ierr)
+
+     call VecDestroy(solnOnProc0, ierr) !dubious
   end if
 
 
@@ -2641,7 +2657,7 @@ subroutine solveDKE()
      CHKERRQ(ierr)
   end if
 
-  !    call VecDestroy(rhs, ierr)
+  call VecDestroy(rhs, ierr) ! dubious
   call VecDestroy(soln, ierr)
   CHKERRQ(ierr)
   call MatDestroy(matrix, ierr)
