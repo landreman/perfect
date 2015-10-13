@@ -22,7 +22,7 @@ contains
 
     namelist / speciesParameters / masses, charges, scalarNHats, scalarTHats
 
-    namelist / physicsParameters / nu_r, profilesScheme, &
+    namelist / physicsParameters / nu_r, profilesScheme, profilesFilename, &
          makeLocalApproximation, desiredU, desiredUMin, desiredUMax, desiredUNumRuns, &
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
          detaHatdpsiScalar, sourcePoloidalVariation, &
