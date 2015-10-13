@@ -42,6 +42,8 @@ class perfectInput:
             return self.epsil * numpy.sin(theta) / (1.+self.epsil*numpy.cos(theta))**2
         elif self.geometryToUse==1:
             print "Error, case not implemented yet"
+            
+            
             exit(2)
         elif self.geometryToUse==2:
             return -self.epsil * numpy.sin(theta)
@@ -76,15 +78,25 @@ class perfectInput:
 
         return dxdpsi
 
+    def ddpsi_spectral(self,x):
+        # uniformDiffMatrices, scheme 20 (spectral diffenentation matrices)
+        print "Spectral diff matrix unimplemented."
+        exit(2)
+        dBdthetaResolutionMultiplier = 10
+        N=dBdthetaResolutionMultiplier*self.Ntheta
+        dxdpsi = numpy.zeros(x.shape)
+
+
     def read(self,inputfilename):
         self.inputfilename = inputfilename
         self.inputfile = f90nml.read(inputfilename)
         physicsParameters = self.inputfile["physicsParameters"]
         resolutionParameters = self.inputfile["resolutionParameters"]
         otherNumericalParameters = self.inputfile["otherNumericalParameters"]
-        if not physicsParameters["profilesScheme"] == 7: # Check that we actually need to create profiles for this input file
-            print "This input file does not require a profiles file (profilesScheme!=7)."
-            exit(1)
+        #if not physicsParameters["profilesScheme"] == 7: # Check that we actually need to create profiles for this input file
+        #!!!! To me, this does not seem like a relevant check for a class to read perfect inputs.
+        #    print "This input file does not require a profiles file (profilesScheme!=7)."
+        #    exit(1)
         if resolutionParameters["NpsiNumRuns"]>0 or resolutionParameters["psiDiameterNumRuns"]>0 or resolutionParameters["widthExtenderNumRuns"]>0:
             print "Scans that change Npsi are not supported"
             exit(1)
@@ -130,8 +142,12 @@ class perfectInput:
             self.numSpecies = 1
 
         # Geometrical stuff
+        # Should perhaps be moved if we rewrite so that geometry
+        # is not defined by inputfile
         geometryParameters = self.inputfile["geometryParameters"]
         self.geometryToUse = geometryParameters["geometryToUse"]
+        self.geometryFilename = geometryParameters["geometryFilename"]
+
         self.epsil = geometryParameters["epsil"]
         self.Miller_kappa = geometryParameters["Miller_kappa"]
         self.Miller_delta = geometryParameters["Miller_delta"]
@@ -139,31 +155,34 @@ class perfectInput:
         self.Miller_s_kappa = geometryParameters["Miller_s_kappa"]
         self.Miller_dRdr = geometryParameters["Miller_dRdr"]
         self.Miller_q = geometryParameters["Miller_q"]
-        if self.geometryToUse==1:
-            self.Miller_x = numpy.arcsin(self.Miller_delta)
-            self.Miller_A = 1./self.epsil
-            NThetaIntegral = 100
-            QQIntegrand = ((1.+self.Miller_s_kappa)*numpy.sin(self.theta + self.Miller_x*numpy.sin(self.theta)) * (1.+self.Miller_x*numpy.cos(self.theta)) * numpy.sin(self.theta) + numpy.cos(self.theta) * (self.Miller_dRdr + numpy.cos(self.theta + self.Miller_x*numpy.sin(self.theta)) - self.Miller_s_delta*numpy.sin(self.theta + self.Miller_x*numpy.sin(self.theta)) * numpy.sin(self.theta))) / self.RHat(self.theta)
-            self.Miller_QQ = self.Miller_kappa / (2.*numpy.pi*self.Miller_A) * QQIntegrand.sum() * 2.*numpy.pi/NThetaIntegral
-        if self.geometryToUse in [0,1,2]:
-            bs_1D = self.computeBs_1D(self.theta)
-            dbdthetas_1D = self.computedBdthetas_1D(self.theta)
-            self.oneOverqRbDotGradThetas_1D = self.computeOneOverqRbDotGradThetas_1D(self.theta)
-            self.BHat = numpy.repeat(bs_1D[numpy.newaxis,:],self.Npsi,axis=0) # Note, using C-ordering instead of Fortran-ordering, so indices are transposed compared to PERFECT, i.e. here the first index is for psi and the second is for theta
-            self.dBHatdtheta = numpy.repeat(dbdthetas_1D[numpy.newaxis,:],self.Npsi,axis=0)
-            self.JHat = numpy.repeat(bs_1D[numpy.newaxis,:] / self.oneOverqRbDotGradThetas_1D / self.Miller_q, self.Npsi, axis=0)
-            self.dBHatdpsi = 0.
-            self.IHat = 1.
-            self.dIHatdpsi = 0.
-        elif self.geometryToUse==3:
-            print "EFIT interface not implemented yet"
-        else:
-            print "Error! Invalid setting for geometryToUse"
-            exit(1)
-
-        self.VPrimeHat = (self.thetaWeights[numpy.newaxis,:] / self.JHat).sum(axis=1)
-        self.FSABHat2 = ( self.thetaWeights[numpy.newaxis,:] * self.BHat**2 / self.JHat / self.VPrimeHat[:,numpy.newaxis] ).sum(axis=1)
-        self.typicalB = numpy.sqrt(self.FSABHat2)
+#        if self.geometryToUse==1:
+#            self.Miller_x = numpy.arcsin(self.Miller_delta)
+#            self.Miller_A = 1./self.epsil
+#            NThetaIntegral = 100
+#            QQIntegrand = ((1.+self.Miller_s_kappa)*numpy.sin(self.theta + self.Miller_x*numpy.sin(self.theta)) * (1.+self.Miller_x*numpy.cos(self.theta)) * numpy.sin(self.theta) + numpy.cos(self.theta) * (self.Miller_dRdr + numpy.cos(self.theta + self.Miller_x*numpy.sin(self.theta)) - self.Miller_s_delta*numpy.sin(self.theta + self.Miller_x*numpy.sin(self.theta)) * numpy.sin(self.theta))) / self.RHat(self.theta)
+#            self.Miller_QQ = self.Miller_kappa / (2.*numpy.pi*self.Miller_A) * QQIntegrand.sum() * 2.*numpy.pi/NThetaIntegral
+#        if self.geometryToUse in [0,1,2]:
+#            bs_1D = self.computeBs_1D(self.theta)
+#            dbdthetas_1D = self.computedBdthetas_1D(self.theta)
+#            self.oneOverqRbDotGradThetas_1D = self.computeOneOverqRbDotGradThetas_1D(self.theta)
+#            self.BHat = numpy.repeat(bs_1D[numpy.newaxis,:],self.Npsi,axis=0) # Note, using C-ordering instead of Fortran-ordering, so indices are transposed compared to PERFECT, i.e. here the first index is for psi and the second is for theta
+#            self.dBHatdtheta = numpy.repeat(dbdthetas_1D[numpy.newaxis,:],self.Npsi,axis=0)
+#            self.JHat = numpy.repeat(bs_1D[numpy.newaxis,:] / self.oneOverqRbDotGradThetas_1D / self.Miller_q, self.Npsi, axis=0)
+#            self.dBHatdpsi = 0.
+#            self.IHat = 1.
+#            self.dIHatdpsi = 0.
+#        elif self.geometryToUse==3:
+#            print "EFIT interface not implemented yet"
+#        elif self.geometryToUse==4:
+#            #May want to calculate things here, or not.
+#            print "How would the input file parser calculate this??"
+#        else:
+#            print "Error! Invalid setting for geometryToUse"
+#            exit(1)
+#
+#        self.VPrimeHat = (self.thetaWeights[numpy.newaxis,:] / self.JHat).sum(axis=1)
+#        self.FSABHat2 = ( self.thetaWeights[numpy.newaxis,:] * self.BHat**2 / self.JHat / self.VPrimeHat[:,numpy.newaxis] ).sum(axis=1)
+#        self.typicalB = numpy.sqrt(self.FSABHat2)
 
     #def setvar(self,group,var,value):
     #    print group,var,value
@@ -178,7 +197,8 @@ class perfectInput:
 
     def changevar(self,group,var,value):
         # Warning: this command will fail silently if the pattern is not found. Sorry about that.
-        subprocess.call("sed -i -e '/\&"+group+"/,/\&/{ s/^  "+var+" =.*/  "+var+" = "+str(value)+"/ } ' "+self.inputfilename, shell=True)
+        # Warning: case insensitive
+        subprocess.call("sed -i -e '/\&"+group+"/,/\&/{ s/^  "+var+" =.*/  "+var+" = "+str(value)+"/I } ' "+self.inputfilename, shell=True)
 
     def __init__(self,inputfilename=None):
         if inputfilename:

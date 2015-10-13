@@ -3,14 +3,21 @@ module geometry
 
   use globalVariables
   use grids
+  use HDF5
+#include <finclude/petscsysdef.h>
+
 
   implicit none
-
-#include <finclude/petscsysdef.h>
 
   logical, private :: initializedYet = .false.
   PetscScalar :: Miller_A, Miller_x, Miller_QQ
   integer, parameter :: NThetaIntegral = 100
+  integer :: HDF5Error
+  integer(HID_T) :: HDF5FileID, HDF5GroupID, HDF5DatasetID, parallelID
+  character(len=100) :: HDF5Groupname
+  integer(HSIZE_T), dimension(1) :: arraydims1d
+  integer(HSIZE_T), dimension(2) :: arraydims2d
+
 
 contains
 
@@ -50,6 +57,13 @@ contains
 
        ! Here, put any steps that only need to be done once even in a parameter scan, such
        ! as reading in data from a file.
+
+    case (4)
+       !Read hdf5 file
+       if (.not. len(geometryFilename)>=0) then
+          print *,"If geometryToUse==4 then geometryFilename must be set."
+          stop
+       end if
 
     case default
        print *,"Error! Invalid geometry."
@@ -113,6 +127,146 @@ contains
        ! JHat(Npsi,Ntheta)
        ! IHat(Npsi)
        ! dIHatdpsi(Npsi)
+
+    case (4)
+       ! Read arrays from hdf5 file
+       call h5fopen_f(trim(geometryFilename), H5F_ACC_RDONLY_F, HDF5FileID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening profiles input file"
+          stop
+       end if
+   
+
+       ! Get group for geometry data
+       write (HDF5Groupname,"(A4,I0,A6,I0)") "Npsi", Npsi, "Ntheta",Ntheta
+       call h5gopen_f(HDF5FileID, trim(HDF5Groupname), HDF5GroupID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening group for profiles with Npsi=",Npsi,", Ntheta=",Ntheta
+          stop
+       end if
+
+
+       ! Specify the dimensions of the arrays to read from the hdf5 file
+       arraydims2d(1) = Npsi
+       arraydims2d(2) = Ntheta
+
+       ! BHat
+       call h5dopen_f(HDF5GroupID, "BHat", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening BHat dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, BHat, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading BHat"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing BHat dataset"
+          stop
+       end if 
+
+       ! dBHatdpsi
+       call h5dopen_f(HDF5GroupID, "dBHatdpsi", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dBHatdpsi dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dBHatdpsi, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dBHatdpsi"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dBHatdpsi dataset"
+          stop
+       end if
+
+       ! dBHatdtheta
+       call h5dopen_f(HDF5GroupID, "dBHatdtheta", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dBHatdtheta dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dBHatdtheta, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dBHatdtheta"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dBHatdtheta dataset"
+          stop
+       end if
+
+       ! JHat
+       call h5dopen_f(HDF5GroupID, "JHat", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening JHat dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, JHat, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading JHat"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing JHat dataset"
+          stop
+       end if
+
+       !Read 1D IHat data
+       arraydims1d(1) = Npsi
+       
+       ! IHat
+       call h5dopen_f(HDF5GroupID, "IHat", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening IHat dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, IHat, arraydims1d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading IHat"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing IHat dataset"
+          stop
+       end if
+
+       ! dIHatdpsi
+       call h5dopen_f(HDF5GroupID, "dIHatdpsi", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dIHatdpsi dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dIHatdpsi, arraydims1d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dIHatdpsi"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dIHatdpsi dataset"
+          stop
+       end if
+ 
+       call h5gclose_f(HDF5GroupID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing geometry group"
+          stop
+       end if
+
+       call h5fclose_f(HDF5FileID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing geometry file"
+          stop
+       end if
+
 
     case default
        print *,"Error! Invalid setting for geometryToUse"

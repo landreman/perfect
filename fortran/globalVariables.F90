@@ -44,6 +44,8 @@ module globalVariables
   ! ********************************************************
 
   integer :: geometryToUse = 0
+  character(len=100) :: geometryFilename
+
 
   PetscScalar :: epsil = 0.1d+0
 
