@@ -203,6 +203,7 @@ contains
           ! Syntax for PETSc version 3.5 and later
           call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, ierr)
 #endif
+          call MatDestroy(leftPreconditionerMatrix, ierr) !dubious
           call KSPGetPC(KSPBoundary, PCBoundary, ierr)
           call PCSetType(PCBoundary, PCLU, ierr)
           call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
@@ -224,6 +225,7 @@ contains
           call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
           call KSPSetFromOptions(KSPBoundary, ierr)
        end if
+       call MatDestroy(leftMatrix, ierr) !dubious
 
        call VecDuplicate(rhsLeft, solnLeft, ierr)
        CHKERRQ(ierr)
@@ -305,6 +307,8 @@ contains
           ! Syntax for PETSc version 3.5 and later
           call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, ierr)
 #endif
+          call MatDestroy(rightPreconditionerMatrix, ierr) !dubious
+
           call KSPGetPC(KSPBoundary, PCBoundary, ierr)
           call PCSetType(PCBoundary, PCLU, ierr)
           call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
@@ -326,6 +330,7 @@ contains
           call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
           call KSPSetFromOptions(KSPBoundary, ierr)
        end if
+       call MatDestroy(rightMatrix, ierr) !dubious
 
        call VecDuplicate(rhsRight, solnRight, ierr)
        CHKERRQ(ierr)
@@ -652,7 +657,7 @@ contains
 
     PetscErrorCode :: ierr
 
-    !    call VecDestroy(rhs, ierr)
+    call VecDestroy(rhs, ierr)
     call VecDestroy(soln, ierr)
     CHKERRQ(ierr)
     call MatDestroy(matrix, ierr)

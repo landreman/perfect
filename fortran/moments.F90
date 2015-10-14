@@ -338,6 +338,8 @@ contains
 
       call VecRestoreArrayF90(solnOnProc0, solnArray, ierr)
       CHKERRQ(ierr)
+
+      call VecDestroy(solnOnProc0, ierr) !dubious
    end if
 
   end subroutine calculateMoments
