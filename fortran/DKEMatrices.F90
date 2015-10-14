@@ -13,9 +13,13 @@ module DKEMatrices
 
   implicit none
 
-  Mat :: matrix, preconditionerMatrix
-  Mat :: leftMatrix, leftPreconditionerMatrix
-  Mat :: rightMatrix, rightPreconditionerMatrix
+  private
+
+  public :: DKECreateMainMatrix
+
+  Mat, public :: matrix, preconditionerMatrix
+  Mat, public :: leftMatrix, leftPreconditionerMatrix
+  Mat, public :: rightMatrix, rightPreconditionerMatrix
 
 contains
   
@@ -119,14 +123,7 @@ contains
         makeLocalApproximation = .true.
      end if
 
-     ! In  preallocateMatrix, the last parameter is 0 for the global matrix, or 1 for the local matrices.
-     call preallocateMatrix(matrix, 0)
-     if (procThatHandlesLeftBoundary) then
-        call preallocateMatrix(leftMatrix, 1)
-     end if
-     if (procThatHandlesRightBoundary) then
-        call preallocateMatrix(rightMatrix, 1)
-     end if
+     call preallocateMatrices(whichMatrix)
 
      ! Sometimes PETSc complains if any of the diagonal elements are not set.
      ! Therefore, set the entire diagonal to 0 to be safe.
@@ -1244,5 +1241,21 @@ contains
  !!$       call PetscViewerDestroy(MatlabOutput, ierr)
 
   end subroutine DKECreateMainMatrix
+
+  subroutine preallocateMatrices(finalMatrix)
+
+    ! finalMatrix==0 for the preconditioner, finalMatrix==1 for the final matrix
+    integer, intent(in) :: finalMatrix
+
+    ! In  preallocateMatrix, the last parameter is 0 for the global matrix, or 1 for the local matrices.
+    call preallocateMatrix(matrix, 0, finalMatrix)
+    if (procThatHandlesLeftBoundary) then
+       call preallocateMatrix(leftMatrix, 1, finalMatrix)
+    end if
+    if (procThatHandlesRightBoundary) then
+       call preallocateMatrix(rightMatrix, 1, finalMatrix)
+    end if
+
+  end subroutine preallocateMatrices
 
 end module DKEMatrices
