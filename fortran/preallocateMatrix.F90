@@ -5,17 +5,21 @@
 #include <petsc/finclude/petscmatdef.h>
 #endif
 
-subroutine preallocateMatrix(matrix, whichMatrix)
+subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   ! whichMatrix = 0 for global, 1 for local.
+  ! finalMatrix = 0 for preconditioner matrix, 1 for final matrix.
 
   use petscmat
   use globalVariables, only: Nx, Nxi, Ntheta, Npsi, numSpecies, matrixSize, localMatrixSize, &
        MPIComm, masterProcInSubComm, numProcsInSubComm, PETSCPreallocationStrategy, &
-       psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme
+       psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
+       preconditioner_species, preconditioner_x, preconditioner_x_min_L, &
+       preconditioner_psi, preconditioner_theta, preconditioner_xi
 
   implicit none
 
-  integer, intent(in) :: whichMatrix
+  integer, intent(in) :: whichMatrix, finalMatrix
+  integer :: thisThetaDerivativeScheme, thisPsiDerivativeScheme, thisxDerivativeScheme
   Mat :: matrix
   integer :: predictedNNZForEachRowOfTotalMatrix, tempInt
   integer, dimension(:), allocatable :: predictedNNZsForEachRow, predictedNNZsForEachRowDiagonal
@@ -39,15 +43,89 @@ subroutine preallocateMatrix(matrix, whichMatrix)
      stop "Invalid whichMatrix!"
   end select
 
+  select case (finalMatrix)
+  case (0)
+     
+     select case (preconditioner_theta)
+     case (0)
+       thisThetaDerivativeScheme = thetaDerivativeScheme
+     case (1)
+       ! Use 3-point finite difference stencil for preconditioner
+       thisThetaDerivativeScheme = 1
+     case default
+       stop "Unrecognized preconditioner_theta"
+     end select
+
+     select case (preconditioner_psi)
+     case (0)
+       ! Use full coupling
+       thisPsiDerivativeScheme = psiDerivativeScheme
+     case (1)
+       ! Use 'less accurate derivative', i.e. 3-point stencil
+       thisPsiDerivativeScheme = 1
+     case (2)
+       ! Drop ddpsi term
+       thisPsiDerivativeScheme = 8
+     case (3)
+       ! Keep only diagonal of ddpsi. Diagonal is already going to be allocated, so do nothing
+       thisPsiDerivativeScheme = 8
+     case (4)
+       ! Drop all global terms (no ddpsi stencil again?)
+       thisPsiDerivativeScheme = 8
+     case default
+       stop "Unrecognized preconditioner_psi"
+     end select
+
+     if (preconditioner_x_min_L == 0) then
+       select case (preconditioner_x)
+       case (0)
+         ! Keep full coupling
+         thisXDerivativeScheme = xDerivativeScheme
+       case (1)
+         ! Drop everything off-diagonal
+         thisXDerivativeScheme = 8
+       case (2)
+         ! Keep only upper-triangular part, just preallocate for full derivative (for now)
+         thisXDerivativeScheme = xDerivativeScheme
+       case (3)
+         ! Keep only tridiagonal terms
+         thisXDerivativeScheme = 2
+       case (4)
+         ! Keep only the diagonal and superdiagonal, preallocate for tridiagonal (for now)
+         thisXDerivativeScheme = 2
+       case (5)
+         ! Use 3-point finite differences
+         thisXDerivativeScheme = 2
+       case default
+         stop "Unrecognized preconditioner_x"
+       end select
+     else
+       ! Only simplify x derivative for some values of L, just preallocate for the full derivative for all L
+       thisXDerivativeScheme = xDerivativeScheme
+     end if
+     
+  case (1)
+     thisThetaDerivativeScheme = thetaDerivativeScheme
+     thisPsiDerivativeScheme = psiDerivativeScheme
+     thisXDerivativeScheme = xDerivativeScheme
+  case default
+     stop "Invalid finalMatrix value"
+  end select
+
   allocate(predictedNNZsForEachRow(thisMatrixSize))
   allocate(predictedNNZsForEachRowDiagonal(thisMatrixSize))
 
   ! Set predictedNNZPerRow_DKE to the expected number of nonzeros in a row of the kinetic equation block:
 
-  predictedNNZPerRow_DKE = 5 & ! d/dxi term is pentadiagonal
-                          + 2  ! particle and heat sources
+  if (finalMatrix==0 .and. preconditioner_xi==1) then
+    predictedNNZPerRow_DKE = 3 & ! d/dxi term is tridiagonal for the preconditioner
+                            + 2  ! particle and heat sources
+  else
+    predictedNNZPerRow_DKE = 5 & ! d/dxi term is pentadiagonal
+                            + 2  ! particle and heat sources
+  end if
 
-  select case (thetaDerivativeScheme)
+  select case (thisThetaDerivativeScheme)
   case (0)
      ! Spectral collocation
      predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Ntheta*5-1  ! d/dtheta terms (dense in theta, pentadiagonal in L, -1 since we already counted the diagonal)
@@ -62,13 +140,15 @@ subroutine preallocateMatrix(matrix, whichMatrix)
   end select
 
   if (whichMatrix == 0) then
-     select case (psiDerivativeScheme)
+     select case (thisPsiDerivativeScheme)
      case (1)
         ! 3 point stencil
         predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*3-1      ! d/dpsi terms (tridiagonal in psi, tridiagonal in L, -1 since we already counted the diagonal)
      case (2)
         ! 5 point stencil
         predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 5*3-1      ! d/dpsi terms (tridiagonal in psi, tridiagonal in L, -1 since we already counted the diagonal)
+     case (8)
+        ! no ddpsi term, so do nothing
      case default
         stop "Invalid psiDerivativeScheme"
      end select
@@ -78,11 +158,23 @@ subroutine preallocateMatrix(matrix, whichMatrix)
   case (0)
      ! Spectral collocation
      predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Nx*3-1          ! xdot*d/dx terms (dense in x, tridiagonal in L, -1 since we already counted the diagonal)
-     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Nx*(numSpecies-1) ! collision operator (dense in x, dense in species, -Nx since we already counted the terms diagonal in both x and species.)
+     if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
+       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Nx*(numSpecies-1) ! collision operator (dense in x, dense in species, -Nx since we already counted the terms diagonal in both x and species.)
+     end if
   case (1)
      ! 5 point stencil
      predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 5*3-1      ! xdot*d/dx terms (pentadiagonal in psi, tridiagonal in L, -1 since we already counted the diagonal)
-     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 5*(numSpecies-1) ! collision operator (pentadiagonal in x, dense in species, -5 since we already counted the terms diagonal in both x and species.)
+     if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
+       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 5*(numSpecies-1) ! collision operator (pentadiagonal in x, dense in species, -5 since we already counted the terms diagonal in both x and species.)
+     end if
+  case (2)
+     ! 3 point stencil, only used for preconditioner at the moment
+     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*3-1      ! xdot*d/dx terms (tridiagonal in psi, tridiagonal in L, -1 since we already counted the diagonal)
+     if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
+       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*(numSpecies-1) ! collision operator (tridiagonal in x, dense in species, -3 since we already counted the terms diagonal in both x and species.)
+     end if
+  case (8)
+     ! Drop everything off-diagonal in x for the preconditioner, so do nothing
   case default
      stop "Invalid xDerivativeScheme"
   end select

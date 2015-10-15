@@ -44,6 +44,8 @@ module globalVariables
   ! ********************************************************
 
   integer :: geometryToUse = 0
+  character(len=100) :: geometryFilename
+
 
   PetscScalar :: epsil = 0.1d+0
 
@@ -83,6 +85,7 @@ module globalVariables
   PetscScalar :: nu_r
 
   integer :: profilesScheme
+  character(len=100) :: profilesFilename
 
   PetscScalar :: exponent
 
@@ -252,6 +255,14 @@ module globalVariables
 
   ! ********************************************************
   !
+  !  Useful intermediate variables
+  !
+  ! ********************************************************
+
+  PetscScalar, dimension(:,:), allocatable :: sqrtTHats
+
+  ! ********************************************************
+  !
   !  Variables related to parallelization:
   !
   ! ********************************************************
@@ -307,6 +318,8 @@ contains
     deallocate(typicalB)
     deallocate(U)
     deallocate(r)
+
+    deallocate(sqrtTHats)
 
     if (masterProcInSubComm) then
        deallocate(particleSourceProfile)

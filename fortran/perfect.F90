@@ -10,6 +10,7 @@ program perfect
   use writeHDF5Output
   use readInput
   use scan
+  use solveDKE
   use petscsysdef
 
   implicit none
@@ -70,7 +71,7 @@ program perfect
      call openOutputFile()
      call allocateArraysForSingleRun()
      call createHDF5Structures()
-     call solveDKE()
+     call solveDKEMain()
      call writeRunToOutputFile(1)
 
   case (2, 3, 4)
@@ -110,7 +111,7 @@ program perfect
         xMax = xMaxsForScan(runNum)
         solverTolerance = solverTolerancesForScan(runNum)
         desiredU = desiredUsForScan(runNum)
-        call solveDKE()
+        call solveDKEmain()
         call writeRunToOutputFile(runNum)
         call deallocateArrays()
      end do

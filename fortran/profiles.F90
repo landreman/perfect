@@ -5,6 +5,8 @@
 module profiles
 
   use globalVariables
+  use grids
+  use HDF5
 
   implicit none
 
@@ -42,19 +44,194 @@ contains
     PetscScalar, dimension(:,:), allocatable :: temp_d2dpsi2
     PetscScalar, allocatable, dimension(:,:) :: TInterpolationRowVec
     PetscScalar, dimension(1) :: TAtPsiMid
+    integer :: HDF5Error
+    integer(HID_T) :: HDF5FileID, HDF5GroupID, HDF5DatasetID, parallelID
+    character(len=100) :: HDF5Groupname
+    integer(HSIZE_T), dimension(1) :: arraydims1d
+    integer(HSIZE_T), dimension(2) :: arraydims2d
+
+    allocate(PhiHat(Npsi))
+    allocate(dPhiHatdpsi(Npsi))
+    allocate(THats(numSpecies,Npsi))
+    allocate(dTHatdpsis(numSpecies,Npsi))
+    allocate(etaHats(numSpecies,Npsi))
+    allocate(detaHatdpsis(numSpecies,Npsi))
+    allocate(nHats(numSpecies,Npsi))
+    allocate(dnHatdpsis(numSpecies,Npsi))
 
     if (profilesScheme .eq. 7) then
-       ! Interface to experimental data goes here.
+       ! Read in profiles from file
 
-       ! Here we must fill the following arrays, which have all already been allocated:
-       ! PhiHat(Npsi)
-       ! dPhiHatdpsi(Npsi)
-       ! THats(numSpecies,Npsi)
-       ! dTHatdpsis(numSpecies,Npsi)
-       ! nHats(numSpecies,Npsi)
-       ! dnHatdpsis(numSpecies,NPsi)
-       ! etaHats(numSpecies,Npsi)
-       ! detaHatdpsis(numSpecies,Npsi)
+       ! Open input file
+       if (.not. len(profilesFilename)>=0) then
+          print *,"If profilesScheme==7 then profilesFilename must be set."
+          stop
+       end if
+       call h5fopen_f(trim(profilesFilename), H5F_ACC_RDONLY_F, HDF5FileID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening profiles input file"
+          stop
+       end if
+       
+       ! Get group for radial profiles
+       write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+       call h5gopen_f(HDF5FileID, trim(HDF5Groupname), HDF5GroupID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening group for profiles with Npsi=",Npsi
+          stop
+       end if
+
+       ! Read in profiles from datasets in the group that was just opened
+       ! PhiHat
+       arraydims1d(1) = Npsi
+       call h5dopen_f(HDF5GroupID, "PhiHat", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening PhiHat dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, PhiHat, arraydims1d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading PhiHat"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing PhiHat dataset"
+          stop
+       end if
+
+       ! dPhiHatdpsi
+       call h5dopen_f(HDF5GroupID, "dPhiHatdpsi", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dPhiHatdpsi dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dPhiHatdpsi, arraydims1d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dPhiHatdpsi"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dPhiHatdpsi dataset"
+          stop
+       end if
+
+       arraydims2d(1) = numSpecies
+       arraydims2d(2) = Npsi
+       ! THats
+       call h5dopen_f(HDF5GroupID, "THats", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening THats dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, THats, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading THats"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing THats dataset"
+          stop
+       end if
+
+       ! dTHatdpsis
+       call h5dopen_f(HDF5GroupID, "dTHatdpsis", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dTHatdpsis dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dTHatdpsis, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dTHatdpsis"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dTHatdpsis dataset"
+          stop
+       end if
+
+       ! nHats
+       call h5dopen_f(HDF5GroupID, "nHats", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening nHats dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, nHats, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading nHats"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing nHats dataset"
+          stop
+       end if
+
+       ! dnHatdpsis
+       call h5dopen_f(HDF5GroupID, "dnHatdpsis", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening dnHatdpsis dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, dnHatdpsis, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading dnHatdpsis"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing dnHatdpsis dataset"
+          stop
+       end if
+
+       ! etaHats
+       call h5dopen_f(HDF5GroupID, "etaHats", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening etaHats dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, etaHats, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading etaHats"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing etaHats dataset"
+          stop
+       end if
+
+       ! detaHatdpsis
+       call h5dopen_f(HDF5GroupID, "detaHatdpsis", HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error opening detaHatdpsis dataset"
+          stop
+       end if
+       call h5dread_f(HDF5DatasetID, H5T_NATIVE_DOUBLE, detaHatdpsis, arraydims2d, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error reading detaHatdpsis"
+          stop
+       end if
+       call h5dclose_f(HDF5DatasetID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing detaHatdpsis dataset"
+          stop
+       end if
+
+       call h5gclose_f(HDF5GroupID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing profiles group"
+          stop
+       end if
+
+       call h5fclose_f(HDF5FileID, HDF5Error)
+       if (HDF5Error < 0) then
+          print *,"Error closing profiles file"
+          stop
+       end if
 
     else
 
@@ -602,6 +779,82 @@ contains
     end if
 
   end subroutine initializeProfiles
+
+  ! Fill some arrays that can be computed from the radial physics profiles.
+  subroutine computeDerivedProfileQuantities()
+
+    PetscScalar, dimension(:), allocatable :: rSingleSpecies
+    integer, dimension(:), allocatable :: IPIV  ! Needed by LAPACK
+    integer :: i, iSpecies
+    integer :: scheme
+    integer :: LAPACKInfo
+
+    allocate(nuPrimeProfile(numSpecies,Npsi))
+    allocate(nuStarProfile(numSpecies,Npsi))
+    allocate(deltaN(numSpecies,Npsi))
+    allocate(deltaT(numSpecies,Npsi))
+    allocate(deltaEta(numSpecies,Npsi))
+    allocate(U(numSpecies,Npsi))
+    allocate(r(numSpecies,Npsi))
+    allocate(rSingleSpecies(Npsi))
+
+    do ispecies = 1,numSpecies
+
+       do i=1,Npsi
+          deltaT(ispecies,i) = abs(delta*sqrt(masses(ispecies))*IHat(i)/(psiAHat*typicalB(i) &
+               *charges(ispecies)*sqrt(THats(ispecies,i)))*dTHatdpsis(ispecies,i))
+          deltaN(ispecies,i) = abs(delta*sqrt(masses(ispecies)*THats(ispecies,i))*IHat(i) &
+               / (psiAHat*charges(ispecies)*typicalB(i)*nHats(ispecies,i)) * dnHatdpsis(ispecies,i))
+          deltaEta(ispecies,i) = abs(delta*sqrt(masses(ispecies)*THats(ispecies,i))*IHat(i) &
+               / (psiAHat*charges(ispecies)*typicalB(i)*etaHats(ispecies,i)) * detaHatdpsis(ispecies,i))
+       end do
+
+       do i=1,Npsi
+          nuPrimeProfile(ispecies,i) = nu_r * Miller_q * nHats(ispecies,i) / (THats(ispecies,i)*THats(ispecies,i))
+          nuStarProfile(ispecies,i) = nuPrimeProfile(ispecies,i) / (epsil*sqrt(epsil))
+       end do
+
+       U(ispecies,:) = omega*IHat*dPhiHatdpsi/psiAHat*sqrt(masses(ispecies)/(FSABHat2*THats(ispecies,:)))
+
+       ! Next, compute r.
+       ! Store dr/dpsi in the variable r, since LAPACK will over-write dr/dpsi with r in a few lines:
+       rSingleSpecies = psiAHat / delta * sqrt(FSABHat2 / THats(ispecies,:)) / IHat
+
+       ! Re-create ddpsi_accurate, since it is over-written in the loop.
+       ! centered finite differences, no upwinding, 5-point stencil
+       scheme = 12
+       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsi_accurate, d2dpsi2)
+       ! Change first row of ddpsi matrix so matrix is nonsingular:
+       ddpsi_accurate(1,:) = 0
+       ddpsi_accurate(1,1) = 1
+
+       allocate(IPIV(Npsi))
+       ! The command below overwrites both ddpsi_accurate and r:
+#if defined(PETSC_USE_REAL_SINGLE)
+       call SGESV(Npsi, 1, ddpsi_accurate, Npsi, IPIV, rSingleSpecies, Npsi, LAPACKInfo)
+#else
+       call DGESV(Npsi, 1, ddpsi_accurate, Npsi, IPIV, rSingleSpecies, Npsi, LAPACKInfo)
+#endif
+       if (LAPACKInfo /= 0) then
+          print *,"LAPACK error 2!!  Info = ",LAPACKInfo
+          stop
+        end if
+       deallocate(IPIV)
+       ! Finally, shift r so its value is 0 at psiMid:
+       if (mod(Npsi,2)==1) then
+          rSingleSpecies = rSingleSpecies - rSingleSpecies((Npsi+1)/2)
+       else
+          rSingleSpecies = rSingleSpecies - (rSingleSpecies(Npsi/2) + rSingleSpecies(Npsi/2+1))/2
+       end if
+
+       r(ispecies,:) = rSingleSpecies
+    end do
+
+    deallocate(rSingleSpecies)
+    allocate(sqrtTHats(numSpecies,Npsi))
+    sqrtTHats = sqrt(THats)
+
+  end subroutine computeDerivedProfileQuantities
 
   !----------------------------------------------------------------------
   ! The subroutines below are used for simplisitic model profiles.

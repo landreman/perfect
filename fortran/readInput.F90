@@ -17,12 +17,12 @@ contains
     namelist / flowControl / programMode, saveMatlabOutput, outputScheme, MatlabOutputFilename, &
          outputFilename, parallelizeOverScan, solveSystem
 
-    namelist / geometryParameters / geometryToUse, epsil, &
+    namelist / geometryParameters / geometryToUse, geometryFilename, epsil, &
          Miller_kappa, Miller_delta, Miller_s_delta, Miller_s_kappa, Miller_dRdr, Miller_q
 
     namelist / speciesParameters / masses, charges, scalarNHats, scalarTHats
 
-    namelist / physicsParameters / nu_r, profilesScheme, &
+    namelist / physicsParameters / nu_r, profilesScheme, profilesFilename, &
          makeLocalApproximation, desiredU, desiredUMin, desiredUMax, desiredUNumRuns, &
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
          detaHatdpsiScalar, sourcePoloidalVariation, &

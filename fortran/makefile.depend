@@ -2,14 +2,22 @@ OBJ_FILES = perfect.o xGrid.o geometry.o writeHDF5Output.o globalVariables.o sca
 	polynomialDiffMatrices.o uniformDiffMatrices.o \
 	uniformInterpolationMatrix.o printToStdout.o \
 	profiles.o sparsify.o preallocateMatrix.o \
-	polynomialInterpolationMatrix.o solveDKE.o quadpack/quadpack.a 
+	polynomialInterpolationMatrix.o grids.o moments.o \
+        matlabOutput.o DKEMatrices.o DKERhs.o solveDKE.o \
+        quadpack/quadpack.a 
 
 # Dependencies:
-geometry.o: globalVariables.o
+DKEMatrices.o: globalVariables.o grids.o sparsify.o
+DKERhs.o: globalVariables.o grids.o
+geometry.o: globalVariables.o grids.o
+grids.o: globalVariables.o polynomialDiffMatrices.o printToStdout.o xGrid.o
+matlabOutput.o: globalVariables.o DKEMatrices.o DKERhs.o
+moments.o: globalVariables.o grids.o
 perfect.o: globalVariables.o geometry.o writeHDF5Output.o printToStdout.o solveDKE.o readInput.o scan.o
 preallocateMatrix.o: globalVariables.o
 printToStdout.o: globalVariables.o
+profiles.o: globalVariables.o grids.o
 readInput.o: globalVariables.o
 scan.o: globalVariables.o
-solveDKE.o: globalVariables.o xGrid.o geometry.o polynomialDiffMatrices.o printToStdout.o profiles.o sparsify.o
+solveDKE.o: DKEMatrices.o DKERhs.o globalVariables.o geometry.o profiles.o sparsify.o grids.o moments.o matlabOutput.o
 writeHDF5Output.o: globalVariables.o scan.o
