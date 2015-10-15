@@ -44,7 +44,7 @@ contains
          xMaxForDistribution, NxUniform, NxiUniform, xUniformMax
 
     namelist / otherNumericalParameters / thresh, xScaleFactor, &
-         useIterativeSolver, &
+         useIterativeSolver, useIterativeBoundarySolver, &
          psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
          whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy
 
@@ -187,6 +187,10 @@ contains
     end if
 
     numSpecies = numCharges
+
+    if (.not. useIterativeSolver) then
+      useIterativeBoundarySolver = .false.
+    end if
 
     ! Other input validation
 
