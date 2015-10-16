@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-#roughly simulates T to get constant heat flux.
-
 from perfectInputFile import perfectInput
 from perfectProfilesFile import perfectProfiles
 from perfectGeometryFile import perfectGeometry
