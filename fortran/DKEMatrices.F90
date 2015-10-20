@@ -44,7 +44,7 @@ contains
     integer :: scheme
     integer :: whichMatrix, whichMatrixMin
     integer, dimension(:), allocatable :: rowIndices, colIndices
-    PetscLogDouble, intent(in) :: time1
+    PetscLogDouble, intent(inout) :: time1
     PetscLogDouble :: time2
 
     !predictedNNZForEachRowOfTotalMatrix = 5*(Nx + 5*3 + 5*5 + 3*Nx + 5 +2)
@@ -116,7 +116,7 @@ contains
        ! Done inserting values into the matrices.
        ! Now finalize the matrices:
        ! *******************************************************************************
-       call finalizeMatrices(whichMatrix)
+       call finalizeMatrices(whichMatrix,time1)
 
     end do
 
@@ -1390,7 +1390,7 @@ contains
 
   end subroutine constraints
 
-  subroutine finalizeMatrices(whichMatrix)
+  subroutine finalizeMatrices(whichMatrix,time1)
 
     ! *******************************************************************************
     ! Done inserting values into the matrices.
@@ -1398,8 +1398,9 @@ contains
     ! *******************************************************************************
 
     integer, intent(in) :: whichMatrix
+    PetscLogDouble, intent(inout) :: time1
     PetscErrorCode :: ierr
-    PetscLogDouble :: time1, time2
+    PetscLogDouble :: time2
 
     call PetscTime(time2, ierr)
     if (masterProcInSubComm) then

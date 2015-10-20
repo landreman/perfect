@@ -21,9 +21,13 @@ module solveDKE
   
   implicit none
 
+  private
+
   Mat :: permutationMatrix
   KSP :: KSPInstance
-  Vec :: soln
+  Vec, public :: soln
+
+  public :: solveDKEMain
 
 contains
 
@@ -184,7 +188,7 @@ contains
     PetscScalar :: signOfPsiDot
     Vec :: solnLeft, solnRight
     PetscScalar, pointer :: solnArray(:)
-    PetscLogDouble, intent(in) :: time1
+    PetscLogDouble, intent(inout) :: time1
     PetscLogDouble :: time2
 
     if (procThatHandlesLeftBoundary) then
@@ -203,7 +207,6 @@ contains
           ! Syntax for PETSc version 3.5 and later
           call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, ierr)
 #endif
-          call MatDestroy(leftPreconditionerMatrix, ierr) !dubious
           call KSPGetPC(KSPBoundary, PCBoundary, ierr)
           call PCSetType(PCBoundary, PCLU, ierr)
           call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
@@ -225,7 +228,6 @@ contains
           call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
           call KSPSetFromOptions(KSPBoundary, ierr)
        end if
-       call MatDestroy(leftMatrix, ierr) !dubious
 
        call VecDuplicate(rhsLeft, solnLeft, ierr)
        CHKERRQ(ierr)
@@ -267,6 +269,8 @@ contains
 
        ! Where trajectories enter the domain, copy solnLeft to the global rhs:
        call VecGetArrayF90(solnLeft, solnArray, ierr)
+       ! Before using the local solution, apply the constraints
+       call applyBoundaryConstraints(solnArray, "inner")
        ipsi = 1
        do ispecies=1,numSpecies
           do itheta=1,Ntheta
@@ -286,6 +290,9 @@ contains
 
        !       call VecView(solnLeft, PETSC_VIEWER_STDOUT_SELF, ierr)
 
+       call MatDestroy(leftPreconditionerMatrix, ierr) !dubious
+       !call PCDestroy(PCBoundary, ierr) ! Don't need to destroy PC obtained from KSPGetPC?
+       call MatDestroy(leftMatrix, ierr) !dubious
        call KSPDestroy(KSPBoundary, ierr)
        call VecDestroy(solnLeft, ierr)
        call VecDestroy(rhsLeft, ierr)
@@ -307,8 +314,6 @@ contains
           ! Syntax for PETSc version 3.5 and later
           call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, ierr)
 #endif
-          call MatDestroy(rightPreconditionerMatrix, ierr) !dubious
-
           call KSPGetPC(KSPBoundary, PCBoundary, ierr)
           call PCSetType(PCBoundary, PCLU, ierr)
           call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
@@ -330,7 +335,6 @@ contains
           call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
           call KSPSetFromOptions(KSPBoundary, ierr)
        end if
-       call MatDestroy(rightMatrix, ierr) !dubious
 
        call VecDuplicate(rhsRight, solnRight, ierr)
        CHKERRQ(ierr)
@@ -372,6 +376,8 @@ contains
 
        ! Where trajectories enter the domain, copy solnRight to the global rhs:
        call VecGetArrayF90(solnRight, solnArray, ierr)
+       ! Before using the local solution, apply the constraints
+       call applyBoundaryConstraints(solnArray, "outer")
        ipsi = Npsi
        do ispecies = 1,numSpecies
           do itheta=1,Ntheta
@@ -389,13 +395,106 @@ contains
        end do
        call VecRestoreArrayF90(solnRight, solnArray, ierr)
 
-       !call PCDestroy(PCBoundary, ierr)
+       call MatDestroy(rightPreconditionerMatrix, ierr) !dubious
+       !call PCDestroy(PCBoundary, ierr) ! Don't need to destroy PC obtained from KSPGetPC?
+       call MatDestroy(rightMatrix, ierr) !dubious
        call KSPDestroy(KSPBoundary, ierr)
        call VecDestroy(solnRight, ierr)
        call VecDestroy(rhsRight, ierr)
     end if
 
   end subroutine solveDKEBoundariesLocal
+
+  ! ***********************************************************************
+  ! ***********************************************************************
+  !
+  !  Apply the constraints (flux surface averaged density and pressure of
+  !  the perturbed distribution function should vanish) to the solution of
+  !  the local DKE before using it as a boundary condition.
+  !
+  !  The constraints are applied by computing the appropriate moments of the
+  !  distribution function found by the solver and subtracting them off: the
+  !  resulting vector should still be a solution of the local DKE (apart
+  !  from discretisation errors), since the moments on which constraints are
+  !  needed are in the null space of the DKE differential operator (indeed
+  !  that is why the constraints are needed).
+  !
+  ! ***********************************************************************
+  ! ***********************************************************************
+  subroutine applyBoundaryConstraints(solnArray, whichBoundary)
+
+    PetscScalar, intent(inout), pointer :: solnArray(:)
+    character(len=*), intent(in) :: whichBoundary
+    integer :: L, ispecies, ipsi, itheta, ix
+    integer, dimension(:), allocatable :: indices
+    !PetscScalar, dimension(:), allocatable :: densityIntegralWeights, pressureIntegralWeights
+    PetscScalar :: FSALocalDensityPerturbation, FSALocalSecondMomentPerturbation
+    PetscScalar, dimension(:), allocatable :: localDensityPerturbation, localSecondMomentPerturbation
+    PetscScalar, dimension(:), allocatable :: x2
+    PetscScalar :: densityFactors, pressureFactors
+
+    allocate(indices(Nx))
+    !allocate(densityIntegralWeights(Nx))
+    !allocate(pressureIntegralWeights(Nx))
+    allocate(localDensityPerturbation(Ntheta))
+    allocate(localSecondMomentPerturbation(Ntheta))
+    allocate(x2(Nx))
+
+    x2 = x*x
+
+    L = 0
+    if (whichBoundary == "inner") then
+      ipsi = 1
+    else if (whichBoundary == "outer") then
+      ipsi = Npsi
+    else
+      stop "Invalid option given to whichBoundary"
+    end if
+    do ispecies=1,numSpecies
+      ! Compute the density and 'second' moments (i.e. integrals of 1 and (x^2-3/2) times g) of the solution
+      do itheta=1,Ntheta
+        indices = (ispecies-1)*Nx*Nxi*Ntheta &
+                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+        ! Removed densityFactors and pressureFactors that are present in moments.F90 (pretty sure they are just normalizations that are not needed here).
+        localDensityPerturbation(itheta) = dot_product(xWeights, x2 * solnArray(indices))
+        localSecondMomentPerturbation(itheta) = dot_product(xWeights, x2*(x2-1.5d0) * solnArray(indices))
+      end do
+      ! Take the flux surface averages
+      FSALocalDensityPerturbation = dot_product(thetaWeights, localDensityPerturbation/JHat(:,ipsi)) / VPrimeHat(ipsi)
+      FSALocalSecondMomentPerturbation = dot_product(thetaWeights, localSecondMomentPerturbation/JHat(:,ipsi)) / VPrimeHat(ipsi)
+      !! print *,"ispecies=",ispecies,"ipsi=",ipsi,"density=",FSALocalDensityPerturbation, &
+      !!        "secondmoment=",FSALocalSecondMomentPerturbation
+      ! Subtract out the moments to set the flux surface averages to zero
+      do itheta=1,Ntheta
+        indices = (ispecies-1)*Nx*Nxi*Ntheta &
+                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+        solnArray(indices) = solnArray(indices) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2)
+        solnArray(indices) = solnArray(indices) - FSALocalSecondMomentPerturbation &
+                                                  *8d0/3d0/sqrt(pi)*(x2-1.5d0)*exp(-x2)
+      end do
+    end do
+
+    !! ! Re-calculate density and pressure perturbation flux surface averages for debugging
+    !! do ispecies=1,numSpecies
+    !!   densityFactors = Delta*4*pi*THats(ispecies,ipsi)*sqrtTHats(ispecies,ipsi) &
+    !!            / (nHats(ispecies,ipsi)*masses(ispecies)*sqrt(masses(ispecies)))
+    !!   pressureFactors = Delta*8*pi/(three*nHats(ispecies,ipsi)) * ((THats(ispecies,ipsi)/masses(ispecies)) ** (1.5d+0))
+    !!   ! Compute the flux surface average of the density and pressure moments of the solution
+    !!   do itheta=1,Ntheta
+    !!     indices = (ispecies-1)*Nx*Nxi*Ntheta &
+    !!               + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+    !!     ! Removed densityFactors and pressureFactors that are present in moments.F90 (pretty sure they are just normalizations that are not needed here).
+    !!     localDensityPerturbation(itheta) = dot_product(xWeights, x2 * solnArray(indices))*densityFactors
+    !!     localSecondMomentPerturbation(itheta) = dot_product(xWeights, x2*(x2) * solnArray(indices))*pressureFactors
+    !!   end do
+    !!   FSALocalDensityPerturbation = dot_product(thetaWeights, localDensityPerturbation/JHat(:,ipsi)) / VPrimeHat(ipsi)
+    !!   FSALocalSecondMomentPerturbation = dot_product(thetaWeights, localSecondMomentPerturbation/JHat(:,ipsi)) / VPrimeHat(ipsi)
+    !!   print *,"check flux surface averages are now zero:"
+    !!   print *,"ispecies=",ispecies,"ipsi=",ipsi,"density=",FSALocalDensityPerturbation,"pressure=",FSALocalSecondMomentPerturbation
+    !!   print *,"densityPerturbation=",localDensityPerturbation
+    !! end do
+
+  end subroutine applyBoundaryConstraints
 
   ! ***********************************************************************
   ! ***********************************************************************
@@ -412,7 +511,7 @@ contains
     KSPConvergedReason :: reason
     Vec :: tempVec
     double precision :: myMatInfo(MAT_INFO_SIZE)
-    PetscLogDouble, intent(in) :: time1
+    PetscLogDouble, intent(inout) :: time1
     PetscLogDouble :: time2
 
     call KSPCreate(MPIComm, KSPInstance, ierr)

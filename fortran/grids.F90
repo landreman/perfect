@@ -206,7 +206,7 @@ module grids
     allocate(ddtheta(Ntheta,Ntheta))
     allocate(ddthetaToUse(Ntheta,Ntheta))
     allocate(d2dtheta2(Ntheta,Ntheta))
-    call uniformDiffMatrices(Ntheta, 0, two*pi, scheme, theta, thetaWeights, ddtheta, d2dtheta2)
+    call uniformDiffMatrices(Ntheta, 0d0, two*pi, scheme, theta, thetaWeights, ddtheta, d2dtheta2)
 
     ! Also make a sparser differentiation matrix for the preconditioner:
     allocate(theta_preconditioner(Ntheta))
@@ -214,7 +214,7 @@ module grids
     allocate(ddtheta_preconditioner(Ntheta,Ntheta))
     allocate(d2dtheta2_preconditioner(Ntheta,Ntheta))
     scheme = 0
-    call uniformDiffMatrices(Ntheta, 0, two*pi, scheme, theta_preconditioner, &
+    call uniformDiffMatrices(Ntheta, 0d0, two*pi, scheme, theta_preconditioner, &
          thetaWeights_preconditioner, ddtheta_preconditioner, d2dtheta2_preconditioner)
 
     ! Find the theta grid point closest to 0 or 2*pi. We will call it the outboard side.
