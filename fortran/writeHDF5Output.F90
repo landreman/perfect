@@ -146,6 +146,16 @@ module writeHDF5Output
   integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForXiUniform
   integer(HSIZE_T), dimension(:,:), allocatable, private :: dimForSpeciesPsiXUniformXiUniform
 
+  ! Stuff for writing debugging output:
+  integer(HID_T), private :: HDF5DebugFileID
+  interface writeDebugArray
+    module procedure writeDebugArray_scalar
+    module procedure writeDebugArray_1d
+    module procedure writeDebugArray_2d
+    module procedure writeDebugArray_3d
+    module procedure writeDebugArray_4d
+  end interface writeDebugArray
+
 contains
 
   ! -----------------------------------------------------------------------------------
@@ -1221,6 +1231,140 @@ contains
     end if
 
   end subroutine closeOutputFile
+
+  subroutine openDebugOutputFile(filename)
+
+    character(len=*), intent(in) :: filename
+
+!#ifdef HAVE_PARALLEL_HDF5
+!    if (outputScheme > 0) then
+!#else
+!    if (outputScheme > 0 .and. masterProcInSubComm) then
+!#endif
+      !print *, "opening",filename
+      call h5open_f(HDF5Error)
+      if (HDF5Error < 0) then
+         print *,"Error initializing HDF5."
+         stop
+      end if
+
+!#ifdef HAVE_PARALLEL_HDF5
+!       ! Initialize some stuff related to parallel file access
+!       call h5pcreate_f(H5P_FILE_ACCESS_F, parallelID, HDF5Error)
+!       call h5pset_fapl_mpio_f(parallelID, MPI_COMM_WORLD, MPI_INFO_NULL, HDF5Error)
+!
+!       call h5fcreate_f(filename, H5F_ACC_TRUNC_F, HDF5DebugFileID, HDF5Error, access_prp=parallelID)
+!#else
+       call h5fcreate_f(filename, H5F_ACC_TRUNC_F, HDF5DebugFileID, HDF5Error)
+!#endif
+       if (HDF5Error < 0) then
+          print *,"Error opening HDF5 output file."
+          stop
+       end if
+
+!    end if
+
+  end subroutine openDebugOutputFile
+
+  subroutine closeDebugOutputFile()
+
+    !print *,"closing"
+    !call h5pclose_f(parallelID,HDF5Error)
+    call h5fclose_f(HDF5DebugFileID,HDF5Error)
+    !! call h5close_f(HDF5Error) ! breaks writing more output later???
+
+  end subroutine closeDebugOutputFile
+
+  subroutine writeDebugArray_scalar(var,varname)
+
+    PetscScalar, intent(in) :: var
+    character(len=*), intent(in) :: varname
+    integer(HID_T) :: dspaceID, dsetID
+    integer(HSIZE_T), dimension(:), allocatable :: dimensions
+
+    !print *,"writing",varname
+
+    dimensions = shape(var)
+
+    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5dcreate_f(HDF5DebugFileID, varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+    call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+    call h5dclose_f(dsetID, HDF5Error)
+    call h5sclose_f(dspaceID, HDF5Error)
+
+  end subroutine writeDebugArray_scalar
+
+  subroutine writeDebugArray_1d(var,varname)
+
+    PetscScalar, dimension(:), allocatable, intent(in) :: var
+    character(len=*), intent(in) :: varname
+    integer(HID_T) :: dspaceID, dsetID
+    integer(HSIZE_T), dimension(:), allocatable :: dimensions
+
+    dimensions = shape(var)
+
+    !print *,"writing",varname
+    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5dcreate_f(HDF5DebugFileID, varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+    call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+    call h5dclose_f(dsetID, HDF5Error)
+    call h5sclose_f(dspaceID, HDF5Error)
+
+  end subroutine writeDebugArray_1d
+
+  subroutine writeDebugArray_2d(var,varname)
+
+    PetscScalar, dimension(:,:), allocatable, intent(in) :: var
+    character(len=*), intent(in) :: varname
+    integer(HID_T) :: dspaceID, dsetID
+    integer(HSIZE_T), dimension(:), allocatable :: dimensions
+
+    dimensions = shape(var)
+
+    !print *,"writing",varname
+    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5dcreate_f(HDF5DebugFileID, varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+    call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+    call h5dclose_f(dsetID, HDF5Error)
+    call h5sclose_f(dspaceID, HDF5Error)
+
+  end subroutine writeDebugArray_2d
+
+  subroutine writeDebugArray_3d(var,varname)
+
+    PetscScalar, dimension(:,:,:), allocatable, intent(in) :: var
+    character(len=*), intent(in) :: varname
+    integer(HID_T) :: dspaceID, dsetID
+    integer(HSIZE_T), dimension(:), allocatable :: dimensions
+
+    dimensions = shape(var)
+
+    !print *,"writing",varname
+    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5dcreate_f(HDF5DebugFileID, varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+    call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+    call h5dclose_f(dsetID, HDF5Error)
+    call h5sclose_f(dspaceID, HDF5Error)
+
+  end subroutine writeDebugArray_3d
+
+  subroutine writeDebugArray_4d(var,varname)
+
+    PetscScalar, dimension(:,:,:,:), allocatable, intent(in) :: var
+    character(len=*), intent(in) :: varname
+    integer(HID_T) :: dspaceID, dsetID
+    integer(HSIZE_T), dimension(:), allocatable :: dimensions
+
+    dimensions = shape(var)
+
+    !print *,"writing",varname
+    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5dcreate_f(HDF5DebugFileID, varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+    call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+    call h5dclose_f(dsetID, HDF5Error)
+    call h5sclose_f(dspaceID, HDF5Error)
+
+  end subroutine writeDebugArray_4d
 
 end module writeHDF5Output
 
