@@ -232,7 +232,7 @@ contains
        select case (leftBoundaryScheme)
        case (0)
           print *,"[",myCommunicatorIndex,"] Setting f_1 at left boundary to 0."
-          call VecSet(solnLeft, 0, ierr)
+          call VecSet(solnLeft, 0d0, ierr)
        case (1)
           print *,"[",myCommunicatorIndex,"] Proc",myRank, &
                " is solving local kinetic equation at left boundary ..."
@@ -337,7 +337,7 @@ contains
        select case (rightBoundaryScheme)
        case (0)
           print *,"[",myCommunicatorIndex,"] Setting f_1 at right boundary to 0."
-          call VecSet(solnRight, 0, ierr)
+          call VecSet(solnRight, 0d0, ierr)
        case (1)
           print *,"[",myCommunicatorIndex,"] Proc",myRank, &
                " is solving local kinetic equation at right boundary ..."
