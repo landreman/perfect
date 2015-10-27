@@ -196,39 +196,6 @@ contains
 
        call VecAssemblyBegin(rhsLeft, ierr)
        call VecAssemblyEnd(rhsLeft, ierr)
-
-       call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
-       if (useIterativeSolver) then
-          ! Use iterative solver
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
-          ! Syntax for PETSc versions up through 3.4:
-          call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, SAME_PRECONDITIONER, ierr)
-#else
-          ! Syntax for PETSc version 3.5 and later
-          call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, ierr)
-#endif
-          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
-          call PCSetType(PCBoundary, PCLU, ierr)
-          call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
-          call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_REAL, &
-               PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
-          call KSPSetFromOptions(KSPBoundary, ierr)
-          call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
-       else
-          ! Direct solver:
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
-          ! Syntax for PETSc versions up through 3.4:
-          call KSPSetOperators(KSPBoundary, leftMatrix, leftMatrix, SAME_PRECONDITIONER, ierr)
-#else
-          ! Syntax for PETSc version 3.5 and later
-          call KSPSetOperators(KSPBoundary, leftMatrix, leftMatrix, ierr)
-#endif
-          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
-          call PCSetType(PCBoundary, PCLU, ierr)
-          call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
-          call KSPSetFromOptions(KSPBoundary, ierr)
-       end if
-
        call VecDuplicate(rhsLeft, solnLeft, ierr)
        CHKERRQ(ierr)
        select case (leftBoundaryScheme)
@@ -236,6 +203,40 @@ contains
           print *,"[",myCommunicatorIndex,"] Setting f_1 at left boundary to 0."
           call VecSet(solnLeft, 0d0, ierr)
        case (1)
+
+          call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
+          if (useIterativeSolver) then
+             ! Use iterative solver
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+             ! Syntax for PETSc versions up through 3.4:
+             call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, SAME_PRECONDITIONER, ierr)
+#else
+             ! Syntax for PETSc version 3.5 and later
+             call KSPSetOperators(KSPBoundary, leftMatrix, leftPreconditionerMatrix, ierr)
+#endif
+             call KSPGetPC(KSPBoundary, PCBoundary, ierr)
+             call PCSetType(PCBoundary, PCLU, ierr)
+             call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
+             call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_REAL, &
+                  PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
+             call KSPSetFromOptions(KSPBoundary, ierr)
+             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
+          else
+             ! Direct solver:
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+             ! Syntax for PETSc versions up through 3.4:
+             call KSPSetOperators(KSPBoundary, leftMatrix, leftMatrix, SAME_PRECONDITIONER, ierr)
+#else
+             ! Syntax for PETSc version 3.5 and later
+             call KSPSetOperators(KSPBoundary, leftMatrix, leftMatrix, ierr)
+#endif
+             call KSPGetPC(KSPBoundary, PCBoundary, ierr)
+             call PCSetType(PCBoundary, PCLU, ierr)
+             call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
+             call KSPSetFromOptions(KSPBoundary, ierr)
+          end if
+
+          CHKERRQ(ierr)
           print *,"[",myCommunicatorIndex,"] Proc",myRank, &
                " is solving local kinetic equation at left boundary ..."
           if (solveSystem) then
@@ -262,38 +263,45 @@ contains
           else
              !didItConverge = integerToRepresentTrue
           end if
+
+          ! Clean up PETSc objects
+          call MatDestroy(leftPreconditionerMatrix, ierr) !dubious
+          !call PCDestroy(PCBoundary, ierr) ! Don't need to destroy PC obtained from KSPGetPC?
+          call MatDestroy(leftMatrix, ierr) !dubious
+          call KSPDestroy(KSPBoundary, ierr)
+
+          ! Before using the local solution, apply the constraints
+          call applyBoundaryConstraints(solnLeft, "inner")
+       case (2)
+          ! Don't do anything
        case default
           print *,"Error! Invalid setting for leftBoundaryScheme"
           stop
        end select
 
        ! Where trajectories enter the domain, copy solnLeft to the global rhs:
-       call VecGetArrayF90(solnLeft, solnArray, ierr)
-       ! Before using the local solution, apply the constraints
-       call applyBoundaryConstraints(solnArray, "inner")
-       ipsi = 1
-       do ispecies=1,numSpecies
-          do itheta=1,Ntheta
-             signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                  / (psiAHat*charges(ispecies))
-             if (signOfPsiDot > -thresh) then
-                do L=0,(Nxi-1)
-                   do ix=1,Nx
-                      index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta
-                      call VecSetValue(rhs, index-1, solnArray(index), INSERT_VALUES, ierr)
-                   end do
-                end do
-             end if
-          end do
-       end do
-       call VecRestoreArrayF90(solnLeft, solnArray, ierr)
+       if (leftBoundaryScheme /= 2) then
+         call VecGetArrayF90(solnLeft, solnArray, ierr)
+         ipsi = 1
+         do ispecies=1,numSpecies
+            do itheta=1,Ntheta
+               signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
+                    / (psiAHat*charges(ispecies))
+               if (signOfPsiDot > -thresh) then
+                  do L=0,(Nxi-1)
+                     do ix=1,Nx
+                        index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta
+                        call VecSetValue(rhs, index-1, solnArray(index), INSERT_VALUES, ierr)
+                     end do
+                  end do
+               end if
+            end do
+         end do
+         call VecRestoreArrayF90(solnLeft, solnArray, ierr)
+       end if
 
        !       call VecView(solnLeft, PETSC_VIEWER_STDOUT_SELF, ierr)
 
-       call MatDestroy(leftPreconditionerMatrix, ierr) !dubious
-       !call PCDestroy(PCBoundary, ierr) ! Don't need to destroy PC obtained from KSPGetPC?
-       call MatDestroy(leftMatrix, ierr) !dubious
-       call KSPDestroy(KSPBoundary, ierr)
        call VecDestroy(solnLeft, ierr)
        call VecDestroy(rhsLeft, ierr)
     end if
@@ -303,39 +311,6 @@ contains
 
        call VecAssemblyBegin(rhsRight, ierr)
        call VecAssemblyEnd(rhsRight, ierr)
-
-       call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
-       if (useIterativeSolver) then
-          ! Use iterative solver
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
-          ! Syntax for PETSc versions up through 3.4:
-          call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, SAME_PRECONDITIONER, ierr)
-#else
-          ! Syntax for PETSc version 3.5 and later
-          call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, ierr)
-#endif
-          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
-          call PCSetType(PCBoundary, PCLU, ierr)
-          call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
-          call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_REAL, &
-               PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
-          call KSPSetFromOptions(KSPBoundary, ierr)
-          call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
-       else
-          ! Direct solver:
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
-          ! Syntax for PETSc versions up through 3.4:
-          call KSPSetOperators(KSPBoundary, rightMatrix, rightMatrix, SAME_PRECONDITIONER, ierr)
-#else
-          ! Syntax for PETSc version 3.5 and later
-          call KSPSetOperators(KSPBoundary, rightMatrix, rightMatrix, ierr)
-#endif
-          call KSPGetPC(KSPBoundary, PCBoundary, ierr)
-          call PCSetType(PCBoundary, PCLU, ierr)
-          call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
-          call KSPSetFromOptions(KSPBoundary, ierr)
-       end if
-
        call VecDuplicate(rhsRight, solnRight, ierr)
        CHKERRQ(ierr)
        select case (rightBoundaryScheme)
@@ -343,6 +318,40 @@ contains
           print *,"[",myCommunicatorIndex,"] Setting f_1 at right boundary to 0."
           call VecSet(solnRight, 0d0, ierr)
        case (1)
+
+          call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
+          if (useIterativeSolver) then
+             ! Use iterative solver
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+             ! Syntax for PETSc versions up through 3.4:
+             call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, SAME_PRECONDITIONER, ierr)
+#else
+             ! Syntax for PETSc version 3.5 and later
+             call KSPSetOperators(KSPBoundary, rightMatrix, rightPreconditionerMatrix, ierr)
+#endif
+             call KSPGetPC(KSPBoundary, PCBoundary, ierr)
+             call PCSetType(PCBoundary, PCLU, ierr)
+             call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
+             call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_REAL, &
+                  PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
+             call KSPSetFromOptions(KSPBoundary, ierr)
+             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
+          else
+             ! Direct solver:
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
+             ! Syntax for PETSc versions up through 3.4:
+             call KSPSetOperators(KSPBoundary, rightMatrix, rightMatrix, SAME_PRECONDITIONER, ierr)
+#else
+             ! Syntax for PETSc version 3.5 and later
+             call KSPSetOperators(KSPBoundary, rightMatrix, rightMatrix, ierr)
+#endif
+             call KSPGetPC(KSPBoundary, PCBoundary, ierr)
+             call PCSetType(PCBoundary, PCLU, ierr)
+             call KSPSetType(KSPBoundary, KSPPREONLY, ierr)
+             call KSPSetFromOptions(KSPBoundary, ierr)
+          end if
+
+          CHKERRQ(ierr)
           print *,"[",myCommunicatorIndex,"] Proc",myRank, &
                " is solving local kinetic equation at right boundary ..."
           if (solveSystem) then
@@ -369,36 +378,43 @@ contains
           else
              !didItConverge = integerToRepresentTrue
           end if
+
+          ! Clean up PETSc objects
+          call MatDestroy(rightPreconditionerMatrix, ierr) !dubious
+          !call PCDestroy(PCBoundary, ierr) ! Don't need to destroy PC obtained from KSPGetPC?
+          call MatDestroy(rightMatrix, ierr) !dubious
+          call KSPDestroy(KSPBoundary, ierr)
+
+          ! Before using the local solution, apply the constraints
+          call applyBoundaryConstraints(solnRight, "outer")
+       case (2)
+          ! Don't do anything
        case default
           print *,"Error! Invalid setting for rightBoundaryScheme"
           stop
        end select
 
        ! Where trajectories enter the domain, copy solnRight to the global rhs:
-       call VecGetArrayF90(solnRight, solnArray, ierr)
-       ! Before using the local solution, apply the constraints
-       call applyBoundaryConstraints(solnArray, "outer")
-       ipsi = Npsi
-       do ispecies = 1,numSpecies
-          do itheta=1,Ntheta
-             signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                  / (psiAHat*charges(ispecies))
-             if (signOfPsiDot < thresh) then
-                do L=0,(Nxi-1)
-                   do ix=1,Nx
-                      index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta
-                      call VecSetValue(rhs, (ipsi-1)*localMatrixSize + index-1, solnArray(index), INSERT_VALUES, ierr)
-                   end do
-                end do
-             end if
-          end do
-       end do
-       call VecRestoreArrayF90(solnRight, solnArray, ierr)
+       if (rightBoundaryScheme /= 2) then
+         call VecGetArrayF90(solnRight, solnArray, ierr)
+         ipsi = Npsi
+         do ispecies = 1,numSpecies
+            do itheta=1,Ntheta
+               signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
+                    / (psiAHat*charges(ispecies))
+               if (signOfPsiDot < thresh) then
+                  do L=0,(Nxi-1)
+                     do ix=1,Nx
+                        index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta
+                        call VecSetValue(rhs, (ipsi-1)*localMatrixSize + index-1, solnArray(index), INSERT_VALUES, ierr)
+                     end do
+                  end do
+               end if
+            end do
+         end do
+         call VecRestoreArrayF90(solnRight, solnArray, ierr)
+       end if
 
-       call MatDestroy(rightPreconditionerMatrix, ierr) !dubious
-       !call PCDestroy(PCBoundary, ierr) ! Don't need to destroy PC obtained from KSPGetPC?
-       call MatDestroy(rightMatrix, ierr) !dubious
-       call KSPDestroy(KSPBoundary, ierr)
        call VecDestroy(solnRight, ierr)
        call VecDestroy(rhsRight, ierr)
     end if
@@ -421,9 +437,11 @@ contains
   !
   ! ***********************************************************************
   ! ***********************************************************************
-  subroutine applyBoundaryConstraints(solnArray, whichBoundary)
+  subroutine applyBoundaryConstraints(soln, whichBoundary)
 
-    PetscScalar, intent(inout), pointer :: solnArray(:)
+    Vec, intent(inout) :: soln
+    PetscScalar, pointer :: solnArray(:)
+    PetscErrorCode :: ierr
     character(len=*), intent(in) :: whichBoundary
     integer :: L, ispecies, ipsi, itheta, ix
     integer, dimension(:), allocatable :: indices
@@ -439,6 +457,8 @@ contains
     allocate(localDensityPerturbation(Ntheta))
     allocate(localSecondMomentPerturbation(Ntheta))
     allocate(x2(Nx))
+
+    call VecGetArrayF90(soln, solnArray, ierr)
 
     x2 = x*x
 
@@ -493,6 +513,8 @@ contains
     !!   print *,"ispecies=",ispecies,"ipsi=",ipsi,"density=",FSALocalDensityPerturbation,"pressure=",FSALocalSecondMomentPerturbation
     !!   print *,"densityPerturbation=",localDensityPerturbation
     !! end do
+
+    call VecRestoreArrayF90(soln, solnArray, ierr)
 
   end subroutine applyBoundaryConstraints
 
