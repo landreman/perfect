@@ -1,0 +1,69 @@
+\documentclass[12pt]{article}
+\usepackage[a4paper,margin=2cm]{geometry}
+\usepackage{amsmath}
+
+\title{Boundary Conditions in PERFECT}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+This document refers to the Fortran version of PERFECT.
+
+PERFECT solves a differential equation which is first order in radial
+derivatives. It therefore requires one radial boundary condition for each
+$(x,\xi,\theta)$ point, while there are two radial boundaries. In order to
+correctly specify the system, the boundary conditions are fixed at the poloidal
+positions on the boundaries where particle trajectories {\em enter} the domain,
+i.e.~where $\boldsymbol{v}_\mathrm{d}.\nabla\psi>0$ on the left boundary or
+$\boldsymbol{v}_\mathrm{d}.\nabla\psi<0$ on the right boundary.
+
+The boundary conditions in PERFECT are set by the options {\tt
+leftBoundaryScheme} (for {\tt ipsi=1}) and {\tt rightBoundaryScheme}
+(for {\tt ipsi=Npsi}). These are integers and may have values {\tt 0}, {\tt 1}
+or {\tt 2}, whose meanings are described below.
+
+
+\section*{{\tt 0}: Dirichlet to Maxwellian}
+
+The perturbed distribution function, $\hat{g}_a$, is set to zero. Therefore the
+distribution function is just the Maxwellian part $f=f_\mathrm{M}(\psi)$.
+
+\section*{{\tt 1}: Dirichlet to local solution}
+
+This assumes that the radial gradients are small at the boundaries, so that the
+solution to the local drift kinetic equation is a good approximation to the
+solution to the global drift kinetic equation.
+
+First the local solution at {\tt ipsi=1} (for the left boundary) or {\tt
+ipsi=Npsi} (for the left boundary) is computed. Then the part of $\hat{g}$ in
+the null space of the drift kinetic operator (i.e. the parts of the density and
+pressure moments that are constant in $\theta$) is subtracted from the
+solution, so that it satisfies the constraints $\left< \int d^3v\, \hat{g}_a
+\right> = 0$ and $\left< \int d^3v\, x_a^2 \hat{g}_a \right> = 0$. Finally the
+solution to the local drift kinetic equation thus obtained is used as a
+Dirichlet boundary condition for the perturbed distribution function,
+$\hat{g}_a$, in the global solution.
+
+\section*{{\tt 2}: Neumann boundary conditions}
+
+This again assumes that the global solution approaches the local one at the
+boundaries, but in a slightly less restrictive way.
+
+The global terms in the drift kinetic equation (i.e.~those which are switched
+off when {\tt makeLocalApproximation=true}) are dropped from the matrix for the
+global drift kinetic operator on the points where the boundary condition is to
+be applied, while the local terms (which remain when {\tt
+makeLocalApproximation=true}) are retained. It has been called a Neumann
+boundary condition since the terms that are dropped include the radial
+derivatives, so that the normal derivative is set to zero.
+
+In contrast to option {\tt 1}, in this case the `local' part of the solution (on
+one half of the boundary flux surface) is able to respond to the `global' part
+(on the other half of the boundary flux surface), to which it is coupled by the
+poloidal derivatives. There is therefore less inconsistency between the points
+on the flux surface on which the boundary condition is applied and those on
+which it is not; this appears to be numerically beneficial (the condition number
+of the matrix is reduced, at least in some cases).
+
+\end{document}

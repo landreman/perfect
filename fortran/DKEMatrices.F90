@@ -254,7 +254,7 @@ contains
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
-                         if (signOfPsiDot < -thresh) then
+                         if (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2) then
                             call MatSetValuesSparse(matrix, 1, rowIndices(itheta), Ntheta, colIndices, &
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
@@ -265,7 +265,7 @@ contains
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
-                         if (signOfPsiDot > thresh) then
+                         if (signOfPsiDot > thresh .or. rightBoundaryScheme == 2) then
                             rowIndexArray = (ipsi-1)*localMatrixSize+rowIndices(itheta)
                             call MatSetValuesSparse(matrix, 1, rowIndexArray, &
                                  Ntheta, (ipsi-1)*localMatrixSize+colIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -299,7 +299,7 @@ contains
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi)&
                               / (psiAHat*charges(ispecies))
-                         if (signOfPsiDot < -thresh) then
+                         if (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2) then
                             call MatSetValuesSparse(matrix, 1, rowIndices(itheta), Ntheta, colIndices, &
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
@@ -310,7 +310,7 @@ contains
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
-                         if (signOfPsiDot > thresh) then
+                         if (signOfPsiDot > thresh .or. rightBoundaryScheme == 2) then
                             rowIndexArray = (ipsi-1)*localMatrixSize+rowIndices(itheta)
                             call MatSetValuesSparse(matrix, 1, rowIndexArray, &
                                  Ntheta, (ipsi-1)*localMatrixSize+colIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -1120,8 +1120,9 @@ contains
                    do itheta=1,Ntheta
                       signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                            / (psiAHat*charges(iSpeciesA))
-                      if ((ipsi > 1 .and. ipsi < Npsi) .or. (ipsi == 1 .and. signOfPsiDot < -thresh) &
-                           .or. (ipsi==Npsi .and. signOfPsiDot > thresh)) then
+                      if ((ipsi > 1 .and. ipsi < Npsi) &
+                           .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
+                           .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
                          ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                          ! so impose the kinetic equation here.
 
@@ -1215,7 +1216,7 @@ contains
     integer :: ispecies
     PetscScalar :: signOfPsiDot
 
-    if (procThatHandlesLeftBoundary) then
+    if (procThatHandlesLeftBoundary .and. leftBoundaryScheme /= 2) then
        ipsi=1
        do ispecies = 1,numSpecies
           do itheta=1,Ntheta
@@ -1232,7 +1233,7 @@ contains
           end do
        end do
     end if
-    if (procThatHandlesRightBoundary) then
+    if (procThatHandlesRightBoundary .and. rightBoundaryScheme /= 2) then
        ipsi = Npsi
        do ispecies = 1,numSpecies
           do itheta=1,Ntheta
@@ -1290,8 +1291,9 @@ contains
              do itheta=1,Ntheta
                 signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                      / (psiAHat*charges(ispecies))
-                if ((ipsi > 1 .and. ipsi < Npsi) .or. (ipsi == 1 .and. signOfPsiDot < -thresh) &
-                     .or. (ipsi==Npsi .and. signOfPsiDot > thresh)) then
+                if ((ipsi > 1 .and. ipsi < Npsi) &
+                     .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
+                     .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
                    ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                    ! so impose the kinetic equation here.
 
@@ -1316,8 +1318,9 @@ contains
              do itheta=1,Ntheta
                 signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                      / (psiAHat*charges(ispecies))
-                if ((ipsi > 1 .and. ipsi < Npsi) .or. (ipsi == 1 .and. signOfPsiDot < -thresh) &
-                     .or. (ipsi==Npsi .and. signOfPsiDot > thresh)) then
+                if ((ipsi > 1 .and. ipsi < Npsi) &
+                     .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
+                     .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
                    ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                    ! so impose the kinetic equation here.
 
