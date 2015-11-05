@@ -135,52 +135,75 @@ module grids
     psiMax = psiMid + psiDiameter/two + widthExtender + rightBoundaryShift
 
     allocate(psi(Npsi))
-    allocate(psiWeights(Npsi))
-    allocate(ddpsiForPreconditioner(Npsi,Npsi))
-    allocate(ddpsiLeft(Npsi,Npsi))
-    allocate(ddpsiRight(Npsi,Npsi))
-    allocate(d2dpsi2(Npsi,Npsi))
-    allocate(localddpsiLeftInterior(localNpsiInterior,Npsi))
-    allocate(localddpsiRightInterior(localNpsiInterior,Npsi))
 
-    ! Build a less-accurate ddpsi which might be used for the preconditioner:
-    if (preconditioner_psi == 1 .and. psiDerivativeScheme == 0) then
-       print *,"Error! It is presently not compatible to set preconditioner_psi=1 and psiDerivativeScheme=0."
-       stop
+    if (Npsi<5) then ! if Npsi<5 then we can do without psi-derivatives, but the simulation must be local
+      
+      !Sanity checks
+      if (.not. makeLocalApproximation) then
+        stop "Npsi is less than 5; this only makes sense when makeLocalApproximation is true, but it is false"
+      end if
+      if ( leftBoundaryScheme/=2 .or. rightBoundaryScheme/=2 ) then
+        stop "Are you sure you want leftBoundaryScheme or rightBoundaryScheme other than 2 &
+              when running with Npsi<5? It is likely to be inefficient because the local &
+              solutions are calculated multiple times for the boundary points."
+      end if
+      
+      ! Just build psi grid
+      if (Npsi>1) then
+        ! Include points at both psiMin and psiMax:
+        psi = [( (psiMax-psiMin)*i/(Npsi-1)+psiMin, i=0,Npsi-1 )]
+      else
+        ! Unless Npsi=1 so that there is only one point, then:
+        psi = psiMid
+      end if
+    else
+      allocate(psiWeights(Npsi))
+      allocate(ddpsiForPreconditioner(Npsi,Npsi))
+      allocate(ddpsiLeft(Npsi,Npsi))
+      allocate(ddpsiRight(Npsi,Npsi))
+      allocate(d2dpsi2(Npsi,Npsi))
+      allocate(localddpsiLeftInterior(localNpsiInterior,Npsi))
+      allocate(localddpsiRightInterior(localNpsiInterior,Npsi))
+
+      ! Build a less-accurate ddpsi which might be used for the preconditioner:
+      if (preconditioner_psi == 1 .and. psiDerivativeScheme == 0) then
+         print *,"Error! It is presently not compatible to set preconditioner_psi=1 and psiDerivativeScheme=0."
+         stop
+      end if
+      ! centered finite differences, no upwinding, 3-point stencil
+      scheme = 2
+      call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
+      ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
+
+      select case (psiDerivativeScheme)
+      case (1)
+         ! centered finite differences, 3-point stencil
+         scheme = 2
+         call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
+      case (2)
+         ! centered finite differences, 5-point stencil
+         scheme = 12
+         call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
+      case default
+         if (masterProcInSubComm) then
+            print *,"[",myCommunicatorIndex,"] Error! Invalid setting for psiDerivativeScheme"
+         end if
+         stop
+      end select
+
+      allocate(ddpsi_accurate(Npsi,Npsi))
+
+      if (.not. upwinding) then
+         ! Copy ddpsiLeft to ddpsiRight
+         do i=1,Npsi
+            do j=1,Npsi
+               ddpsiRight(i,j) = ddpsiLeft(i,j)
+            end do
+         end do
+      end if
+      localddpsiLeftInterior = ddpsiLeft(ipsiMinInterior:ipsiMaxInterior,:)
+      localddpsiRightInterior = ddpsiRight(ipsiMinInterior:ipsiMaxInterior,:)
     end if
-    ! centered finite differences, no upwinding, 3-point stencil
-    scheme = 2
-    call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
-    ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
-
-    select case (psiDerivativeScheme)
-    case (1)
-       ! centered finite differences, 3-point stencil
-       scheme = 2
-       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
-    case (2)
-       ! centered finite differences, 5-point stencil
-       scheme = 12
-       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
-    case default
-       if (masterProcInSubComm) then
-          print *,"[",myCommunicatorIndex,"] Error! Invalid setting for psiDerivativeScheme"
-       end if
-       stop
-    end select
-
-    allocate(ddpsi_accurate(Npsi,Npsi))
-
-    if (.not. upwinding) then
-       ! Copy ddpsiLeft to ddpsiRight
-       do i=1,Npsi
-          do j=1,Npsi
-             ddpsiRight(i,j) = ddpsiLeft(i,j)
-          end do
-       end do
-    end if
-    localddpsiLeftInterior = ddpsiLeft(ipsiMinInterior:ipsiMaxInterior,:)
-    localddpsiRightInterior = ddpsiRight(ipsiMinInterior:ipsiMaxInterior,:)
 
 
     ! *******************************************************************************
@@ -397,7 +420,9 @@ module grids
 
   subroutine deallocateInitializationGridArrays()
 
-    deallocate(ddpsi_accurate)
+    if (Npsi>=5) then
+      deallocate(ddpsi_accurate)
+    end if
     deallocate(expx2)
 
   end subroutine deallocateInitializationGridArrays
