@@ -31,12 +31,14 @@ contains
     integer :: i, ipsi, ispecies, LAPACKInfo, numIterations, nPsiFine, scheme
     PetscScalar :: temp1, temp2, FSABHat2Fine, IHatFine, analyticHeatFluxAtPsiMid
     PetscScalar :: ss, r0, rampAmplitude
-    PetscScalar, dimension(:), allocatable :: nHat, THat, dTHatdpsi, etaHat
+    PetscScalar, dimension(:), allocatable :: nHat, THat, dnHatdpsi, dTHatdpsi, etaHat, detaHatdpsi
     PetscScalar, dimension(:), allocatable :: psiFine, PhiHatFine, rhsForT, THatFine, dTHatdpsiFine
-    PetscScalar, dimension(:), allocatable :: nHatFine, psiWeightsFine, etaHatFine, rhsForTPrime
+    PetscScalar, dimension(:), allocatable :: nHatFine, dnHatdpsiFine, psiWeightsFine
+    PetscScalar, dimension(:), allocatable :: etaHatFine, rhsForTPrime
     integer, dimension(:), allocatable :: IPIV  ! Needed by LAPACK
     PetscScalar, dimension(:), allocatable :: UFine, UFactor, dPhiHatdpsiFine
-    PetscScalar, dimension(:,:), allocatable :: ddpsi_accurate, ddpsiForT, ddpsiForTCopy
+    ! PetscScalar, dimension(:,:), allocatable :: ddpsi_accurate
+    PetscScalar, dimension(:,:), allocatable :: ddpsiForT, ddpsiForTCopy
     PetscScalar, dimension(:,:), allocatable :: psiInterpolationMatrix
     PetscScalar, dimension(:,:), allocatable :: tempMatrix
     PetscScalar, dimension(:,:), allocatable :: matrixForT, matrixForTPrime
@@ -238,9 +240,11 @@ contains
        allocate(THat(Npsi))
        allocate(dTHatdpsi(Npsi))
        allocate(etaHat(Npsi))
+       allocate(detaHatdpsi(Npsi))
        allocate(nHat(Npsi))
+       allocate(dnHatdpsi(Npsi))
        allocate(temp_psiWeights(Npsi))
-       allocate(ddpsi_accurate(Npsi,Npsi))
+       ! allocate(ddpsi_accurate(Npsi,Npsi))
        allocate(temp_d2dpsi2(Npsi,Npsi))
 
        select case (profilesScheme)
@@ -254,13 +258,17 @@ contains
              temp2 = erf(temp1)
 #endif
              nHat(i) = 1-oneHalf*temp2
+             dnHatdpsi(i) = -1d0/sqrt(pi)/0.03d0*exp(-(psi(i)-psiMid)**2/9d-4)
           end do
 
           THat = 1 - (psi-1)
           dTHatdpsi = -1
           etaHat = 1
+          detaHatdpsi = 0d0
           do i=1,Npsi
              phiHat(i) = delta/(2*omega)*THat(i) * log(etaHat(i)/nHat(i))
+             dphiHatdpsi(i) = delta/2d0/omega*( dThatdpsi(i)*log(etaHat(i)/nHat(i)) &
+                                                - That(i)*dnHatdpsi(i)/nHat(i)/etaHat(i) )
           end do
 
        case (1)
@@ -273,15 +281,20 @@ contains
              temp2 = erf(temp1)
 #endif
              nHat(i) = 1-oneHalf*temp2
+             dnHatdpsi(i) = -1d0/sqrt(pi)/0.03d0*exp(-(psi(i)-psiMid)**2/9d-4)
           end do
 
           do i=1,Npsi
              THat(i) = exp(1-psi(i))
              dTHatdpsi(i) = -exp(1-psi(i))
              etaHat(i) = exp((psi(i)-1)*(1.7d+0))
+             detaHatdpsi(i) = 1.7d0*etaHat(i)
           end do
           do i=1,Npsi
              phiHat(i) = delta/(2*omega)*THat(i) * log(etaHat(i)/nHat(i))
+             dphiHatdpsi(i) = delta/2d0/omega*( dThatdpsi(i)*log(etaHat(i)/nHat(i)) &
+                                                - That(i)*dnHatdpsi(i)/nHat(i)/etaHat(i) &
+                                                + That(i)*detaHatdpsi(i)*nHat(i)/etaHat(i) )
           end do
        case (2)
           ! Radial profiles with a large region of constant U,
@@ -306,6 +319,7 @@ contains
              allocate(nHatFine(NpsiFine))
              allocate(THatFine(NpsiFine))
              allocate(dTHatdpsiFine(NpsiFine))
+             allocate(dnHatdpsiFine(NpsiFine))
              allocate(etaHatFine(NpsiFine))
              allocate(ddpsiForT(NpsiFine, NpsiFine))
              allocate(tempMatrix(NpsiFine, NpsiFine))
@@ -366,6 +380,11 @@ contains
              THat = matmul(psiInterpolationMatrix, THatFine)
              dTHatdpsi = matmul(psiInterpolationMatrix, dTHatdpsiFine)
              nHat = matmul(psiInterpolationMatrix, nHatFine)
+             ! Re-compute the derivative matrices since they have been over-written above
+             call uniformDiffMatrices(NpsiFine, psiMin-(1d-10), psiMax+(1d-10), scheme, psiFine, &
+                  psiWeightsFine, ddpsiForT, tempMatrix)
+             dnHatdpsiFine = matmul(ddpsiForT, nHatFine)
+             dnHatdpsi = matmul(psiInterpolationMatrix, dnHatdpsiFine)
              deallocate(psiInterpolationMatrix)
 
              deallocate(psiFine)
@@ -385,11 +404,15 @@ contains
           end if
 
           etaHat = 1 + (psi-psiMid)*detaHatdpsiScalar
+          detaHatdpsi = detaHatdpsiScalar
           call computePhiHat_flatURegion(Npsi, psi, psiMid, ss, r0, rampAmplitude, PhiHat)
           call computedPhiHatdpsi_flatURegion(Npsi, psi, psiMid, ss, r0, rampAmplitude, dPhiHatdpsi)
 
           if (.not. setTPrimeToBalanceHeatFlux) then
              nHat = etaHat * exp(-2*omega/delta*PhiHat/THat)
+             dnHatdpsi = ( detaHatdpsi &
+                           -2d0*omega/delta*dPhiHatdpsi/THat &
+                           + 2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
 
        case (3)
@@ -419,6 +442,7 @@ contains
              allocate(PhiHatFine(NpsiFine))
              allocate(dPhiHatdpsiFine(NpsiFine))
              allocate(nHatFine(NpsiFine))
+             allocate(dnHatdpsiFine(NpsiFine))
              allocate(THatFine(NpsiFine))
              allocate(dTHatdpsiFine(NpsiFine))
              allocate(etaHatFine(NpsiFine))
@@ -521,6 +545,8 @@ contains
              THat = matmul(psiInterpolationMatrix, THatFine)
              dTHatdpsi = matmul(psiInterpolationMatrix, dTHatdpsiFine)
              nHat = matmul(psiInterpolationMatrix, nHatFine)
+             dnHatdpsiFine = matmul(ddpsiForT, nHat)
+             dnHatdpsi = matmul(psiInterpolationMatrix, dnHatdpsiFine)
              deallocate(psiInterpolationMatrix)
 
              deallocate(tempMatrix)
@@ -528,6 +554,7 @@ contains
              deallocate(PhiHatFine)
              deallocate(dPhiHatdpsiFine)
              deallocate(nHatFine)
+             deallocate(dnHatdpsiFine)
              deallocate(THatFine)
              deallocate(dTHatdpsiFine)
              deallocate(etaHatFine)
@@ -546,6 +573,7 @@ contains
           end if
 
           etaHat = 1 + (psi-psiMid)*detaHatdpsiScalar
+          detaHatdpsi = detaHatdpsiScalar
           do i=1,Npsi
              temp1 = (psi(i)-psiMid)*ss
 #ifdef USE_GSL_ERF
@@ -559,6 +587,9 @@ contains
 
           if (.not. setTPrimeToBalanceHeatFlux) then
              nHat = etaHat * exp(-2*omega/delta*PhiHat/THat)
+             dnHatdpsi = ( detaHatdpsi &
+                           - 2d0*omega/delta*dPhiHatdpsi/THat &
+                           + 2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
 
        case (4,5,6)
@@ -592,6 +623,7 @@ contains
              allocate(PhiHatFine(NpsiFine))
              allocate(dPhiHatdpsiFine(NpsiFine))
              allocate(nHatFine(NpsiFine))
+             allocate(dnHatdpsiFine(NpsiFine))
              allocate(THatFine(NpsiFine))
              allocate(dTHatdpsiFine(NpsiFine))
              allocate(etaHatFine(NpsiFine))
@@ -693,6 +725,11 @@ contains
              THat = matmul(psiInterpolationMatrix, THatFine)
              dTHatdpsi = matmul(psiInterpolationMatrix, dTHatdpsiFine)
              nHat = matmul(psiInterpolationMatrix, nHatFine)
+             ! Re-compute the derivative matrices since they have been over-written above
+             call uniformDiffMatrices(NpsiFine, psiMin-(1d-10), psiMax+(1d-10), scheme, psiFine, &
+                  psiWeightsFine, ddpsiForT, ddpsiForTCopy)
+             dnHatdpsiFine = matmul(ddpsiForT, nHatFine)
+             dnHatdpsi = matmul(psiInterpolationMatrix, dnHatdpsiFine)
              deallocate(psiInterpolationMatrix)
 
              deallocate(ddpsiForTCopy)
@@ -700,6 +737,7 @@ contains
              deallocate(PhiHatFine)
              deallocate(dPhiHatdpsiFine)
              deallocate(nHatFine)
+             deallocate(dnHatdpsiFine)
              deallocate(THatFine)
              deallocate(dTHatdpsiFine)
              deallocate(etaHatFine)
@@ -715,6 +753,7 @@ contains
           end if
 
           etaHat = 1 + (psi-psiMid)*detaHatdpsiScalar
+          detaHatdpsi = detaHatdpsiScalar
           if (profilesScheme==4 .or. profilesScheme==6) then
              do i=1,Npsi
                 temp1 = (psi(i)-psiMid)*ss
@@ -733,6 +772,9 @@ contains
 
           if (.not. setTPrimeToBalanceHeatFlux) then
              nHat = etaHat * exp(-2*omega/delta*PhiHat/THat)
+             dnHatdpsi = ( detaHatdpsi &
+                           - 2d0*omega/delta*dPhiHatdpsi/THat &
+                           + 2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
 
        case default
@@ -748,18 +790,20 @@ contains
 
        ! allocate(dnHatdpsi(Npsi))
        ! allocate(detaHatdpsi(Npsi))
-       if (psiDerivativeScheme == 0) then
-          !ddpsi_accurate = ddpsiLeft
-          print *,"Error! This profileScheme is not set up yet to work with psiDerivativeScheme==0"
-          stop
-       else
-          ! centered finite differences, no upwinding, 5-point stencil
-          scheme = 12
-          call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, temp_psiWeights, ddpsi_accurate, temp_d2dpsi2)
-       end if
-       if (profilesScheme < 2) then
-          dPhiHatdpsi = matmul(ddpsi_accurate, PhiHat)
-       end if
+
+       ! if (psiDerivativeScheme == 0) then
+       !    !ddpsi_accurate = ddpsiLeft
+       !    print *,"Error! This profileScheme is not set up yet to work with psiDerivativeScheme==0"
+       !    stop
+       ! else
+       !    ! centered finite differences, no upwinding, 5-point stencil
+       !    scheme = 12
+       !    call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, temp_psiWeights, ddpsi_accurate, temp_d2dpsi2)
+       ! end if
+
+       ! if (profilesScheme < 2) then
+       !    dPhiHatdpsi = matmul(ddpsi_accurate, PhiHat)
+       ! end if
 
        if (abs(omega) < 1d-13) then
           dPhiHatdpsi = 0
@@ -772,8 +816,16 @@ contains
           dTHatdpsis(ispecies,:) = dTHatdpsi(:)*scalarTHats(ispecies)
           nHats(ispecies,:) = nHat(:)*scalarNHats(ispecies)
           etaHats(ispecies,:) = nHats(ispecies,:) * exp(charges(ispecies)*2*omega/delta*PhiHat/THats(ispecies,:))
-          dnHatdpsis(ispecies,:) = matmul(ddpsi_accurate, nHats(ispecies,:))
-          detaHatdpsis(ispecies,:) = matmul(ddpsi_accurate, etaHats(ispecies,:))
+          !dnHatdpsis(ispecies,:) = matmul(ddpsi_accurate, nHats(ispecies,:))
+          !detaHatdpsis(ispecies,:) = matmul(ddpsi_accurate, etaHats(ispecies,:))
+          dnHatdpsis(ispecies,:) = dnHatdpsi(:)*scalarNHats(ispecies)
+          !detaHatdpsis(ispecies,:) = detaHatdpsi(:)*scalarNHats(ispecies)
+          detaHatdpsis(ispecies,:) = ( dnHatdpsis(ispecies,:) &
+                                       + nHats(ispecies,:)*charges(ispecies) &
+                                         *2d0*omega/delta*dPhiHatdpsi/THats(ispecies,:) &
+                                       - nHats(ispecies,:)*charges(ispecies) &
+                                         *2d0*omega/delta*PhiHat*dTHatdpsis(ispecies,:)/THats(ispecies,:)**2 &
+                                     ) * exp(charges(ispecies)*2d0*omega/delta*PhiHat/THats(ispecies,:))
        end do
 
     end if
@@ -817,34 +869,39 @@ contains
        U(ispecies,:) = omega*IHat*dPhiHatdpsi/psiAHat*sqrt(masses(ispecies)/(FSABHat2*THats(ispecies,:)))
 
        ! Next, compute r.
-       ! Store dr/dpsi in the variable r, since LAPACK will over-write dr/dpsi with r in a few lines:
-       rSingleSpecies = psiAHat / delta * sqrt(FSABHat2 / THats(ispecies,:)) / IHat
-
-       ! Re-create ddpsi_accurate, since it is over-written in the loop.
-       ! centered finite differences, no upwinding, 5-point stencil
-       scheme = 12
-       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsi_accurate, d2dpsi2)
-       ! Change first row of ddpsi matrix so matrix is nonsingular:
-       ddpsi_accurate(1,:) = 0
-       ddpsi_accurate(1,1) = 1
-
-       allocate(IPIV(Npsi))
-       ! The command below overwrites both ddpsi_accurate and r:
-#if defined(PETSC_USE_REAL_SINGLE)
-       call SGESV(Npsi, 1, ddpsi_accurate, Npsi, IPIV, rSingleSpecies, Npsi, LAPACKInfo)
-#else
-       call DGESV(Npsi, 1, ddpsi_accurate, Npsi, IPIV, rSingleSpecies, Npsi, LAPACKInfo)
-#endif
-       if (LAPACKInfo /= 0) then
-          print *,"LAPACK error 2!!  Info = ",LAPACKInfo
-          stop
-        end if
-       deallocate(IPIV)
-       ! Finally, shift r so its value is 0 at psiMid:
-       if (mod(Npsi,2)==1) then
-          rSingleSpecies = rSingleSpecies - rSingleSpecies((Npsi+1)/2)
+       if (Npsi<5) then
+         ! Cannot use 5-point stencil, and r is probably not interesting anyway
+         rSingleSpecies = 0d0
        else
-          rSingleSpecies = rSingleSpecies - (rSingleSpecies(Npsi/2) + rSingleSpecies(Npsi/2+1))/2
+         ! Store dr/dpsi in the variable r, since LAPACK will over-write dr/dpsi with r in a few lines:
+         rSingleSpecies = psiAHat / delta * sqrt(FSABHat2 / THats(ispecies,:)) / IHat
+
+         ! Re-create ddpsi_accurate, since it is over-written in the loop.
+         ! centered finite differences, no upwinding, 5-point stencil
+         scheme = 12
+         call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsi_accurate, d2dpsi2)
+         ! Change first row of ddpsi matrix so matrix is nonsingular:
+         ddpsi_accurate(1,:) = 0
+         ddpsi_accurate(1,1) = 1
+
+         allocate(IPIV(Npsi))
+         ! The command below overwrites both ddpsi_accurate and r:
+#if defined(PETSC_USE_REAL_SINGLE)
+         call SGESV(Npsi, 1, ddpsi_accurate, Npsi, IPIV, rSingleSpecies, Npsi, LAPACKInfo)
+#else
+         call DGESV(Npsi, 1, ddpsi_accurate, Npsi, IPIV, rSingleSpecies, Npsi, LAPACKInfo)
+#endif
+         if (LAPACKInfo /= 0) then
+            print *,"LAPACK error 2!!  Info = ",LAPACKInfo
+            stop
+          end if
+         deallocate(IPIV)
+         ! Finally, shift r so its value is 0 at psiMid:
+         if (mod(Npsi,2)==1) then
+            rSingleSpecies = rSingleSpecies - rSingleSpecies((Npsi+1)/2)
+         else
+            rSingleSpecies = rSingleSpecies - (rSingleSpecies(Npsi/2) + rSingleSpecies(Npsi/2+1))/2
+         end if
        end if
 
        r(ispecies,:) = rSingleSpecies
