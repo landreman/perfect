@@ -198,7 +198,7 @@ contains
        call VecAssemblyEnd(rhsLeft, ierr)
 
        call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
-       if (useIterativeSolver) then
+       if (useIterativeBoundarySolver) then
           ! Use iterative solver
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
           ! Syntax for PETSc versions up through 3.4:
@@ -247,7 +247,7 @@ contains
           print *,"[",myCommunicatorIndex,"] Done solving for left boundary.  Time to solve: ", time2-time1, " seconds."
           call PetscTime(time1, ierr)
 
-          if (useIterativeSolver) then
+          if (useIterativeBoundarySolver) then
              call KSPGetConvergedReason(KSPBoundary, reason, ierr)
              if (reason>0) then
                 print *,"[",myCommunicatorIndex,"] Solution at left boundary converged!  KSPConvergedReason = ", reason
@@ -305,7 +305,7 @@ contains
        call VecAssemblyEnd(rhsRight, ierr)
 
        call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
-       if (useIterativeSolver) then
+       if (useIterativeBoundarySolver) then
           ! Use iterative solver
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
           ! Syntax for PETSc versions up through 3.4:
@@ -354,7 +354,7 @@ contains
           print *,"[",myCommunicatorIndex,"] Done solving for right boundary.  Time to solve: ", time2-time1, " seconds."
           call PetscTime(time1, ierr)
 
-          if (useIterativeSolver) then
+          if (useIterativeBoundarySolver) then
              call KSPGetConvergedReason(KSPBoundary, reason, ierr)
              if (reason>0) then
                 print *,"[",myCommunicatorIndex,"] Solution at right boundary converged!  KSPConvergedReason = ", reason

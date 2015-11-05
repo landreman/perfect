@@ -24,6 +24,8 @@
   ! If the following switch is set to true, a Matlab m-file is created which
   ! stores the matrix, right-hand side, and solution vector.  If an iterative solver is used,
   ! the preconditioner matrix is also saved.
+  ! Note: writing this file may take a long time, even for comparatively small matrices.
+
 !  saveMatlabOutput = .true.
   saveMatlabOutput = .false.
 
@@ -111,14 +113,14 @@
   dTHatdpsiScalar = -0.3d+0
   detaHatdpsiScalar = -1
 
-  Delta = 0.0006d+0
+  delta = 0.00216
   omega = 0.00216
   psiAHat = 0.03
   nu_r = 0.1d+0
 
   psiMid = 0.9d+0
 
-  profilesScheme = 7
+  profilesScheme = 0
   ! 0 = simplistic profiles with no radial variation in magnetic quantities.
   ! 1 = more complicated profiles
   ! 2 = profiles for comparison to analytic theory
@@ -148,6 +150,9 @@
 
   leftBoundaryShift = 0
   rightBoundaryShift = 0
+  ! Shifts the lower (left) and upper (right) boundary so that it is not centered around psiMid.
+  ! Unlike the MATLAB version, positive values shift to higher psi for both the left and right boundary.
+
 
   !Options for leftBoundaryScheme and rightBoundaryScheme:
   ! 0: Impose f_1 = 0
@@ -306,6 +311,16 @@
 
   useIterativeSolver = .true.
 !  useIterativeSolver = .false.
+
+  ! If 'useIterativeBoundarySolver' is set to false, PETSc's built-in sparse direct solver
+  ! will be used for the boundaries when useIterativeSolver is true (if useIterativeSolver is
+  ! false the direct solver will be used for both main system and the boundaries, regardless of
+  ! the value of useIterativeBoundarySlover). The direct solver is faster for small problems and
+  ! always yields a solution. For large problems, the iterative solver may be faster, but it may
+  ! not always converge.
+
+  ! useIterativeBoundarySolver = .true.
+    useIterativeBoundarySolver = .false.
 
   whichParallelSolverToFactorPreconditioner = 1
   ! Options for whichParallelSolverToFactorPreconditioner:

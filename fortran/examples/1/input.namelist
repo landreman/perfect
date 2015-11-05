@@ -303,6 +303,16 @@
   useIterativeSolver = .true.
 !  useIterativeSolver = .false.
 
+  ! If 'useIterativeBoundarySolver' is set to false, PETSc's built-in sparse direct solver
+  ! will be used for the boundaries when useIterativeSolver is true (if useIterativeSolver is
+  ! false the direct solver will be used for both main system and the boundaries, regardless of
+  ! the value of useIterativeBoundarySlover). The direct solver is faster for small problems and
+  ! always yields a solution. For large problems, the iterative solver may be faster, but it may
+  ! not always converge.
+
+  useIterativeBoundarySolver = .true.
+  !  useIterativeBoundarySolver = .false.
+
   whichParallelSolverToFactorPreconditioner = 1
   ! Options for whichParallelSolverToFactorPreconditioner:
   ! 1 = use mumps if it is detected, otherwise use superlu_dist

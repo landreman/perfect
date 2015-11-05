@@ -192,6 +192,7 @@ module globalVariables
   PetscScalar :: xScaleFactor = 1
 
   logical :: useIterativeSolver = .true.
+  logical :: useIterativeBoundarySolver = .true.
 
   integer :: whichParallelSolverToFactorPreconditioner
 
