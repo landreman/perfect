@@ -86,7 +86,7 @@
       !     inf = -1            to  (-infinity,bound),
       !     inf = 2             to (-infinity,+infinity).
 
-      EPSABS = 0.0E0
+      EPSABS = 0d0 !0.0E0
       EPSREL = 1d-3
       LIMIT = workspaceSize
 
