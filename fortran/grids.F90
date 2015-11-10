@@ -137,9 +137,17 @@ module grids
     allocate(psi(Npsi))
 
     if (Npsi<5) then ! if Npsi<5 then we can do without psi-derivatives, but the simulation must be local
+      
+      !Sanity checks
       if (.not. makeLocalApproximation) then
         stop "Npsi is less than 5; this only makes sense when makeLocalApproximation is true, but it is false"
       end if
+      if ( leftBoundaryScheme/=2 .or. rightBoundaryScheme/=2 ) then
+        stop "Are you sure you want leftBoundaryScheme or rightBoundaryScheme other than 2 &
+              when running with Npsi<5? It is likely to be inefficient because the local &
+              solutions are calculated multiple times for the boundary points."
+      end if
+      
       ! Just build psi grid
       if (Npsi>1) then
         ! Include points at both psiMin and psiMax:
