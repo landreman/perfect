@@ -25,7 +25,12 @@ contains
     PetscScalar, intent(in) :: NpsiPerDiameter0
     PetscScalar, intent(in) :: psiDiameter0, widthExtender0
 
-    computeNpsi = max(5, nint(NpsiPerDiameter0 * (psiDiameter0 + 2*widthExtender0 - leftBoundaryShift + rightBoundaryShift))+1)
+    computeNpsi = nint(NpsiPerDiameter0 * (psiDiameter0 + 2*widthExtender0 - leftBoundaryShift + rightBoundaryShift))+1
+    if (makeLocalApproximation) then
+      computeNpsi = max(1, computeNpsi)
+    else
+      computeNpsi = max(5, computeNpsi)
+    end if
 
   end function computeNpsi
 

@@ -18,7 +18,7 @@ class perfectInput:
     inputfilename -- the name of the PERFECT input file
     """
     def computeNpsi(self,NpsiPerDiameter0, psiDiameter0, widthExtender0, leftBoundaryShift, rightBoundaryShift):
-        return max(5, int(round(NpsiPerDiameter0 * (psiDiameter0 + 2*widthExtender0 - leftBoundaryShift + rightBoundaryShift))+1))
+        return int(round(NpsiPerDiameter0 * (psiDiameter0 + 2*widthExtender0 - leftBoundaryShift + rightBoundaryShift))+1)
 
     def RHat(self,theta):
         return 1. + 1./self.Miller_A*numpy.cos(theta + self.Miller_x*numpy.sin(theta))
@@ -64,6 +64,9 @@ class perfectInput:
             exit(1)
 
     def ddpsi_accurate(self,x):
+        if self.Npsi<5:
+            print "ddpsi_accurate cannot be calculated, Npsi<5"
+            return;
         # uniformDiffMatrices, scheme 12 (5-point centered difference) 
         dxdpsi = numpy.zeros(x.shape)
 
@@ -117,13 +120,20 @@ class perfectInput:
         self.detaHatdpsiScalar = physicsParameters["detaHatdpsiScalar"]
 
         self.Npsi = self.computeNpsi(self.NpsiPerDiameter, self.psiDiameter, self.widthExtender, self.leftBoundaryShift, self.rightBoundaryShift)
+        self.makeLocalApproximation=physicsParameters["makeLocalApproximation"]
 
         # psi grid is uniformly spaced and should always include psiMin and psiMax points (options for psiDerivative Scheme are 1 and 2)
         self.psiMin = self.psiMid - self.psiDiameter/2. - self.widthExtender + self.leftBoundaryShift
         self.psiMax = self.psiMid + self.psiDiameter/2. + self.widthExtender + self.rightBoundaryShift
         self.psi = numpy.linspace(self.psiMin, self.psiMax, self.Npsi)
-        self.dpsi = self.psi[1]-self.psi[0]
-
+        #We might have a psi grid with only one point
+        if self.Npsi>1:
+            self.dpsi = self.psi[1]-self.psi[0]
+        elif self.makeLocalApproximation==False:
+            print "Npsi is less than 2; this only makes sense when makeLocalApproximation is true, but it is false"
+            exit(1)
+            
+        
         # theta grid is uniform and periodic, needs grid point at 0 but not 2pi
         self.Ntheta = resolutionParameters["Ntheta"]
         self.theta = numpy.linspace(0.,2.*numpy.pi,self.Ntheta,endpoint=False)
