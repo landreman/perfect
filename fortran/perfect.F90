@@ -70,7 +70,7 @@ program perfect
 
      call openOutputFile()
      call allocateArraysForSingleRun()
-     call createHDF5Structures()
+     call setupOutput()
      call solveDKEMain()
      call writeRunToOutputFile(1)
 
@@ -90,7 +90,7 @@ program perfect
      end if
      call setMPICommunicatorsForScan()
      call openOutputFile()
-     call createHDF5Structures()
+     call setupOutput()
      call PetscTime(time1, ierr)
 
      do runNum = minScanUnit,maxScanUnit
