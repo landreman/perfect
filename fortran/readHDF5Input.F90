@@ -132,6 +132,11 @@ contains
     integer(HSIZE_T), dimension(1) :: dimensions
     integer :: HDF5Error
 
+    if (.not. allocated(variable)) then
+      print *,"Tried to read into unallocated array:",varname
+      stop
+    end if
+
     dimensions = shape(variable)
 
     ! Open Dataset
@@ -164,6 +169,11 @@ contains
     integer(HID_T) :: dataSetID
     integer(HSIZE_T), dimension(2) :: dimensions
     integer :: HDF5Error
+
+    if (.not. allocated(variable)) then
+      print *,"Tried to read into unallocated array:",varname
+      stop
+    end if
 
     dimensions = shape(variable)
 
