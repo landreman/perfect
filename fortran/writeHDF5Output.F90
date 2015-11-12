@@ -111,10 +111,10 @@ contains
 
     if (outputScheme > 0) then
 
-      call writeVariable_1d_nonalloc(charges,"charges",runNum)
-      call writeVariable_1d_nonalloc(masses,"masses",runNum)
-      call writeVariable_1d_nonalloc(scalarTHats,"scalarTHats",runNum)
-      call writeVariable_1d_nonalloc(scalarNHats,"scalarNHats",runNum)
+      call writeVariable_1d_nonalloc(charges,numSpecies,"charges",runNum)
+      call writeVariable_1d_nonalloc(masses,numSpecies,"masses",runNum)
+      call writeVariable_1d_nonalloc(scalarTHats,numSpecies,"scalarTHats",runNum)
+      call writeVariable_1d_nonalloc(scalarNHats,numSpecies,"scalarNHats",runNum)
       call writeVariable(NpsiPerDiameter,"NpsiPerDiameter",runNum)
       call writeVariable(Npsi,"Npsi",runNum)
       call writeVariable(psiDiameter,"psiDiameter",runNum)
@@ -312,17 +312,17 @@ contains
 
 #ifdef HAVE_PARALLEL_HDF5
     call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
-    call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+    call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_INTEGER, dspaceID, dsetID, HDF5Error)
     if (masterProcInSubComm) then
-      call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+      call h5dwrite_f(dsetID, H5T_NATIVE_INTEGER, var, dimensions, HDF5Error)
     end if
     call h5dclose_f(dsetID, HDF5Error)
     call h5sclose_f(dspaceID, HDF5Error)
 #else
     if (masterProcInSubComm) then
       call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
-      call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_INTEGER dspaceID, dsetID, HDF5Error)
-      call h5dwrite_f(dsetID, H5T_NATIVE_INTEGER var, dimensions, HDF5Error)
+      call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_INTEGER, dspaceID, dsetID, HDF5Error)
+      call h5dwrite_f(dsetID, H5T_NATIVE_INTEGER, var, dimensions, HDF5Error)
       call h5dclose_f(dsetID, HDF5Error)
       call h5sclose_f(dspaceID, HDF5Error)
     end if
@@ -355,8 +355,8 @@ contains
     if (masterProcInSubComm) then
       dimensions = shape(var)
       call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
-      call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_INTEGER, dspaceID, dsetID, HDF5Error)
-      call h5dwrite_f(dsetID, H5T_NATIVE_INTEGER, var, dimensions, HDF5Error)
+      call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+      call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
       call h5dclose_f(dsetID, HDF5Error)
       call h5sclose_f(dspaceID, HDF5Error)
     end if
@@ -364,10 +364,10 @@ contains
 
   end subroutine writeVariable_1d
 
-  subroutine writeVariable_1d_nonalloc(var, varname, i)
+  subroutine writeVariable_1d_nonalloc(var, varsize, varname, i)
 
     PetscScalar, dimension(:), intent(in) :: var
-    integer, intent(in) :: i
+    integer, intent(in) :: varsize, i
     character(len=*), intent(in) :: varname
     integer(HID_T) :: dspaceID, dsetID
     integer(HSIZE_T), dimension(1) :: dimensions
@@ -375,7 +375,7 @@ contains
 
 #ifdef HAVE_PARALLEL_HDF5
     if (masterProcInSubComm) then
-      dimensions = shape(var)
+      dimensions = varsize
     end if
     call MPI_Bcast(dimensions,2*size(dimensions),MPI_INTEGER,0,MPIComm,ierror) ! 2*size(dimensions) since there seems to be no MPI datatype for long integers in Fortran, while the HSIZE_T kind is a long integer
     call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
