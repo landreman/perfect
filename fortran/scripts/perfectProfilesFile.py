@@ -13,6 +13,12 @@ class perfectProfiles:
         self.profilesFile = h5py.File(profilesFilename,'w')
 
     def __del__(self):
+        try:
+            self.profilesFile.close()
+        except ValueError: # If file is not open, don't need to do anything
+            pass
+
+    def close(self):
         self.profilesFile.close()
 
     def create_profiles_for_Npsi(self, Npsi, PhiHat, dPhiHatdpsi, THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis):
