@@ -36,7 +36,7 @@ StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dBHatdpsi"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dBHatdtheta"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/JHat"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/IHat"],
-StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dIHatdpsiB"]
+StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dIHatdpsi"]
 }
 },"Append"->appendval];
 ]
