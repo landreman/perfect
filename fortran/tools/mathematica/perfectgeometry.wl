@@ -9,7 +9,7 @@ Begin["Private`"]
 
 Options[SavePerfectGeometry]={Filename->"input.geometry.h5",Append->False}
 
-SavePerfectGeometry[BHat_,dBHatdpsi_,dBHatdtheta_,JHat_,IHat_,dIHatdpsi_,OptionsPattern[]]:=
+SavePerfectGeometry[BHat_,dBHatdpsi_,dBHatdtheta_,JHat_,IHat_,dIHatdpsi_,RHat_,OptionsPattern[]]:=
 Module[{Npsi,Ntheta,filenameval,appendval},
 filenameval=OptionValue[Filename];
 appendval=OptionValue[Append];
@@ -20,6 +20,7 @@ If[Dimensions[dBHatdtheta]!={Npsi,Ntheta},Throw["Dimensions of dBHatdtheta do no
 If[Dimensions[JHat]!={Npsi,Ntheta},Throw["Dimensions of JHat do not match dimensions of BHat"]];
 If[Dimensions[IHat]!={Npsi},Throw["Dimensions of IHat do not match dimensions of BHat"]];
 If[Dimensions[dIHatdpsi]!={Npsi},Throw["Dimensions of dIHatdpsi do not match dimensions of BHat"]];
+If[Dimensions[RHat]!={Npsi,Ntheta},Throw["Dimensions of dBHatdtheta do not match dimensions of BHat"]];
 Export[filenameval,
 {
 BHat,
@@ -27,7 +28,8 @@ dBHatdpsi,
 dBHatdtheta,
 JHat,
 IHat,
-dIHatdpsi
+dIHatdpsi,
+RHat
 },
 {"Datasets",
 {
@@ -36,7 +38,8 @@ StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dBHatdpsi"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dBHatdtheta"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/JHat"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/IHat"],
-StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dIHatdpsi"]
+StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dIHatdpsi"],
+StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/RHat"]
 }
 },"Append"->appendval];
 ]
