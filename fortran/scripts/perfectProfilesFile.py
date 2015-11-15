@@ -38,3 +38,13 @@ class perfectProfiles:
         profilesgroup.create_dataset("etaHats",data=etaHats)
         profilesgroup.create_dataset("detaHatdpsis",data=detaHatdpsis)
 
+    def create_profiles_for_Npsi_Ntheta(self, Npsi, Ntheta, nHatNeutral, dnHatNeutraldpsi):
+        groupname = "Npsi"+str(Npsi)+"Ntheta"+str(Ntheta)
+        if groupname in self.profilesFile:
+            print "Error: profiles already added for Npsi="+str(Npsi)+" Ntheta="+str(Ntheta)
+            exit(1)
+        profilesgroup = self.profilesFile.create_group(groupname)
+
+        profilesgroup.create_dataset("nHatNeutral",data=nHatNeutral)
+        profilesgroup.create_dataset("dnHatNeutraldpsi",data=dnHatNeutraldpsi)
+
