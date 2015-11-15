@@ -243,6 +243,18 @@ contains
       end if
     end if
 
+    if (includeNeutrals) then
+      call writeVariable(nHatNeutral,"nHatNeutral",runNum)
+      call writeVariable(dnHatNeutraldpsi,"dnHatNeutraldpsi",runNum)
+      call writeVariable(CXCrossSectionHat,"CXCrossSectionHat",runNum)
+      call writeVariable(neutralMomentumFlux1,"neutralMomentumFlux1",runNum)
+      call writeVariable(neutralMomentumFlux2,"neutralMomentumFlux2",runNum)
+      call writeVariable(neutralMomentumFlux3,"neutralMomentumFlux3",runNum)
+      call writeVariable(neutralMomentumFluxBeforeThetaIntegral1,"neutralMomentumFluxBeforeThetaIntegral1",runNum)
+      call writeVariable(neutralMomentumFluxBeforeThetaIntegral2,"neutralMomentumFluxBeforeThetaIntegral2",runNum)
+      call writeVariable(neutralMomentumFluxBeforeThetaIntegral3,"neutralMomentumFluxBeforeThetaIntegral3",runNum)
+    end if
+
   end subroutine writeRunToOutputFile
 
     ! -----------------------------------------------------------------------------------

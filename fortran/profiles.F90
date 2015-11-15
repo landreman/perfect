@@ -85,6 +85,19 @@ contains
        ! Close input file
        call closeInputFile()
 
+       if (includeNeutrals) then
+         allocate(nHatNeutral(Ntheta,Npsi))
+         allocate(dnHatNeutraldpsi(Ntheta,Npsi))
+
+         write (HDF5Groupname,"(A4,I0,A6,I0)") "Npsi", Npsi, "Ntheta", Ntheta
+         call openInputFile(profilesFilename,HDF5Groupname)
+
+         call readVariable(nHatNeutral, "nHatNeutral")
+         call readVariable(dnHatNeutraldpsi, "dnHatNeutraldpsi")
+
+         call closeInputFile()
+       end if
+
     else
 
        allocate(THat(Npsi))

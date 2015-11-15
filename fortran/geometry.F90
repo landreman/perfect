@@ -95,6 +95,7 @@ contains
     allocate(JHat(Ntheta,Npsi))
     allocate(IHat(Npsi))
     allocate(dIHatdpsi(Npsi))
+    allocate(RHat(Ntheta,Npsi))
 
     select case (geometryToUse)
     case (0,1,2)
@@ -141,6 +142,7 @@ contains
        call readVariable(JHat, "JHat")
        call readVariable(IHat, "IHat")
        call readVariable(dIHatdpsi, "dIHatdpsi")
+       call readVariable(RHat, "RHat")
 
        ! Close geometry input file
        call closeInputFile()
@@ -194,7 +196,7 @@ contains
     case (1)
        ! Miller geometry
        do i=1,size(thetas)
-          bs(i) = sqrt(BPoloidal(thetas(i))**2 + 1./((RHat(thetas(i)))**2))
+          bs(i) = sqrt(BPoloidal(thetas(i))**2 + 1./((RHatMiller(thetas(i)))**2))
        end do
     case (2)
        ! Circular concentric flux surfaces with Boozer poloidal angle
@@ -318,15 +320,15 @@ contains
   ! Below are a set of functions needed only for Miller geometry
   !-----------------------------------------------------------------------------------------
 
-  function RHat(theta)
+  function RHatMiller(theta)
 
     implicit none
 
-    PetscScalar :: theta, RHat
+    PetscScalar :: theta, RHatMiller
 
-    RHat = 1 + (1/Miller_A)*cos(theta + Miller_x*sin(theta))
+    RHatMiller = 1 + (1/Miller_A)*cos(theta + Miller_x*sin(theta))
 
-  end function RHat
+  end function RHatMiller
 
   !-----------------------------------------------------------------------------------------
 
@@ -350,7 +352,7 @@ contains
 
     QQIntegrand = ((1+Miller_s_kappa)*sin(theta + Miller_x*sin(theta)) * (1+Miller_x*cos(theta)) * sin(theta) &
          + cos(theta) * (Miller_dRdr + cos(theta + Miller_x *sin(theta)) &
-         - Miller_s_delta*sin(theta + Miller_x*sin(theta)) * sin(theta))) / RHat(theta)
+         - Miller_s_delta*sin(theta + Miller_x*sin(theta)) * sin(theta))) / RHatMiller(theta)
 
   end function QQIntegrand
 
@@ -364,7 +366,7 @@ contains
 
     BPoloidal = Miller_QQ/(Miller_kappa*Miller_q)*sqrt((sin(theta+Miller_x*sin(theta)) &
          * (1+Miller_x*cos(theta)))**2 + (Miller_kappa*cos(theta))**2) &
-         / (RHat(theta) * ( cos(Miller_x*sin(theta)) + Miller_dRdr*cos(theta) + (Miller_s_kappa-Miller_s_delta*cos(theta) &
+         / (RHatMiller(theta) * ( cos(Miller_x*sin(theta)) + Miller_dRdr*cos(theta) + (Miller_s_kappa-Miller_s_delta*cos(theta) &
          + (1+Miller_s_kappa)*Miller_x*cos(theta)) * sin(theta) * sin(theta + Miller_x*sin(theta))))
 
   end function BPoloidal
@@ -377,7 +379,7 @@ contains
 
     PetscScalar :: theta, BDotGradTheta
 
-    BDotGradTheta = - Miller_A*Miller_QQ/(Miller_kappa*Miller_q*RHat(theta) * &
+    BDotGradTheta = - Miller_A*Miller_QQ/(Miller_kappa*Miller_q*RHatMiller(theta) * &
          ((1+Miller_s_kappa)*sin(theta + Miller_x*sin(theta)) * (1+Miller_x*cos(theta)) * sin(theta) &
          + cos(theta) * (Miller_dRdr + cos(theta + Miller_x *sin(theta)) &
          - Miller_s_delta*sin(theta + Miller_x*sin(theta)) * sin(theta))))

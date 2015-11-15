@@ -223,7 +223,7 @@ module globalVariables
   ! ********************************************************
 
   PetscScalar, dimension(:), allocatable :: psi, theta
-  PetscScalar, dimension(:,:), allocatable :: BHat, JHat, dBHatdtheta, dBHatdpsi
+  PetscScalar, dimension(:,:), allocatable :: BHat, JHat, dBHatdtheta, dBHatdpsi, RHat
   PetscScalar, dimension(:), allocatable :: IHat, dIHatdpsi, dPhiHatdpsi, PhiHat
   PetscScalar, dimension(:,:), allocatable :: THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis
   PetscScalar, dimension(:,:), allocatable :: particleSourceProfile, heatSourceProfile
@@ -253,6 +253,22 @@ module globalVariables
 
   PetscLogDouble :: elapsedTime
   integer :: didItConverge
+
+  ! ********************************************************
+  ! ********************************************************
+  !
+  !  Stuff related to coupling to neutrals
+  !
+  ! ********************************************************
+  ! ********************************************************
+
+  logical :: includeNeutrals
+  PetscScalar :: CXCrossSectionHat
+  PetscScalar, dimension(:,:), allocatable :: nHatNeutral, dnHatNeutraldpsi
+  PetscScalar, dimension(:,:), allocatable :: neutralMomentumFluxBeforeThetaIntegral1, &
+                                              neutralMomentumFluxBeforeThetaIntegral2, &
+                                              neutralMomentumFluxBeforeThetaIntegral3
+  PetscScalar, dimension(:), allocatable :: neutralMomentumFlux1, neutralMomentumFlux2, neutralMomentumFlux3
 
   ! ********************************************************
   !

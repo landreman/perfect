@@ -159,6 +159,10 @@
   ! 1: Impose the local solution for f_1.
   leftBoundaryScheme = 1
   rightBoundaryScheme = 1
+
+  ! Neutral coupling
+  includeNeutrals = .false.
+  CXCrossSectionHat = 0d0
 /
 
 &resolutionParameters

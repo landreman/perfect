@@ -36,6 +36,11 @@ contains
     integer :: ix, itheta, ipsi, L, index
     integer :: ispecies
     integer :: ixi
+    ! Neutrals stuff
+    PetscScalar, dimension(:,:), allocatable :: neutralMomentumFluxFactors1, &
+                                                neutralMomentumFluxFactors2, &
+                                                neutralMomentumFluxFactors3
+    PetscScalar, dimension(:), allocatable :: neutralMomentumFluxIntegralWeights
 
     ! First, send the entire solution vector to the master process:
     call VecScatterCreateToZero(soln, VecScatterContext, solnOnProc0, ierr)
@@ -110,6 +115,21 @@ contains
        momentumFluxIntegralWeights = x*x*x*x*x
        heatFluxIntegralWeights = x*x*x*x*x*x
 
+       if (includeNeutrals) then
+         allocate(neutralMomentumFluxBeforeThetaIntegral1(Ntheta,Npsi))
+         allocate(neutralMomentumFluxBeforeThetaIntegral2(Ntheta,Npsi))
+         allocate(neutralMomentumFluxBeforeThetaIntegral3(Ntheta,Npsi))
+         allocate(neutralMomentumFlux1(Npsi))
+         allocate(neutralMomentumFlux2(Npsi))
+         allocate(neutralMomentumFlux3(Npsi))
+         allocate(neutralMomentumFluxFactors1(Ntheta,Npsi))
+         allocate(neutralMomentumFluxFactors2(Ntheta,Npsi))
+         allocate(neutralMomentumFluxFactors3(Ntheta,Npsi))
+         allocate(neutralMomentumFluxIntegralWeights(Nx))
+
+         neutralMomentumFluxIntegralWeights = x*x*x*x*x*x*x
+       end if
+
        allocate(indices(Nx))
 
        ! Convert the PETSc vector into a normal Fortran array:
@@ -126,6 +146,18 @@ contains
           heatFluxFactors = -masses(ispecies) / charges(ispecies) * THats(ispecies,:) &
                * IHat * ((THats(ispecies,:)/masses(ispecies)) ** (5/two))
           !       pPerpTermInKThetaFactors = THat ** (5/two)
+
+          if (includeNeutrals) then
+            do itheta=1,Ntheta
+              neutralMomentumFluxFactors1(itheta,:) = nHatNeutral(itheta,:)/nHats(1,:)*momentumFluxFactors
+              neutralMomentumFluxFactors2(itheta,:) = -THats(1,:)**4*IHat**3*JHat(itheta,:)/2d0/CXCrossSectionHat &
+                  /masses(1)**2/charges(1)**2/BHat(itheta,:)**7/nHats(1,:)**2*dnHatNeutraldpsi(itheta,:) &
+                  *dBHatdtheta(itheta,:)**2
+              neutralMomentumFluxFactors3(itheta,:) = -THats(1,:)**3*IHat &
+                  *(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)/JHat(itheta,:)/CXCrossSectionHat/masses(1)**3&
+                  /nHats(1,:)**2/BHat(itheta,:)*dnHatNeutraldpsi(itheta,:)
+            end do
+          end if
 
           ! The final elements of the solution vector correspond to the source profiles:
           do ipsi=1,Npsi
@@ -169,6 +201,17 @@ contains
 
                 momentumFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = ((16d+0)/15) * momentumFluxFactors(ipsi) &
                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                if (includeNeutrals .and. ispecies==1) then
+                  neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) = &
+                      16d0/15d0*neutralMomentumFluxFactors1(itheta,ipsi) &
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                  neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) = &
+                      184d0/105d0*neutralMomentumFluxFactors2(itheta,ipsi) &
+                      * dot_product(xWeights, neutralMomentumFluxIntegralWeights * solnArray(indices))
+                  neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) = &
+                      4d0/15d0*neutralMomentumFluxFactors3(itheta,ipsi) &
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                end if
 
              end do
           end do
@@ -204,6 +247,36 @@ contains
                 momentumFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = momentumFluxBeforeThetaIntegral(ispecies,itheta,ipsi) &
                      + (four/35) * momentumFluxFactors(ipsi) &
                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                if (includeNeutrals .and. ispecies==1) then
+                  neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) = &
+                      neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) + &
+                      4d0/35d0*neutralMomentumFluxFactors1(itheta,ipsi) &
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                  neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) = &
+                      neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) + &
+                      16d0/45d0*neutralMomentumFluxFactors2(itheta,ipsi) &
+                      * dot_product(xWeights, neutralMomentumFluxIntegralWeights * solnArray(indices))
+                  neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) = &
+                      neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) + &
+                      -4d0/35d0*neutralMomentumFluxFactors3(itheta,ipsi) &
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                end if
+
+             end do
+          end do
+
+          L = 5
+          do ipsi=1,Npsi
+             do itheta=1,Ntheta
+                indices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
+                     + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+
+                if (includeNeutrals .and. ispecies==1) then
+                  neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) = &
+                      neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) + &
+                      16d0/693d0*neutralMomentumFluxFactors2(itheta,ipsi) &
+                      * dot_product(xWeights, neutralMomentumFluxIntegralWeights * solnArray(indices))
+                end if
 
              end do
           end do
@@ -223,6 +296,11 @@ contains
           heatFluxBeforeThetaIntegral(ispecies,:,:) = heatFluxBeforeThetaIntegral(ispecies,:,:) &
                * dBHatdtheta / (BHat * BHat * BHat)
 
+          if (includeNeutrals) then
+            neutralMomentumFluxBeforeThetaIntegral1 = neutralMomentumFluxBeforeThetaIntegral1 &
+                * dBHatdtheta / (BHat * BHat * BHat * BHat) 
+            ! Already included factors of BHat in neutralMomentumFluxFactors2 and neutralMomentumFluxFactors3
+          end if
    !!$         if (psiDerivativeScheme == 0) then
    !!$            ddpsiForKTheta = ddpsiLeft
    !!$         else
@@ -247,6 +325,12 @@ contains
              particleFlux(ispecies,ipsi) = dot_product(thetaWeights, particleFluxBeforeThetaIntegral(ispecies,:,ipsi))
              momentumFlux(ispecies,ipsi) = dot_product(thetaWeights, momentumFluxBeforeThetaIntegral(ispecies,:,ipsi))
              heatFlux(ispecies,ipsi) = dot_product(thetaWeights, heatFluxBeforeThetaIntegral(ispecies,:,ipsi))
+
+             if (includeNeutrals) then
+               neutralMomentumFlux1(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral1(:,ipsi))
+               neutralMomentumFlux2(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral2(:,ipsi))
+               neutralMomentumFlux3(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral3(:,ipsi))
+             end if
 
              !          pPerpTermInKThetaWith3PointStencil(:,ipsi) = pPerpTermInKThetaWith3PointStencil(:,ipsi) &
              !               * 2 * pi * delta * FSABHat2(ipsi) / (nHat(ipsi) * BHat(:,ipsi) * BHat(:,ipsi) * dTHatdpsi(ipsi))

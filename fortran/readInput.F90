@@ -28,7 +28,8 @@ contains
          detaHatdpsiScalar, sourcePoloidalVariation, &
          Delta, omega, psiAHat, psiMid,  &
          exponent, setTPrimeToBalanceHeatFlux, includeddpsiTerm, &
-         leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme
+         leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme, &
+         includeNeutrals, CXCrossSectionHat
 
     namelist / resolutionParameters / forceOddNtheta, &
          NpsiPerDiameter, NpsiMaxFactor, NpsiMinFactor, NpsiNumRuns, &
