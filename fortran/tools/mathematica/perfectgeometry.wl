@@ -20,10 +20,10 @@ If[Dimensions[dBHatdtheta]!={Npsi,Ntheta},Throw["Dimensions of dBHatdtheta do no
 If[Dimensions[JHat]!={Npsi,Ntheta},Throw["Dimensions of JHat do not match dimensions of BHat"]];
 If[Dimensions[IHat]!={Npsi},Throw["Dimensions of IHat do not match dimensions of BHat"]];
 If[Dimensions[dIHatdpsi]!={Npsi},Throw["Dimensions of dIHatdpsi do not match dimensions of BHat"]];
-If[Dimensions[RHat]!={Npsi,Ntheta},Throw["Dimensions of dBHatdtheta do not match dimensions of BHat"]];
+If[Dimensions[RHat]!={Npsi,Ntheta},Throw["Dimensions of dRHat do not match dimensions of BHat"]];
+Export[filenameval,{BHat},{"Datasets",StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/BHat"]},"Append"->appendval];
 Export[filenameval,
 {
-BHat,
 dBHatdpsi,
 dBHatdtheta,
 JHat,
@@ -33,7 +33,6 @@ RHat
 },
 {"Datasets",
 {
-StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/BHat"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dBHatdpsi"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dBHatdtheta"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/JHat"],
@@ -41,7 +40,7 @@ StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/IHat"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dIHatdpsi"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/RHat"]
 }
-},"Append"->appendval];
+},"Append"->True];
 ]
 
 End[]
