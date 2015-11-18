@@ -217,8 +217,8 @@ contains
              call KSPGetPC(KSPBoundary, PCBoundary, ierr)
              call PCSetType(PCBoundary, PCLU, ierr)
              call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
-             call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_REAL, &
-                  PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
+             call KSPSetTolerances(KSPBoundary, solverTolerance, 1.d-50, &
+                  1.d10, PETSC_DEFAULT_INTEGER, ierr)
              call KSPSetFromOptions(KSPBoundary, ierr)
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
           else
@@ -332,8 +332,8 @@ contains
              call KSPGetPC(KSPBoundary, PCBoundary, ierr)
              call PCSetType(PCBoundary, PCLU, ierr)
              call KSPSetType(KSPBoundary, KSPBCGSL, ierr)
-             call KSPSetTolerances(KSPBoundary, solverTolerance, PETSC_DEFAULT_REAL, &
-                  PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
+             call KSPSetTolerances(KSPBoundary, solverTolerance, 1.d-50, &
+                  1.d10, PETSC_DEFAULT_INTEGER, ierr)
              call KSPSetFromOptions(KSPBoundary, ierr)
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
           else
@@ -554,8 +554,8 @@ contains
        CHKERRQ(ierr)
        call KSPSetType(KSPInstance, KSPBCGSL, ierr)
        CHKERRQ(ierr)
-       call KSPSetTolerances(KSPInstance, solverTolerance, PETSC_DEFAULT_REAL, &
-            PETSC_DEFAULT_REAL, PETSC_DEFAULT_INTEGER, ierr)
+       call KSPSetTolerances(KSPInstance, solverTolerance, 1.d-50, &
+           1.d10, PETSC_DEFAULT_INTEGER, ierr)
        CHKERRQ(ierr)
        call KSPSetFromOptions(KSPInstance, ierr)
        CHKERRQ(ierr)
