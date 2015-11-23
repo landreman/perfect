@@ -48,4 +48,29 @@ def shouldBe(variableName, trueValue, relativeTolerance):
     else:
         print "    Test passed:   Variable "+variableName+" should be close to "+str(trueValue)+", and it came out to be "+str(latestValue)+", which is within tolerance."
         return 0
-  
+
+def diffAll(absoluteTolerance):
+
+    import h5py
+    import numpy
+
+    newFile = h5py.File("perfectOutput.h5")
+    origFile = h5py.File("expectedResults_perfectOutput.h5")
+
+    failureCount = 0
+
+    for varname in newFile["run  1"]:
+        if varname == "elapsed time (s)":
+            # Differences in runtime do not matter
+            continue
+        newData = newFile["run  1"][varname][...]
+        origData = origFile["run  1"][varname][...]
+
+        absoluteDifference = numpy.abs((newData-origData).max())
+        if absoluteDifference > absoluteTolerance:
+            print "*** TEST FAILED!!  Variable "+varname+" has a maximum difference of "+str(absoluteDifference)+" ***"
+            failureCount += 1
+
+    if failureCount == 0:
+        print "    Test passed:   All variables are within "+str(absoluteTolerance)+" absolute difference"
+    return failureCount
