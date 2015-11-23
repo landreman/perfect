@@ -27,7 +27,7 @@ endif
 
 TARGET = perfect
 
-.PHONY: all clean test retest
+.PHONY: all clean test shorttest retest
 
 all: $(TARGET)
 
@@ -63,7 +63,10 @@ test_make:
 	@echo OBJ_FILES is $(OBJ_FILES)
 
 test: $(TARGET)
-	@echo "Beginning functional tests." && cd examples && export PERFECT_RETEST=no && ./runExamples.py
+	@echo "Beginning functional tests." && cd examples && export PERFECT_RETEST=no && export PERFECT_RUN_LARGE_EXAMPLES=yes && ./runExamples.py
+
+shorttest: $(TARGET)
+	@echo "Beginning short functional tests." && cd examples && export PERFECT_RETEST=no && ./runExamples.py
 
 retest: $(TARGET)
 	@echo "Testing perfectOutput.h5 for examples without re-running then." && cd examples && export PERFECT_RETEST=yes && ./runExamples.py
