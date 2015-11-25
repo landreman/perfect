@@ -2,6 +2,7 @@
 
 #include <finclude/petscsysdef.h>
 #include "PETScVersions.F90"
+#include "perfectVersion.h"
 
 program perfect
   use globalVariables
@@ -70,7 +71,7 @@ program perfect
 
      call openOutputFile()
      call allocateArraysForSingleRun()
-     call setupOutput()
+     call setupOutput(GIT_COMMIT)
      call solveDKEMain()
      call writeRunToOutputFile(1)
 
@@ -90,7 +91,7 @@ program perfect
      end if
      call setMPICommunicatorsForScan()
      call openOutputFile()
-     call setupOutput()
+     call setupOutput(GIT_COMMIT)
      call PetscTime(time1, ierr)
 
      do runNum = minScanUnit,maxScanUnit

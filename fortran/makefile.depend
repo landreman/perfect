@@ -13,8 +13,8 @@ DKERhs.o: globalVariables.o grids.o
 geometry.o: globalVariables.o grids.o readHDF5Input.o
 grids.o: globalVariables.o polynomialDiffMatrices.o printToStdout.o xGrid.o
 matlabOutput.o: globalVariables.o DKEMatrices.o DKERhs.o
-moments.o: globalVariables.o grids.o
-perfect.o: globalVariables.o geometry.o writeHDF5Output.o printToStdout.o solveDKE.o readInput.o scan.o
+moments.o: globalVariables.o grids.o writeHDF5Output.o
+perfect.o: globalVariables.o geometry.o printToStdout.o perfectVersion.h readInput.o solveDKE.o scan.o writeHDF5Output.o 
 preallocateMatrix.o: globalVariables.o
 printToStdout.o: globalVariables.o
 profiles.o: globalVariables.o grids.o readHDF5Input.o

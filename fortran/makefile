@@ -27,7 +27,7 @@ endif
 
 TARGET = perfect
 
-.PHONY: all clean test shorttest retest
+.PHONY: all clean test shorttest retest perfectVersion.h
 
 all: $(TARGET)
 
@@ -43,6 +43,12 @@ export
 
 quadpack/quadpack.a:
 	$(MAKE) -C quadpack
+
+perfectVersion.h:
+	echo "#ifndef _PERFECTVERSION_H" > perfectVersion.h
+	echo "#define _PERFECTVERSION_H" >> perfectVersion.h
+	echo "#define GIT_COMMIT \"$$(git describe --always --dirty --abbrev=40)\"" >> perfectVersion.h
+	echo "#endif" >> perfectVersion.h
 
 $(TARGET): $(OBJ_FILES)
 	$(FLINKER) -o $(TARGET) $(OBJ_FILES) $(EXTRA_LINK_FLAGS) $(PETSC_LIB)
