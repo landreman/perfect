@@ -74,11 +74,12 @@ contains
 
   ! -----------------------------------------------------------------------------------
 
-  subroutine setupOutput()
+  subroutine setupOutput(gitCommit)
 
     implicit none
 
     integer :: i, rank
+    character(len=*), intent(in) :: gitCommit
     character(20) :: groupName
 
 #ifdef HAVE_PARALLEL_HDF5
@@ -90,6 +91,9 @@ contains
 
        ! Save programMode in the file:
        call writeIntegerNoGroup(programMode, "programMode")
+
+       ! Save the git commit hash of the PERFECT binary in the file:
+       call writeStringNoGroup(gitCommit,"gitCommit")
 
        do i=1,numRunsInScan
           ! Create a group to hold all data for the run:
@@ -611,6 +615,43 @@ contains
 #endif
 
   end subroutine writeIntegerNoGroup
+
+  subroutine writeStringNoGroup(var,varname)
+    ! Only writes on masterProc
+
+    character(len=*), intent(in) :: var
+    character(len=*), intent(in) :: varname
+    integer(HID_T) :: dspaceID, dsetID, stringType
+    integer(HSIZE_T), dimension(0) :: dimensions
+    integer(HSIZE_T) :: stringLength
+    integer :: ierror
+
+    stringLength = len(var)
+    dimensions = shape(var)
+
+#ifdef HAVE_PARALLEL_HDF5
+    call h5tcopy_f(H5T_FORTRAN_S1, stringType, HDF5Error)
+    call h5tset_size_f(stringtype, stringLength, HDF5Error)
+    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5dcreate_f(HDF5FileID, varname, stringType, dspaceID, dsetID, HDF5Error)
+    if (masterProc) then
+      call h5dwrite_f(dsetID, stringType, var, dimensions, HDF5Error)
+    end if
+    call h5dclose_f(dsetID, HDF5Error)
+    call h5sclose_f(dspaceID, HDF5Error)
+#else
+    if (masterProc) then
+      call h5tcopy_f(H5T_FORTRAN_S1, stringType, HDF5Error)
+      call h5tset_size_f(stringtype, stringLength, HDF5Error)
+      call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+      call h5dcreate_f(HDF5FileID, varname, stringType, dspaceID, dsetID, HDF5Error)
+      call h5dwrite_f(dsetID, stringType, var, dimensions, HDF5Error)
+      call h5dclose_f(dsetID, HDF5Error)
+      call h5sclose_f(dspaceID, HDF5Error)
+    end if
+#endif
+
+  end subroutine writeStringNoGroup
 
   subroutine openDebugOutputFile(filename)
 
