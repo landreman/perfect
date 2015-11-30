@@ -97,6 +97,8 @@ module globalVariables
 
   logical :: includeddpsiTerm
 
+  logical :: testParticleCollisionsDifferentSpecies=.false., testParticleCollisionsSameSpecies=.false.
+
   PetscScalar :: leftBoundaryShift=0, rightBoundaryShift=0
   integer :: leftBoundaryScheme=1, rightBoundaryScheme=1
 

@@ -842,77 +842,83 @@ contains
 
     ! First assemble rows 2 and 3 of the block linear system, since they
     ! are independent of psi and independent of species.
+    if ( ((.not. testParticleCollisionsDifferentSpecies) .or. iSpeciesA==iSpeciesB) &
+        .and. (.not. testParticleCollisionsSameSpecies) ) then
 
-    M32 = zero
-    M21 = 4*pi*regridPolynomialToUniform
-    do i=2,NxPotentials-1
-       M21(i,:) = M21(i,:)*xPotentials(i)*xPotentials(i)
-       M32(i,i) = -2*xPotentials(i)*xPotentials(i)
-    end do
-    M21(1,:)=zero
-    M21(NxPotentials,:)=zero
-    M32(1,:)=zero
-    M32(NxPotentials,:)=zero
-    do i=1,NxPotentials
-       LaplacianTimesX2WithoutL(i,:) = xPotentials(i)*xPotentials(i)*d2dx2Potentials(i,:) &
+      M32 = zero
+      M21 = 4*pi*regridPolynomialToUniform
+      do i=2,NxPotentials-1
+        M21(i,:) = M21(i,:)*xPotentials(i)*xPotentials(i)
+        M32(i,i) = -2*xPotentials(i)*xPotentials(i)
+      end do
+      M21(1,:)=zero
+      M21(NxPotentials,:)=zero
+      M32(1,:)=zero
+      M32(NxPotentials,:)=zero
+      do i=1,NxPotentials
+        LaplacianTimesX2WithoutL(i,:) = xPotentials(i)*xPotentials(i)*d2dx2Potentials(i,:) &
             + 2 * xPotentials(i) * ddxPotentials(i,:)
-    end do
+      end do
 
-    do L=0,(NL-1)
-       M22 = LaplacianTimesX2WithoutL
-       do i=1,NxPotentials
+      do L=0,(NL-1)
+        M22 = LaplacianTimesX2WithoutL
+        do i=1,NxPotentials
           M22(i,i) = M22(i,i) - L*(L+1)
-       end do
+        end do
 
-       ! Add Dirichlet or Neumann boundary condition for potentials at x=0:
-       if (L==0) then
+        ! Add Dirichlet or Neumann boundary condition for potentials at x=0:
+        if (L==0) then
           M22(1,:)=ddxPotentials(1,:)
-       else
+        else
           M22(1,:) = 0
           M22(1,1) = 1
-       end if
-       M33 = M22;
+        end if
+        M33 = M22;
 
-       ! Add Robin boundary condition for potentials at x=xMax:
-       M22(NxPotentials,:) = xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
-       M22(NxPotentials,NxPotentials) = M22(NxPotentials,NxPotentials) + L+1
+        ! Add Robin boundary condition for potentials at x=xMax:
+        M22(NxPotentials,:) = xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
+        M22(NxPotentials,NxPotentials) = M22(NxPotentials,NxPotentials) + L+1
 
-       ! Boundary condition for G:
-       M33(NxPotentials,:) = xMaxNotTooSmall*xMaxNotTooSmall*d2dx2Potentials(NxPotentials,:) &
+        ! Boundary condition for G:
+        M33(NxPotentials,:) = xMaxNotTooSmall*xMaxNotTooSmall*d2dx2Potentials(NxPotentials,:) &
             + (2*L+1)*xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
-       M33(NxPotentials,NxPotentials) = M33(NxPotentials,NxPotentials) + (L*L-1)
+        M33(NxPotentials,NxPotentials) = M33(NxPotentials,NxPotentials) + (L*L-1)
 
-       if (L /= 0) then
+        if (L /= 0) then
           M22(NxPotentials,1)=0
           M33(NxPotentials,1)=0
-       end if
+        end if
 
-       ! Call LAPACK subroutine DGESV to solve a linear system
-       ! Note: this subroutine changes M22 and M33!
-       M22BackslashM21 = M21  ! This will be overwritten by LAPACK.
+        ! Call LAPACK subroutine DGESV to solve a linear system
+        ! Note: this subroutine changes M22 and M33!
+        M22BackslashM21 = M21  ! This will be overwritten by LAPACK.
 #if defined(PETSC_USE_REAL_SINGLE)
-       call SGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
+        call SGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
 #else
-       call DGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
+        call DGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
 #endif
-       if (LAPACKInfo /= 0) then
+        if (LAPACKInfo /= 0) then
           print *, "Error in LAPACK call: info = ", LAPACKInfo
           stop
-       end if
-       M33BackslashM32 = M32  ! This will be overwritten by LAPACK.
+        end if
+        M33BackslashM32 = M32  ! This will be overwritten by LAPACK.
 #if defined(PETSC_USE_REAL_SINGLE)
-       call SGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
+        call SGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
 #else
-       call DGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
+        call DGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
 #endif
-       if (LAPACKInfo /= 0) then
+        if (LAPACKInfo /= 0) then
           print *, "Error in LAPACK call: info = ", LAPACKInfo
           stop
-       end if
+        end if
 
-       M33BackslashM32s(L+1,:,:) = M33BackslashM32
-       M22BackslashM21s(L+1,:,:) = M22BackslashM21
-    end do
+        M33BackslashM32s(L+1,:,:) = M33BackslashM32
+        M22BackslashM21s(L+1,:,:) = M22BackslashM21
+      end do
+    else
+      M33BackslashM32s = zero
+      M22BackslashM21s = zero
+    end if
 
     do ipsi = ipsiMin, ipsiMax
 
@@ -963,13 +969,16 @@ contains
              ! add CD (the part of the field term independent of Rosenbluth potentials.
              ! CD is dense in the species indices.
 
-             speciesFactor = 3 * nHats(iSpeciesA,ipsi)  * masses(iSpeciesA)/masses(iSpeciesB) &
-                  * charges(iSpeciesA)*charges(iSpeciesA)*charges(iSpeciesB)*charges(iSpeciesB) / T32
+             if ( ((.not. testParticleCollisionsDifferentSpecies) .or. iSpeciesA==iSpeciesB) &
+                 .and. (.not. testParticleCollisionsSameSpecies) ) then
+               speciesFactor = 3 * nHats(iSpeciesA,ipsi)  * masses(iSpeciesA)/masses(iSpeciesB) &
+                   * charges(iSpeciesA)*charges(iSpeciesA)*charges(iSpeciesB)*charges(iSpeciesB) / T32
 
-             do ix=1,Nx
-                CECD(iSpeciesA, iSpeciesB, ix, :) = CECD(iSpeciesA, iSpeciesB, ix, :) &
+               do ix=1,Nx
+                 CECD(iSpeciesA, iSpeciesB, ix, :) = CECD(iSpeciesA, iSpeciesB, ix, :) &
                      + speciesFactor * expx2(ix) * fToFInterpolationMatrix(ix, :)
-             end do
+               end do
+             end if
 
              ! Done adding CD. Now add energy scattering (CE).
              ! Unlike CD, CE is diagonal in the species index.
@@ -1025,39 +1034,52 @@ contains
                            / (THats(iSpeciesB,ipsi) * masses(iSpeciesA)))
 
                       ! Build M13:
-                      scheme = 2
-                      call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
-                           potentialsToFInterpolationMatrix, scheme, L)
+                      if ( ((.not. testParticleCollisionsDifferentSpecies) .or. iSpeciesA==iSpeciesB) &
+                          .and. (.not. testParticleCollisionsSameSpecies) ) then
+                        scheme = 2
+                        call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
+                             potentialsToFInterpolationMatrix, scheme, L)
 
-                      speciesFactor = -nu_r * 3/(2*pi)*nHats(iSpeciesA,ipsi) &
-                           * charges(iSpeciesA)*charges(iSpeciesA)*charges(iSpeciesB)*charges(iSpeciesB) &
-                           / (THats(iSpeciesA,ipsi) * sqrt(THats(iSpeciesA,ipsi))) &
-                           * THats(iSpeciesB,ipsi)*masses(iSpeciesA)/(THats(iSpeciesA,ipsi)*masses(iSpeciesB))
+                        speciesFactor = -nu_r * 3/(2*pi)*nHats(iSpeciesA,ipsi) &
+                             * charges(iSpeciesA)*charges(iSpeciesA)*charges(iSpeciesB)*charges(iSpeciesB) &
+                             / (THats(iSpeciesA,ipsi) * sqrt(THats(iSpeciesA,ipsi))) &
+                             * THats(iSpeciesB,ipsi)*masses(iSpeciesA)/(THats(iSpeciesA,ipsi)*masses(iSpeciesB))
 
-                      tempMatrix = matmul(potentialsToFInterpolationMatrix, d2dx2Potentials)
-                      do i=1,Nx
-                         M13(i, :) = speciesFactor*expx2(i)*x2(i)*tempMatrix(i,:)
-                      end do
+                        tempMatrix = matmul(potentialsToFInterpolationMatrix, d2dx2Potentials)
+                        do i=1,Nx
+                           M13(i, :) = speciesFactor*expx2(i)*x2(i)*tempMatrix(i,:)
+                        end do
+                      else
+                        M13 = zero
+                      end if
 
                       ! Build M12:
-                      scheme = 1
-                      call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
-                           potentialsToFInterpolationMatrix, scheme, L)
+                      if ( ((.not. testParticleCollisionsDifferentSpecies) .or. iSpeciesA==iSpeciesB) &
+                          .and. (.not. testParticleCollisionsSameSpecies) ) then
+                        scheme = 1
+                        call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
+                            potentialsToFInterpolationMatrix, scheme, L)
 
-                      temp = 1-masses(iSpeciesA)/masses(iSpeciesB)
-                      do i=1,NxPotentials
-                         tempMatrix2(i,:) = temp*xPotentials(i)*ddxPotentials(i,:)
-                         tempMatrix2(i,i) = tempMatrix2(i,i) + one
-                      end do
-                      tempMatrix = matmul(potentialsToFInterpolationMatrix, tempMatrix2)
-                      do i=1,Nx
-                         M12(i,:) = -speciesFactor*expx2(i)*tempMatrix(i,:)
-                      end do
+                        temp = 1-masses(iSpeciesA)/masses(iSpeciesB)
+                        do i=1,NxPotentials
+                          tempMatrix2(i,:) = temp*xPotentials(i)*ddxPotentials(i,:)
+                          tempMatrix2(i,i) = tempMatrix2(i,i) + one
+                        end do
+                        tempMatrix = matmul(potentialsToFInterpolationMatrix, tempMatrix2)
+                        do i=1,Nx
+                          M12(i,:) = -speciesFactor*expx2(i)*tempMatrix(i,:)
+                        end do
+                      else
+                        M12 = zero
+                      end if
 
                       ! Possibly add Dirichlet boundary condition for potentials at x=0:
-                      if (L /= 0) then
-                         M12(:,1) = 0
-                         M13(:,1) = 0
+                      if ( ((.not. testParticleCollisionsDifferentSpecies) .or. iSpeciesA==iSpeciesB) &
+                          .and. (.not. testParticleCollisionsSameSpecies) ) then
+                        if (L /= 0) then
+                          M12(:,1) = 0
+                          M13(:,1) = 0
+                        end if
                       end if
 
                       !KWithoutThetaPart = M11 -  (M12 - M13 * (M33 \ M32)) * (M22 \ M21);
