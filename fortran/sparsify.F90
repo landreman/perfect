@@ -10,7 +10,7 @@ module sparsify
 
 #include <finclude/petscmatdef.h>
 
-  PetscScalar :: threshholdForInclusion = 1d-12
+  PetscScalar :: threshholdForInclusion = 0d0 ! Only drop zeros
 
 contains
 
