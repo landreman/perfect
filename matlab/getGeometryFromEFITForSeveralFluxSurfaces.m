@@ -10,7 +10,7 @@ if any(desiredPsiNs>1) || any(desiredPsiNs<0)
     error('All desired psi_N values must be between 0 and 1.')
 end
 
-efit = m20120922_04_read_eqdsk(filename);
+efit = read_eqdsk(filename);
 
 psiN = (efit.psi_grid-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
 psiN2D = (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
@@ -27,8 +27,8 @@ Z0 = efit.Zaxis;
 B0 = efit.B0EXP;
 
 scheme = 12;
-[R, ~, ddR, d2dR2] = m20121125_04_DifferentiationMatricesForUniformGrid(efit.nrbox, efit.rboxleft, efit.rboxleft+efit.rboxlength, scheme);
-[Z, ~, ddZ, d2dZ2] = m20121125_04_DifferentiationMatricesForUniformGrid(efit.nzbox, -efit.zboxlength/2, efit.zboxlength/2, scheme);
+[R, ~, ddR, d2dR2] = differentiationMatricesForUniformGrid(efit.nrbox, efit.rboxleft, efit.rboxleft+efit.rboxlength, scheme);
+[Z, ~, ddZ, d2dZ2] = differentiationMatricesForUniformGrid(efit.nzbox, -efit.zboxlength/2, efit.zboxlength/2, scheme);
 
 [R2D, Z2D] = meshgrid(R, Z);
 theta = atan2(Z2D - efit.Zaxis, R2D-efit.Raxis);
@@ -222,4 +222,4 @@ if plotStuff
     ylabel('B.\nabla\theta (T/m)')
     
 end
-end
+
