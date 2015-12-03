@@ -274,8 +274,8 @@ contains
           if (.not. setTPrimeToBalanceHeatFlux) then
              nHat = etaHat * exp(-2*omega/delta*PhiHat/THat)
              dnHatdpsi = ( detaHatdpsi &
-                           -2d0*omega/delta*dPhiHatdpsi/THat &
-                           + 2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
+                           -etaHat*2d0*omega/delta*dPhiHatdpsi/THat &
+                           + etaHat*2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
 
        case (3)
@@ -451,8 +451,8 @@ contains
           if (.not. setTPrimeToBalanceHeatFlux) then
              nHat = etaHat * exp(-2*omega/delta*PhiHat/THat)
              dnHatdpsi = ( detaHatdpsi &
-                           - 2d0*omega/delta*dPhiHatdpsi/THat &
-                           + 2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
+                           - etaHat*2d0*omega/delta*dPhiHatdpsi/THat &
+                           + etaHat*2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
 
        case (4,5,6)
@@ -636,8 +636,8 @@ contains
           if (.not. setTPrimeToBalanceHeatFlux) then
              nHat = etaHat * exp(-2*omega/delta*PhiHat/THat)
              dnHatdpsi = ( detaHatdpsi &
-                           - 2d0*omega/delta*dPhiHatdpsi/THat &
-                           + 2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
+                           - etaHat*2d0*omega/delta*dPhiHatdpsi/THat &
+                           + etaHat*2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
 
        case default
@@ -725,7 +725,8 @@ contains
        end do
 
        do i=1,Npsi
-          nuPrimeProfile(ispecies,i) = nu_r * Miller_q * nHats(ispecies,i) / (THats(ispecies,i)*THats(ispecies,i))
+          nuPrimeProfile(ispecies,i) = nu_r * charges(ispecies)**4 &
+               * Miller_q * nHats(ispecies,i) / (THats(ispecies,i)*THats(ispecies,i))
           nuStarProfile(ispecies,i) = nuPrimeProfile(ispecies,i) / (epsil*sqrt(epsil))
        end do
 
