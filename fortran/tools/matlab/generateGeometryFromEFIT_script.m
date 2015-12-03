@@ -203,7 +203,9 @@ dBHatdtheta = ddthetaForBHat * BHat;
 
 geometryFilePath = strcat(pwd,'/',geometryFilename);
 group = sprintf('%s%i%s%i%s','/Npsi',Npsi,'Ntheta',Ntheta,'/');
-hdf5write(geometryFilePath, strcat(group,'BHat'), BHat)
+hdf5write(geometryFilePath, strcat(group,'psiMin'), psiMin)
+hdf5write(geometryFilePath, strcat(group,'psiMax'), psiMax, 'WriteMode', 'append')
+hdf5write(geometryFilePath, strcat(group,'BHat'), BHat, 'WriteMode', 'append')
 hdf5write(geometryFilePath, strcat(group,'dBHatdpsi'), dBHatDPsi, 'WriteMode', 'append')
 hdf5write(geometryFilePath, strcat(group,'dBHatdtheta'), dBHatdtheta, 'WriteMode', 'append')
 hdf5write(geometryFilePath, strcat(group,'JHat'), JHat, 'WriteMode', 'append')
