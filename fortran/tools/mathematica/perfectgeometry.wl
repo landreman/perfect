@@ -3,13 +3,13 @@
 BeginPackage["PerfectGeometry`"]
 
 SavePerfectGeometry::usage="Saves the arrays needed to define magnetic geometry in PERFECT.
-SavePerfectGeometry[BHat,dBHatdpsi,dBHatdtheta,JHat,IHat,dIHatdpsi]"
+SavePerfectGeometry[psiMin,psiMax,BHat,dBHatdpsi,dBHatdtheta,JHat,IHat,dIHatdpsi]"
 
 Begin["Private`"]
 
 Options[SavePerfectGeometry]={Filename->"input.geometry.h5",Append->False}
 
-SavePerfectGeometry[BHat_,dBHatdpsi_,dBHatdtheta_,JHat_,IHat_,dIHatdpsi_,RHat_,OptionsPattern[]]:=
+SavePerfectGeometry[psiMin_,psiMax_,BHat_,dBHatdpsi_,dBHatdtheta_,JHat_,IHat_,dIHatdpsi_,RHat_,OptionsPattern[]]:=
 Module[{Npsi,Ntheta,filenameval,appendval},
 filenameval=OptionValue[Filename];
 appendval=OptionValue[Append];
@@ -21,9 +21,17 @@ If[Dimensions[JHat]!={Npsi,Ntheta},Throw["Dimensions of JHat do not match dimens
 If[Dimensions[IHat]!={Npsi},Throw["Dimensions of IHat do not match dimensions of BHat"]];
 If[Dimensions[dIHatdpsi]!={Npsi},Throw["Dimensions of dIHatdpsi do not match dimensions of BHat"]];
 If[Dimensions[RHat]!={Npsi,Ntheta},Throw["Dimensions of dRHat do not match dimensions of BHat"]];
-Export[filenameval,{BHat},{"Datasets",StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/BHat"]},"Append"->appendval];
+Export[filenameval,
+{psiMin},
+{"Datasets",StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/psiMin"]}
+,"Append"->appendval];
+Export[filenameval,
+{psiMax},
+{"Datasets",StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/psiMax"]}
+,"Append"->True];
 Export[filenameval,
 {
+BHat,
 dBHatdpsi,
 dBHatdtheta,
 JHat,
@@ -33,6 +41,7 @@ RHat
 },
 {"Datasets",
 {
+StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/BHat"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dBHatdpsi"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/dBHatdtheta"],
 StringJoin["/Npsi",ToString[Npsi],"Ntheta",ToString[Ntheta],"/JHat"],
