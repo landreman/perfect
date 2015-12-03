@@ -1,4 +1,5 @@
 import h5py
+import numpy
 from sys import exit
 
 ####################################################
@@ -15,7 +16,25 @@ class perfectGeometry:
     def __del__(self):
         self.geometryFile.close()
 
-    def create_geometry_for_Npsi_Ntheta(self, Npsi, Ntheta,BHat,dBHatdpsi,dBHatdtheta,JHat,IHat,dIHatdpsi):
+    def create_geometry_for_Npsi_Ntheta(self, Npsi, Ntheta, psiMin, psiMax, BHat, dBHatdpsi, dBHatdtheta, JHat, IHat, dIHatdpsi):
+        # Make sure inputs are numpy arrays
+        BHat = numpy.array(BHat)
+        dBHatdpsi = numpy.array(dBHatdpsi)
+        dBHatdtheta = numpy.array(dBHatdtheta)
+        JHat = numpy.array(JHat)
+        IHat = numpy.array(IHat)
+        dIHatdpsi = numpy.array(dIHatdpsi)
+
+        # Check arrays are the right size
+        for var,name in [[BHat,"BHat"], [dBHatdpsi,"dBHatdpsi"], [dBHatdtheta,"dBHatdtheta"], [JHat,"JHat"]]:
+            if var.shape != (Npsi,Ntheta):
+                print "Error: "+name+" has dimensions "+str(var.shape)+" instead of (Npsi,Ntheta) =",str((Npsi,Ntheta))
+                exit(1)
+        for var,name in [[IHat,"IHat"],[dIHatdpsi,"dIHatdpsi"]]:
+            if var.shape != (Npsi,):
+                print "Error: "+name+" has dimensions "+str(var.shape)+" instead of (Npsi) =",str((Npsi,))
+                exit(1)
+
         # Write geometry to HDF5 file
         groupname = "Npsi"+str(Npsi)+"Ntheta"+str(Ntheta)
         if groupname in self.geometryFile:
@@ -23,6 +42,8 @@ class perfectGeometry:
             exit(1)
         geometrygroup = self.geometryFile.create_group(groupname)
 
+        geometrygroup.create_dataset("psiMin",data=psiMin) # psiMin and psiMax are used to check that the geometryFile is consistent with the input.namelist file when PERFECT is run
+        geometrygroup.create_dataset("psiMax",data=psiMax)
         geometrygroup.create_dataset("BHat",data=BHat)
         geometrygroup.create_dataset("dBHatdpsi",data=dBHatdpsi)
         geometrygroup.create_dataset("dBHatdtheta",data=dBHatdtheta)
