@@ -249,16 +249,16 @@ contains
                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
                 if (includeNeutrals .and. ispecies==1) then
                   neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) = &
-                      neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) + &
-                      4d0/35d0*neutralMomentumFluxFactors1(itheta,ipsi) &
+                      neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) &
+                      + 4d0/35d0*neutralMomentumFluxFactors1(itheta,ipsi) &
                       * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
                   neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) = &
-                      neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) + &
-                      16d0/45d0*neutralMomentumFluxFactors2(itheta,ipsi) &
+                      neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) &
+                      + 16d0/45d0*neutralMomentumFluxFactors2(itheta,ipsi) &
                       * dot_product(xWeights, neutralMomentumFluxIntegralWeights * solnArray(indices))
                   neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) = &
-                      neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) + &
-                      -4d0/35d0*neutralMomentumFluxFactors3(itheta,ipsi) &
+                      neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) &
+                      - 4d0/35d0*neutralMomentumFluxFactors3(itheta,ipsi) &
                       * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
                 end if
 
@@ -273,8 +273,8 @@ contains
 
                 if (includeNeutrals .and. ispecies==1) then
                   neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) = &
-                      neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) + &
-                      16d0/693d0*neutralMomentumFluxFactors2(itheta,ipsi) &
+                      neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) &
+                      + 16d0/693d0*neutralMomentumFluxFactors2(itheta,ipsi) &
                       * dot_product(xWeights, neutralMomentumFluxIntegralWeights * solnArray(indices))
                 end if
 
