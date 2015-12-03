@@ -1,4 +1,5 @@
 import h5py
+import numpy
 from sys import exit
 
 ####################################################
@@ -15,7 +16,27 @@ class perfectProfiles:
     def __del__(self):
         self.profilesFile.close()
 
-    def create_profiles_for_Npsi(self, Npsi, PhiHat, dPhiHatdpsi, THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis):
+    def create_profiles_for_Npsi(self, Npsi, numSpecies, PhiHat, dPhiHatdpsi, THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis):
+        # Make sure inputs are numpy arrays
+        PhiHat = numpy.array(PhiHat)
+        dPhiHatdpsi = numpy.array(dPhiHatdpsi)
+        THats = numpy.array(THats)
+        dTHatdpsis = numpy.array(dTHatdpsis)
+        nHats = numpy.array(nHats)
+        dnHatdpsis = numpy.array(dnHatdpsis)
+        etaHats = numpy.array(etaHats)
+        detaHatdpsis = numpy.array(detaHatdpsis)
+
+        # Check arrays are the right size
+        for var,name in ((PhiHat,"PhiHat"), (dPhiHatdpsi,"dPhiHatdpsi")):
+            if var.shape != (Npsi,):
+                print "Error: "+name+" has dimensions "+str(var.shape)+" instead of (Npsi) =",str((Npsi,))
+                exit(1)
+        for var,name in ((THats,"THats"), (dTHatdpsis,"dTHatdpsis"), (nHats,"nHats"), (dnHatdpsis,"dnHatdpsis"), (etaHats,"etaHats"), (detaHatdpsis,"detaHatdpsis")):
+            if var.shape != (Npsi,numSpecies):
+                print "Error: "+name+" has dimensions "+str(var.shape)+" instead of (Npsi,numSpecies) =",str((Npsi,numSpecies))
+                exit(1)
+
         # Write profiles to HDF5 file
         groupname = "Npsi"+str(Npsi)
         if groupname in self.profilesFile:
