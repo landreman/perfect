@@ -60,8 +60,8 @@ def diffAll(absoluteTolerance):
     failureCount = 0
 
     for varname in newFile["run  1"]:
-        if varname == "elapsed time (s)":
-            # Differences in runtime do not matter
+        if varname == "elapsed time (s)" or varname == "gitCommit":
+            # Differences in runtime and commit do not matter
             continue
         newData = newFile["run  1"][varname][...]
         origData = origFile["run  1"][varname][...]

@@ -87,7 +87,8 @@ contains
     implicit none
 
     PetscScalar, allocatable, dimension(:) :: bs_1D, dbdthetas_1D, oneOverqRbDotGradThetas_1D
-    integer :: i
+    PetscScalar :: input_psiMin, input_psiMax, psiRangeTolerance
+    integer :: i, psiRangeErrorFlags
 
     allocate(BHat(Ntheta,Npsi))
     allocate(dBHatdpsi(Ntheta,Npsi))
@@ -133,6 +134,45 @@ contains
 
        ! Open geometry input file
        call openInputFile(geometryFilename, HDF5Groupname)
+
+       ! Check geometry is consistent with input file
+       psiRangeTolerance = 1.d-13
+       call readVariable(input_psiMin, "psiMin")
+       call readVariable(input_psiMax, "psiMax")
+       psiRangeErrorFlags = 0
+       if ( abs(input_psiMin-psiMin) > psiRangeTolerance ) then
+         psiRangeErrorFlags = psiRangeErrorFlags + 1
+       end if
+       if ( abs(input_psiMax-psiMax) > psiRangeTolerance ) then
+         psiRangeErrorFlags = psiRangeErrorFlags + 2
+       end if
+       if (Npsi==1) then
+         ! If there is only one point in the psi-grid only psiMid matters
+         if ( abs((input_psiMax+input_psiMin)/2d0 - psiMid) < psiRangeTolerance ) then
+           psiRangeErrorFlags = 0
+         else
+           print *,"psiMid used to compute the geometry input file is different from the value calculated"
+           print *,"from the input.namelist file. Perhaps you need to rebuild the geometry input file."
+           stop
+         end if
+       end if
+       select case (psiRangeErrorFlags)
+       case (0)
+         ! All correct
+       case (1)
+         print *,"psiMin used to compute the geometry input file is different from the value calculated"
+         print *,"from the input.namelist file. Perhaps you need to rebuild the geometry input file."
+         stop
+       case (2)
+         print *,"psiMax used to compute the geometry input file is different from the value calculated"
+         print *,"from the input.namelist file. Perhaps you need to rebuild the geometry input file."
+         stop
+       case (3)
+         print *,"psiMin and psiMax used to compute the geometry input file are both different from the value"
+         print *,"calculated from the input.namelist file. Perhaps you need to rebuild the geometry input file."
+       case default
+         stop "This should never happen."
+       end select
 
        ! Read variables
        call readVariable(BHat, "BHat")
