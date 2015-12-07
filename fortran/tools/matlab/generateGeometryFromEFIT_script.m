@@ -84,24 +84,32 @@ EFITOptions
 % Generate psi grid from options
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Npsi = round(NpsiPerDiameter * (psiDiameter + 2*widthExtender - leftBoundaryShift + rightBoundaryShift))+1;
+Npsi = max(1,round(NpsiPerDiameter * (psiDiameter + 2*widthExtender - leftBoundaryShift + rightBoundaryShift))+1);
 psiMin = psiMid - psiDiameter/2. - widthExtender + leftBoundaryShift;
 psiMax = psiMid + psiDiameter/2. + widthExtender + rightBoundaryShift;
 
 % Generate abscissae, quadrature weights, and derivative matrix for psi grid.
 % Both abscissae and weights should be column vectors.
 % Only really need the psi grid here
-switch psiGridMode
-case 1
-  % Uniform grid, finite differences with a 3-point stencil
-  scheme = 2;
-  [psi, psiWeights, ddpsi, d2dpsi2] = differentiationMatricesForUniformGrid(Npsi, psiMin, psiMax, scheme);
-case 2
-  % Uniform grid, finite differences with a 5-point stencil
-  scheme = 12;
-  [psi, psiWeights, ddpsi, d2dpsi2] = differentiationMatricesForUniformGrid(Npsi, psiMin, psiMax, scheme);
-otherwise
-  error('Invalid psiGridMode!')
+if Npsi>1
+  switch psiGridMode
+  case 1
+    % Uniform grid, finite differences with a 3-point stencil
+    scheme = 2;
+    [psi, psiWeights, ddpsi, d2dpsi2] = differentiationMatricesForUniformGrid(Npsi, psiMin, psiMax, scheme);
+  case 2
+    % Uniform grid, finite differences with a 5-point stencil
+    scheme = 12;
+    [psi, psiWeights, ddpsi, d2dpsi2] = differentiationMatricesForUniformGrid(Npsi, psiMin, psiMax, scheme);
+  otherwise
+    error('Invalid psiGridMode!')
+  end
+else
+  % If Npsi is 1, assume we are making the local approximation and so dI/dpsi is not needed, so ddpsi, d2dpsi2 are not needed
+  psi = psiMid;
+  psiWeights = 1.;
+  ddpsi = 0.;
+  d2dpsi2 = 0.;
 end
 psi = psi(:)';
 psiWeights = psiWeights(:)';
@@ -137,7 +145,7 @@ plotStuff = false;
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BData, BDotGradThetaData, IHat qData, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, plotStuff);
+[thetaData, BData, BDotGradThetaData, IHat, qData, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, plotStuff);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';
@@ -196,6 +204,14 @@ scheme = 20;
 [~, ~, ddthetaForBHat, ~] = differentiationMatricesForUniformGrid(Ntheta, 0, 2*pi, scheme);
 dBHatdtheta = ddthetaForBHat * BHat;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Check potato orbit radius and print warning
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% 4.17380166e-5.m^2.T^2=2*(Deuteron mass)*(1keV)/e^2 is rho^2*B^2.
+fprintf('%s%f%s%f%s\n\n','The smallest minor radius is ',min(as),...
+                   'm while the potato orbit radius for 1keV Deuterium is about ',...
+                   (qData(1).^2*4.17380166e-5/B0.^2*R0).^(1./3.),'m.')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Save geometrical quantities into HDF5 file
