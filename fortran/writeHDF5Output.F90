@@ -141,6 +141,9 @@ contains
       call writeVariable(psi,"psi",runNum)
       call writeVariable(theta,"theta",runNum)
       call writeVariable(JHat,"JHat",runNum)
+      if (geometryToUse == 1 .or. geometryToUse==4) then
+        call writeVariable(RHat,"RHat",runNum)
+      end if
       call writeVariable(BHat,"BHat",runNum)
       call writeVariable(dBHatdpsi,"d(BHat)d(psi)",runNum)
       call writeVariable(dBHatdtheta,"d(BHat)d(theta)",runNum)

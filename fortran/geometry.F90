@@ -88,7 +88,7 @@ contains
 
     PetscScalar, allocatable, dimension(:) :: bs_1D, dbdthetas_1D, oneOverqRbDotGradThetas_1D
     PetscScalar :: input_psiMin, input_psiMax, psiRangeTolerance
-    integer :: i, psiRangeErrorFlags
+    integer :: ipsi, itheta, psiRangeErrorFlags
 
     allocate(BHat(Ntheta,Npsi))
     allocate(dBHatdpsi(Ntheta,Npsi))
@@ -109,10 +109,16 @@ contains
        call computedBdthetas_1D(theta, dbdthetas_1D)
        call computeOneOverqRbDotGradThetas_1D(theta, oneOverqRbDotGradThetas_1D)
 
-       do i=1,Npsi
-          BHat(:,i) = bs_1D
-          dBHatdtheta(:,i) = dbdthetas_1D
-          JHat(:,i) = bs_1D / oneOverqRbDotGradThetas_1D / Miller_q
+       do ipsi=1,Npsi
+          BHat(:,ipsi) = bs_1D
+          dBHatdtheta(:,ipsi) = dbdthetas_1D
+          JHat(:,ipsi) = bs_1D / oneOverqRbDotGradThetas_1D / Miller_q
+          if (geometryToUse==1) then
+            ! Miller geometry
+            do itheta=1,Ntheta
+              RHat(itheta,ipsi) = RHatMiller(theta(itheta))
+            end do
+          end if
        end do
        dBHatdpsi = 0
        IHat = 1
