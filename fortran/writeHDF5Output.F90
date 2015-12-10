@@ -80,6 +80,8 @@ contains
 
     integer :: i, rank
     character(len=*), intent(in) :: gitCommit
+    character(len=32) :: arg
+    character(:),allocatable:: argString
     character(20) :: groupName
 
 #ifdef HAVE_PARALLEL_HDF5
@@ -95,6 +97,21 @@ contains
        ! Save the git commit hash of the PERFECT binary in the file:
        call writeStringNoGroup(gitCommit,"gitCommit")
 
+       ! Save the extra command line arguments in the file:
+       argString=""
+       do i = 1, iargc()
+          call getarg(i, arg)
+          if (i == 1) then
+                argString=trim(arg)
+          else
+             argString=trim(argString)//" "//trim(arg)
+          end if        
+       end do
+       if (len(argString)==0) then
+          argString=" "
+       end if
+       call writeStringNoGroup(argString,"cmdFlags")
+
        do i=1,numRunsInScan
           ! Create a group to hold all data for the run:
           write (groupName, "(a, i3)") "run",i
@@ -104,6 +121,8 @@ contains
 
   end subroutine setupOutput
 
+
+  
   ! -----------------------------------------------------------------------------------
 
   subroutine writeRunToOutputFile(runNum)
