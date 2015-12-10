@@ -93,6 +93,7 @@ class perfectInput:
     def read(self,inputfilename):
         self.inputfilename = inputfilename
         self.inputfile = f90nml.read(inputfilename)
+        flowControl = self.inputfile["flowControl"]
         physicsParameters = self.inputfile["physicsParameters"]
         speciesParameters = self.inputfile["speciesParameters"]
         resolutionParameters = self.inputfile["resolutionParameters"]
@@ -104,6 +105,8 @@ class perfectInput:
         if resolutionParameters["NpsiNumRuns"]>0 or resolutionParameters["psiDiameterNumRuns"]>0 or resolutionParameters["widthExtenderNumRuns"]>0:
             print "Scans that change Npsi are not supported"
             exit(1)
+        self.outputFilename=flowControl["outputFilename"]
+            
         self.profilesScheme = physicsParameters["profilesScheme"]
         self.profilesFilename = physicsParameters["profilesFilename"]
         self.NpsiPerDiameter = resolutionParameters["NpsiPerDiameter"]
