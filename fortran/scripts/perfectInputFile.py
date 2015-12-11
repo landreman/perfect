@@ -112,7 +112,9 @@ class perfectInput:
         self.NpsiPerDiameter = resolutionParameters["NpsiPerDiameter"]
         self.psiDiameter = resolutionParameters["psiDiameter"]
         self.widthExtender = resolutionParameters["widthExtender"]
-
+        self.Nxi = resolutionParameters["Nxi"]
+        
+        
         self.charges=speciesParameters["charges"]
         self.masses=speciesParameters["masses"]
 
