@@ -3,6 +3,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 addpath(fullfile(pwd,'..','..','..','matlab'))% Add path to matlab directory to use functions from Matlab version of PERFECT
+addpath(fullfile(pwd))
 
 if exist('usePath')
   cd(usePath)
@@ -145,7 +146,7 @@ plotStuff = false;
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BData, BDotGradThetaData, IHat, qData, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, plotStuff);
+[thetaData, BData, BDotGradThetaData, IHat, qData, RData, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, plotStuff);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';
@@ -156,6 +157,9 @@ thetaForBFilter = linspace(0,2*pi,NThetaFilter+1);
 thetaForBFilter(end)=[];
 BModes = zeros(NThetaFilter, Npsi);
 JModes = zeros(NThetaFilter, Npsi);
+RModes = zeros(NThetaFilter, Npsi);
+disp(BData)
+disp(RData)
 for psiIndex = 1:Npsi
   %temp = interp1(thetaData{psiIndex}, BData{psiIndex}/B0, thetaForBFilter, 'spline');
   temp = interp1(thetaData{psiIndex}, BData{psiIndex}, thetaForBFilter, 'spline');
@@ -163,6 +167,9 @@ for psiIndex = 1:Npsi
   %temp = interp1(thetaData{psiIndex}, BDotGradThetaData{psiIndex}/B0, thetaForBFilter, 'spline');
   temp = interp1(thetaData{psiIndex}, BDotGradThetaData{psiIndex}, thetaForBFilter, 'spline');
   JModes(:,psiIndex) = fft(temp)/NThetaFilter;
+  %temp = interp1(thetaData{psiIndex}, RData{psiIndex}/B0, thetaForBFilter, 'spline');
+  temp = interp1(thetaData{psiIndex}, RData{psiIndex}, thetaForBFilter, 'spline');
+  RModes(:,psiIndex) = fft(temp)/NThetaFilter;
 end
 
 numFourierModesInThetaToKeepInEFITGeometry = 5;
@@ -175,15 +182,18 @@ fprintf('Inverse aspect ratio derived from EFIT equilibrium: %g to %g\n',min(eps
 
 BHat_beforeSmoothing = ones(Ntheta,1) * BModes(1,:);
 JHat_beforeSmoothing = ones(Ntheta,1) * JModes(1,:);
+RHat_beforeSmoothing = ones(Ntheta,1) * RModes(1,:);
 keepUpDownAsymmetry = 1; % This variable should be either 1 or 0.
 for m=1:numFourierModesInThetaToKeepInEFITGeometry
   BHat_beforeSmoothing = BHat_beforeSmoothing + 2*cos(m*theta)*real(BModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(BModes(m+1,:));
   JHat_beforeSmoothing = JHat_beforeSmoothing + 2*cos(m*theta)*real(JModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(JModes(m+1,:));
+  RHat_beforeSmoothing = RHat_beforeSmoothing + 2*cos(m*theta)*real(RModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(RModes(m+1,:));
 end
 
 % Smooth in the psi direction by fitting a polynomial:
 BHat = zeros(Ntheta,Npsi);
 JHat = zeros(Ntheta,Npsi);
+RHat = zeros(Ntheta,Npsi);
 dBHatDPsi = zeros(Ntheta,Npsi);
 for itheta = 1:Ntheta
   [p,S,mu] = polyfit(psi, BHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
@@ -197,6 +207,10 @@ for itheta = 1:Ntheta
   [p,S,mu] = polyfit(psi, JHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
   [y,~]= polyval(p,psi,S,mu);
   JHat(itheta,:) = y;
+
+  [p,S,mu] = polyfit(psi, RHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
+  [y,~]= polyval(p,psi,S,mu);
+  RHat(itheta,:) = y;
 end
 
 % Spectral uniform differentiation matrix:
@@ -227,5 +241,9 @@ hdf5write(geometryFilePath, strcat(group,'dBHatdtheta'), dBHatdtheta, 'WriteMode
 hdf5write(geometryFilePath, strcat(group,'JHat'), JHat, 'WriteMode', 'append')
 hdf5write(geometryFilePath, strcat(group,'IHat'), IHat, 'WriteMode', 'append')
 hdf5write(geometryFilePath, strcat(group,'dIHatdpsi'), dIHatdpsi, 'WriteMode', 'append')
+% Write extra stuff into geometry files that is not used by PERFECT, but may be useful elsewhere
+hdf5write(geometryFilePath, strcat(group,'R0'), R0, 'WriteMode', 'append')
+hdf5write(geometryFilePath, strcat(group,'epsilon'), epsilon, 'WriteMode', 'append')
+hdf5write(geometryFilePath, strcat(group,'RHat'), RHat, 'WriteMode', 'append')
 
 quit
