@@ -208,6 +208,12 @@ class perfectInput:
     def changevar(self,group,var,value):
         # Warning: this command will fail silently if the pattern is not found. Sorry about that.
         # Warning: case insensitive
+        if numpy.issubdtype(type(value),float):
+            value = str(value)
+            if "e" in value:
+                value = value.replace('e','d') # Write exponents in Fortran double precision format
+            else:
+                value = value+"d0" # Write as a Fortran double precision literal
         subprocess.call("sed -i -e '/\&"+group+"/,/\&/{ s/^  "+var+" =.*/  "+var+" = "+str(value)+"/I } ' "+self.inputfilename, shell=True)
 
     def __init__(self,inputfilename=None):
