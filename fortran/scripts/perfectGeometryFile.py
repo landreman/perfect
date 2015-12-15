@@ -51,4 +51,5 @@ class perfectGeometry:
         geometrygroup.create_dataset("IHat",data=IHat)
         geometrygroup.create_dataset("dIHatdpsi",data=dIHatdpsi)
 
-
+    def add_field(self,varname,var):
+        self.geometryFile.create_dataset(varname,data=var)
