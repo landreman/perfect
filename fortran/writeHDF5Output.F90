@@ -25,10 +25,18 @@ interface writeVariable
 end interface writeVariable
 
 interface rank
-   module procedure rrank
-   module procedure irank
-   module procedure crank
+   module procedure rank_real
+   module procedure rank_integer
+   module procedure rank_character
+   module procedure rank_scalar
+   module procedure rank_1d
+   !module procedure rank_1d_nonalloc
+   module procedure rank_2d
+   module procedure rank_3d
+   module procedure rank_4d
+   module procedure rank_5d
 end interface rank
+
 
 ! Stuff for writing debugging output:
 integer(HID_T), private :: HDF5DebugFileID
@@ -811,23 +819,68 @@ contains
 
   end subroutine writeDebugArray_5d
 
-  integer function rrank(A)
+
+  integer function rank_real(A)
     real, intent(in) :: A(:)
-    rrank=size(shape(A))
+    rank_real=size(shape(A))
     return
-  end function rrank
+  end function rank_real
 
-  integer function crank(A)
-    character, intent(in) :: A(:)
-    crank=size(shape(A))
+  integer function rank_character(A)
+    character(len=*), intent(in) :: A
+    rank_character=size(shape(A))
     return
-  end function crank
+  end function rank_character
 
-  integer function irank(A)
-    integer, intent(in) :: A(:)
-    irank=size(shape(A))
+  integer function rank_integer(A)
+    integer, intent(in) :: A
+    rank_integer=size(shape(A))
     return
-  end function irank
+  end function rank_integer
+
+  integer function rank_scalar(A)
+    PetscScalar, intent(in) :: A
+    rank_scalar=size(shape(A))
+    return
+  end function rank_scalar
+
+  integer function rank_1d(A)
+    PetscScalar, dimension(:), allocatable, intent(in) :: A
+    rank_1d=size(shape(A))
+    return
+  end function rank_1d
+
+  ! conflicts with rank_1d
+  !integer function rank_1d_nonalloc(A)
+  !  PetscScalar, dimension(:), intent(in) :: A
+  !  rank_1d_nonalloc=size(shape(A))
+  !  return
+  !end function rank_1d_nonalloc
+
+  integer function rank_2d(A)
+    PetscScalar, dimension(:,:), allocatable, intent(in) :: A
+    rank_2d=size(shape(A))
+    return
+  end function rank_2d
+
+  integer function rank_3d(A)
+    PetscScalar, dimension(:,:,:), allocatable, intent(in) :: A
+    rank_3d=size(shape(A))
+    return
+  end function rank_3d
+
+  integer function rank_4d(A)
+    PetscScalar, dimension(:,:,:,:), allocatable, intent(in) :: A
+    rank_4d=size(shape(A))
+    return
+  end function rank_4d
+
+
+  integer function rank_5d(A)
+    PetscScalar, dimension(:,:,:,:,:), allocatable, intent(in) :: A
+    rank_5d=size(shape(A))
+    return
+  end function rank_5d
 
 end module writeHDF5Output
 
