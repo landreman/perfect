@@ -106,6 +106,7 @@ class perfectInput:
             print "Scans that change Npsi are not supported"
             exit(1)
         self.outputFilename=flowControl["outputFilename"]
+        self.solveSystem=flowControl["solveSystem"]
             
         self.profilesScheme = physicsParameters["profilesScheme"]
         self.profilesFilename = physicsParameters["profilesFilename"]

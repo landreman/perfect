@@ -24,6 +24,12 @@ interface writeVariable
   module procedure writeVariable_5d
 end interface writeVariable
 
+interface rank
+   module procedure rrank
+   module procedure irank
+   module procedure crank
+end interface rank
+
 ! Stuff for writing debugging output:
 integer(HID_T), private :: HDF5DebugFileID
 interface writeDebugArray
@@ -78,7 +84,7 @@ contains
 
     implicit none
 
-    integer :: i, rank
+    integer :: i
     character(len=*), intent(in) :: gitCommit
     character(len=32) :: arg
     character(:),allocatable:: argString
@@ -804,6 +810,24 @@ contains
     call h5sclose_f(dspaceID, HDF5Error)
 
   end subroutine writeDebugArray_5d
+
+  integer function rrank(A)
+    real, intent(in) :: A(:)
+    rrank=size(shape(A))
+    return
+  end function rrank
+
+  integer function crank(A)
+    character, intent(in) :: A(:)
+    crank=size(shape(A))
+    return
+  end function crank
+
+  integer function irank(A)
+    integer, intent(in) :: A(:)
+    irank=size(shape(A))
+    return
+  end function irank
 
 end module writeHDF5Output
 
