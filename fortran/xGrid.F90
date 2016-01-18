@@ -86,8 +86,12 @@
       !     inf = -1            to  (-infinity,bound),
       !     inf = 2             to (-infinity,+infinity).
 
-      EPSABS = 0d0 !0.0E0
-      EPSREL = 1d-3
+      ! If i denotes the true value of the integral, QUADPACK will try to satisfy
+      ! abs(i-result).le.max(epsabs,epsrel*abs(i))
+      !
+      ! Note: If epsabs is set .le. 1d-13 or so, then sometimes there are AA errors (ier=2) indicating pollution by roundoff.
+      EPSABS = 1d-13
+      EPSREL = 1d-13
       LIMIT = workspaceSize
 
       finiteBound = 5d+0
