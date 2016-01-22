@@ -1,4 +1,4 @@
-function [thetaSurfs, BSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, plotStuff)
+function [thetaSurfs, BSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff)
 
 % 'BSurfs' and 'B0' should have units of Tesla.
 % Both 'as' and 'R0' should have units of meters.
@@ -21,6 +21,8 @@ ISurfs = interp1(psiN, efit.T, desiredPsiNs, 'spline');
 valueForCropping = max(max(psiN2D));
 psiN2D(efit.Z_grid > topCropZ, :) = valueForCropping;
 psiN2D(efit.Z_grid < bottomCropZ, :) = valueForCropping;
+psiN2D(efit.R_grid < innerCropR, :) = valueForCropping;
+psiN2D(efit.R_grid > outerCropR, :) = valueForCropping;
 
 R0 = efit.Raxis;
 Z0 = efit.Zaxis;

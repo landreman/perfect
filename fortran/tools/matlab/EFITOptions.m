@@ -2,5 +2,7 @@
 EFITFilename = 'g128913.01500_65x65';
 topCropZ = 1.6;
 bottomCropZ = 1.6;
+innerCropR = 0.0;
+outerCropR = 5.0;
 polynomialFitDegreeForSmoothingEFITInPsi = 4;
 numFourierModesInThetaToKeepInEFITGeometry = 5;

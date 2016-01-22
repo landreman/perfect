@@ -78,7 +78,7 @@ end
 fclose(inputFileID);
 
 % Options for EFIT geometry reading
-% .mat file must contain EFITFilename, topCropZ, bottomCropZ, polynomialFitDegreeForSmoothingEFITInPsi and numFourierModesInThetaToKeepInEFITGeometry
+% .mat file must contain EFITFilename, topCropZ, bottomCropZ, innerCropR, outerCropR, polynomialFitDegreeForSmoothingEFITInPsi and numFourierModesInThetaToKeepInEFITGeometry
 EFITOptions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -146,7 +146,7 @@ plotStuff = false;
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BData, BDotGradThetaData, IHat, qData, RData, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, plotStuff);
+[thetaData, BData, BDotGradThetaData, IHat, qData, RData, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';
