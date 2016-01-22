@@ -6,3 +6,4 @@ innerCropR = 0.0;
 outerCropR = 5.0;
 polynomialFitDegreeForSmoothingEFITInPsi = 4;
 numFourierModesInThetaToKeepInEFITGeometry = 5;
+plotStuff = false;

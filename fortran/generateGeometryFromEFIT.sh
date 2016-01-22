@@ -12,6 +12,6 @@ done
 DIR="$( cd -P "$( dirname "$SOURCE"  )" && pwd )"
 
 echo $PWD
-matlab -nodesktop -nosplash -nojvm -r "usePath='$PWD';run('$DIR/tools/matlab/generateGeometryFromEFIT_script')"
+matlab -nodesktop -nosplash -r "usePath='$PWD';run('$DIR/tools/matlab/generateGeometryFromEFIT_script')"
 
 exit 0

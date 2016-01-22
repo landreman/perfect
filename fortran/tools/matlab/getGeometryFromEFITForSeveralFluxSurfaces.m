@@ -118,7 +118,7 @@ for i=1:N
 end
 
 if plotStuff
-    figure(1)
+    fig1 = figure(1)
     clf
     
     numRows=3;
@@ -187,7 +187,7 @@ if plotStuff
     colorbar
     title('B.\nabla\theta (T/m)')
     
-    figure(3)
+    fig3 = figure(3)
     clf
     
     numRows=2;
@@ -224,6 +224,9 @@ if plotStuff
     end
     xlabel('\theta')
     ylabel('B.\nabla\theta (T/m)')
+
+    waitfor(fig1);
+    waitfor(fig3);
     
 end
 

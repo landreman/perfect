@@ -78,7 +78,7 @@ end
 fclose(inputFileID);
 
 % Options for EFIT geometry reading
-% .mat file must contain EFITFilename, topCropZ, bottomCropZ, innerCropR, outerCropR, polynomialFitDegreeForSmoothingEFITInPsi and numFourierModesInThetaToKeepInEFITGeometry
+% .mat file must contain EFITFilename, topCropZ, bottomCropZ, innerCropR, outerCropR, polynomialFitDegreeForSmoothingEFITInPsi, numFourierModesInThetaToKeepInEFITGeometry and plotStuff
 EFITOptions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -140,9 +140,6 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Load EFIT data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%plotStuff = true;
-plotStuff = false;
 
 %NPsi=1;
 %psi = desiredPsi;
