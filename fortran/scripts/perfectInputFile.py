@@ -108,6 +108,10 @@ class perfectInput:
         self.psiDiameter = resolutionParameters["psiDiameter"]
         self.widthExtender = resolutionParameters["widthExtender"]
 
+        self.Delta = physicsParameters["delta"]
+        self.omega = physicsParameters["omega"]
+        self.psiAHat = physicsParameters["psiAHat"]
+        self.nu_r = physicsParameters["nu_r"]
         self.leftBoundaryShift = physicsParameters["leftBoundaryShift"]
         self.rightBoundaryShift = physicsParameters["rightBoundaryShift"]
         self.psiMid = physicsParameters["psiMid"]
