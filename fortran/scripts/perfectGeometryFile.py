@@ -7,16 +7,26 @@ from sys import exit
 ####################################################
 class perfectGeometry:
     
-    def __init__(self,geometryFilename=None):
+    def __init__(self,geometryFilename=None,append=False):
         if geometryFilename==None:
             print "Error: perfectGeometry must be initialized with a name for the geometry file"
             exit(1)
-        self.geometryFile = h5py.File(geometryFilename,'w')
+        if append:
+            self.geometryFile = h5py.File(geometryFilename,'a')
+        else:
+            self.geometryFile = h5py.File(geometryFilename,'w')
 
     def __del__(self):
+        try:
+            self.geometryFile.close()
+        except ValueError:
+            # presumably file is not open
+            pass
+
+    def close(self):
         self.geometryFile.close()
 
-    def create_geometry_for_Npsi_Ntheta(self, Npsi, Ntheta, psiMin, psiMax, BHat, dBHatdpsi, dBHatdtheta, JHat, IHat, dIHatdpsi):
+    def create_geometry_for_Npsi_Ntheta(self, Npsi, Ntheta, psiMin, psiMax, BHat, dBHatdpsi, dBHatdtheta, JHat, IHat, dIHatdpsi,replace=False):
         # Make sure inputs are numpy arrays
         BHat = numpy.array(BHat)
         dBHatdpsi = numpy.array(dBHatdpsi)
@@ -38,8 +48,11 @@ class perfectGeometry:
         # Write geometry to HDF5 file
         groupname = "Npsi"+str(Npsi)+"Ntheta"+str(Ntheta)
         if groupname in self.geometryFile:
-            print "Error: profiles already added for Npsi="+str(Npsi)+", Ntheta="+str(Ntheta)
-            exit(1)
+            if replace:
+                del self.geometryFile[groupname]
+            else:
+                print "Error: profiles already added for Npsi="+str(Npsi)+", Ntheta="+str(Ntheta)
+                exit(1)
         geometrygroup = self.geometryFile.create_group(groupname)
 
         geometrygroup.create_dataset("psiMin",data=psiMin) # psiMin and psiMax are used to check that the geometryFile is consistent with the input.namelist file when PERFECT is run
@@ -51,5 +64,12 @@ class perfectGeometry:
         geometrygroup.create_dataset("IHat",data=IHat)
         geometrygroup.create_dataset("dIHatdpsi",data=dIHatdpsi)
 
-    def add_field(self,varname,var):
-        self.geometryFile.create_dataset(varname,data=var)
+    def add_field(self,name,var):
+        if name in self.geometryFile:
+            if (not isinstance(var,numpy.ndarray)) or var.shape == self.geometryFile[name].shape:
+                self.geometryFile[name][...] = var
+            else:
+                del self.geometryFile[name]
+                self.geometryFile.create_dataset(name,data=var)
+        else:
+            self.geometryFile.create_dataset(name,data=var)
