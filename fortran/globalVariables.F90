@@ -267,8 +267,10 @@ module globalVariables
   PetscScalar, dimension(:,:), allocatable :: nHatNeutral, dnHatNeutraldpsi
   PetscScalar, dimension(:,:), allocatable :: neutralMomentumFluxBeforeThetaIntegral1, &
                                               neutralMomentumFluxBeforeThetaIntegral2, &
-                                              neutralMomentumFluxBeforeThetaIntegral3
-  PetscScalar, dimension(:), allocatable :: neutralMomentumFlux1, neutralMomentumFlux2, neutralMomentumFlux3
+                                              neutralMomentumFluxBeforeThetaIntegral3, &
+                                              neutralMomentumFluxBeforeThetaIntegralDiamagnetic
+  PetscScalar, dimension(:), allocatable :: neutralMomentumFlux1, neutralMomentumFlux2, neutralMomentumFlux3,&
+                                              neutralMomentumFluxDiamagnetic
 
   ! ********************************************************
   !

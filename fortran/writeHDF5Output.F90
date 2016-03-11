@@ -257,9 +257,12 @@ contains
       call writeVariable(neutralMomentumFlux1,"neutralMomentumFlux1",runNum)
       call writeVariable(neutralMomentumFlux2,"neutralMomentumFlux2",runNum)
       call writeVariable(neutralMomentumFlux3,"neutralMomentumFlux3",runNum)
+      call writeVariable(neutralMomentumFluxDiamagnetic,"neutralMomentumFluxDiamagnetic",runNum)
       call writeVariable(neutralMomentumFluxBeforeThetaIntegral1,"neutralMomentumFluxBeforeThetaIntegral1",runNum)
       call writeVariable(neutralMomentumFluxBeforeThetaIntegral2,"neutralMomentumFluxBeforeThetaIntegral2",runNum)
       call writeVariable(neutralMomentumFluxBeforeThetaIntegral3,"neutralMomentumFluxBeforeThetaIntegral3",runNum)
+      call writeVariable(neutralMomentumFluxBeforeThetaIntegralDiamagnetic,&
+        "neutralMomentumFluxBeforeThetaIntegralDiamagnetic",runNum)
     end if
 
   end subroutine writeRunToOutputFile

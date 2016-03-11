@@ -119,9 +119,11 @@ contains
          allocate(neutralMomentumFluxBeforeThetaIntegral1(Ntheta,Npsi))
          allocate(neutralMomentumFluxBeforeThetaIntegral2(Ntheta,Npsi))
          allocate(neutralMomentumFluxBeforeThetaIntegral3(Ntheta,Npsi))
+         allocate(neutralMomentumFluxBeforeThetaIntegralDiamagnetic(Ntheta,Npsi))
          allocate(neutralMomentumFlux1(Npsi))
          allocate(neutralMomentumFlux2(Npsi))
          allocate(neutralMomentumFlux3(Npsi))
+         allocate(neutralMomentumFluxDiamagnetic(Npsi))
          allocate(neutralMomentumFluxFactors1(Ntheta,Npsi))
          allocate(neutralMomentumFluxFactors2(Ntheta,Npsi))
          allocate(neutralMomentumFluxFactors3(Ntheta,Npsi))
@@ -159,6 +161,11 @@ contains
                   *(BHat(itheta,:)**2-IHat**2*RHat(itheta,:)**2)*dnHatNeutraldpsi(itheta,:)&
                   *Delta/psiAHat*RHat(itheta,:)/2d0/charges(1)/BHat(itheta,:)*sqrt(THats(1,:)*masses(1))&
                   *(IHat**2/RHat(itheta,:)**2/BHat(itheta,:)**2-1d0)*dBHatdpsi(itheta,:)
+              ! The diamagnetic flux does not actually depend on the solution, so can be computed directly
+              neutralMomentumFluxBeforeThetaIntegralDiamagnetic(itheta,:) = &
+                  Delta/2d0/psiAHat**2/CXCrossSectionHat/nHats(1,:)*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)**2&
+                  /BHat(itheta,:)**2*dnHatNeutraldpsi(itheta,:)*(dnHatdpsis(1,:)/nHats(1,:)&
+                  +2d0*omega/Delta*charges(1)/THats(1,:)*dPhiHatdpsi+2d0*dTHatdpsis(1,:)/THats(1,:))
             end do
           end if
 
@@ -342,6 +349,8 @@ contains
                neutralMomentumFlux1(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral1(:,ipsi))
                neutralMomentumFlux2(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral2(:,ipsi))
                neutralMomentumFlux3(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral3(:,ipsi))
+               neutralMomentumFluxDiamagnetic(ipsi) = &
+                   dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegralDiamagnetic(:,ipsi))
              end if
 
              !          pPerpTermInKThetaWith3PointStencil(:,ipsi) = pPerpTermInKThetaWith3PointStencil(:,ipsi) &
