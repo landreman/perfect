@@ -277,6 +277,7 @@ contains
                       + 4d0/35d0*neutralMomentumFluxFactors1(itheta,ipsi) &
                       * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
                   neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) = &
+                      neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) &
                       + 4d0/35d0*neutralMomentumFluxFactors2(itheta,ipsi) &
                       * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
                 end if
