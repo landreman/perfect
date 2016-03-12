@@ -150,15 +150,18 @@ contains
           if (includeNeutrals) then
             do itheta=1,Ntheta
               neutralMomentumFluxFactors1(itheta,:) = nHatNeutral(itheta,:)/nHats(1,:)*momentumFluxFactors
-              neutralMomentumFluxFactors2(itheta,:) = 2d0*pi*Delta*masses(1)/CXCrossSectionHat/nHats(1,:)**2/psiAHat&
-                  *(BHat(itheta,:)**2-IHat**2*RHat(itheta,:)**2)*dnHatNeutraldpsi(itheta,:)&
+              neutralMomentumFluxFactors2(itheta,:) = 2d0*pi*Delta/CXCrossSectionHat/nHats(1,:)*RHat(itheta,:)&
+                  *Thats(1,:)**3/psiAHat/nHats(1,:)/masses(1)**2*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)&
+                  *dnHatNeutraldpsi(itheta,:)&
                   *IHat/RHat(itheta,:)/BHat(itheta,:)
-              neutralMomentumFluxFactors3(itheta,:) = 2d0*pi*Delta*masses(1)/CXCrossSectionHat/nHats(1,:)**2/psiAHat&
-                  *(BHat(itheta,:)**2-IHat**2*RHat(itheta,:)**2)*dnHatNeutraldpsi(itheta,:)&
+              neutralMomentumFluxFactors3(itheta,:) = 2d0*pi*Delta/CXCrossSectionHat/nHats(1,:)*RHat(itheta,:)&
+                  *Thats(1,:)**3/psiAHat/nHats(1,:)/masses(1)**2*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)&
+                  *dnHatNeutraldpsi(itheta,:)&
                   *omega/psiAHat*RHat(itheta,:)*sqrt(masses(1)/THats(1,:))&
                   *(IHat**2/RHat(itheta,:)**2/BHat(itheta,:)**2-1d0)*dPhiHatdpsi
-              neutralMomentumFluxFactors4(itheta,:) = 2d0*pi*Delta*masses(1)/CXCrossSectionHat/nHats(1,:)**2/psiAHat&
-                  *(BHat(itheta,:)**2-IHat**2*RHat(itheta,:)**2)*dnHatNeutraldpsi(itheta,:)&
+              neutralMomentumFluxFactors4(itheta,:) = 2d0*pi*Delta/CXCrossSectionHat/nHats(1,:)*RHat(itheta,:)&
+                  *Thats(1,:)**3/psiAHat/nHats(1,:)/masses(1)**2*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)&
+                  *dnHatNeutraldpsi(itheta,:)&
                   *Delta/psiAHat*RHat(itheta,:)/2d0/charges(1)/BHat(itheta,:)*sqrt(THats(1,:)*masses(1))&
                   *(IHat**2/RHat(itheta,:)**2/BHat(itheta,:)**2-1d0)*dBHatdpsi(itheta,:)
               ! The diamagnetic flux does not actually depend on the solution, so can be computed directly
