@@ -26,7 +26,8 @@ contains
          makeLocalApproximation, desiredU, desiredUMin, desiredUMax, desiredUNumRuns, &
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
          detaHatdpsiScalar, sourcePoloidalVariation, &
-         Delta, omega, psiAHat, psiMid,  &
+         sourcePoloidalVariationStrength, sourcePoloidalVariationPhase, &
+	 Delta, omega, psiAHat, psiMid,  &
          exponent, setTPrimeToBalanceHeatFlux, includeddpsiTerm, &
          leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme
 

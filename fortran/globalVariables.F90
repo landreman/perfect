@@ -92,6 +92,9 @@ module globalVariables
   logical :: setTPrimeToBalanceHeatFlux
 
   integer :: sourcePoloidalVariation
+  PetscScalar :: sourcePoloidalVariationStrength
+  PetscScalar :: sourcePoloidalVariationPhase
+
 
   logical :: makeLocalApproximation
 
