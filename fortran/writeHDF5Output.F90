@@ -189,6 +189,8 @@ contains
       call writeVariable(detaHatdpsis,"d(etaHat)d(psi)",runNum)
       call writeVariable(elapsedTime,"elapsed time (s)",runNum)
       call writeVariable(sourcePoloidalVariation,"sourcePoloidalVariation",runNum)
+      call writeVariable(sourcePoloidalVariationStrength,"sourcePoloidalVariationStrength",runNum)
+      call writeVariable(sourcePoloidalVariationPhase,"sourcePoloidalVariationPhase",runNum)    
       call writeVariable(particleSourceProfile,"particleSourceProfile",runNum)
       call writeVariable(heatSourceProfile,"heatSourceProfile",runNum)
       call writeVariable(VPrimeHat,"VPrimeHat",runNum)
