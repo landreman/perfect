@@ -3,6 +3,7 @@ module moments
   use globalVariables
   use grids
   use writeHDF5Output ! used to write output for debugging
+  use geometry ! used to get poloidal and toroidal flows (only Miller supported ATM)
 
 #include <finclude/petsckspdef.h>
 
@@ -28,6 +29,7 @@ contains
     PetscScalar, dimension(:), allocatable :: particleFluxFactors, particleFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: momentumFluxFactors, momentumFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: heatFluxFactors, heatFluxIntegralWeights
+    
     Vec :: solnOnProc0
     PetscScalar :: speciesFactor
     VecScatter :: VecScatterContext
@@ -36,6 +38,9 @@ contains
     integer :: ix, itheta, ipsi, L, index
     integer :: ispecies
     integer :: ixi
+
+    PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,BP,BT
+    
 
     ! First, send the entire solution vector to the master process:
     call VecScatterCreateToZero(soln, VecScatterContext, solnOnProc0, ierr)
@@ -66,6 +71,7 @@ contains
        allocate(FSAKPar(numSpecies,Npsi))
        allocate(flowOutboard(numSpecies,Npsi))
        allocate(flowInboard(numSpecies,Npsi))
+       allocate(FSAFlow(numSpecies,Npsi))
        allocate(FSABFlow(numSpecies,Npsi))
        allocate(FSAPressurePerturbation(numSpecies,Npsi))
        allocate(particleFlux(numSpecies,Npsi))
@@ -223,6 +229,17 @@ contains
           heatFluxBeforeThetaIntegral(ispecies,:,:) = heatFluxBeforeThetaIntegral(ispecies,:,:) &
                * dBHatdtheta / (BHat * BHat * BHat)
 
+          do itheta=1,Ntheta
+             BP = BPoloidal(theta(itheta))
+             oneOverAbsNablaPhi=Miller_QQ/(BP*Miller_kappa*Miller_q)
+             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
+                  * 2*pi*(THats(ispecies,:)**(three/2)/(masses(ispecies)**(three/2)*nHats(ispecies,:))) &
+                  *(oneOverAbsNablaPhi*1/(charges(ispecies)*2*psiAHat)) &
+                  *((IHat(:)/(BHat(itheta,:)**2*RHat(theta(itheta))**2))-1)
+             !add zeroth order Maxwellian. TODO Compiled 2016-04-15 but not bugtested
+             !toroidalFlow(ispecies,itheta,:) =
+          end do
+
    !!$         if (psiDerivativeScheme == 0) then
    !!$            ddpsiForKTheta = ddpsiLeft
    !!$         else
@@ -262,6 +279,9 @@ contains
 
              FSABFlow(ispecies,ipsi) = dot_product(thetaWeights, flow(ispecies,:,ipsi)*BHat(:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
 
+             FSAFlow(ispecies,ipsi) = dot_product(thetaWeights, flow(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
+
+             
              FSAkPar(ispecies,ipsi) = dot_product(thetaWeights, kPar(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
 
              FSAPressurePerturbation(ispecies,ipsi) = dot_product(thetaWeights, &
@@ -369,11 +389,12 @@ contains
     PetscScalar, dimension(:), allocatable :: heatFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: this_particleSourceProfile, this_heatSourceProfile
     PetscScalar, dimension(:,:), allocatable :: this_densityPerturbation, this_flow, this_kPar,&
+                                                this_toroidalFlow, this_poloidalFlow,&
                                                 this_pressurePerturbation, this_particleFluxBeforeThetaIntegral,&
                                                 this_momentumFluxBeforeThetaIntegral, this_heatFluxBeforeThetaIntegral
     PetscScalar, dimension(:), allocatable :: this_FSADensityPerturbation, this_kParOutboard,&
                                               this_kParInboard, this_FSAKPar, this_flowOutboard,&
-                                              this_flowInboard, this_FSABFlow, this_FSAPressurePerturbation,&
+                                              this_flowInboard, this_FSAFlow, this_FSABFlow, this_FSAPressurePerturbation,&
                                               this_particleFlux, this_momentumFlux, this_heatFlux
     PetscScalar, dimension(:,:,:), allocatable :: this_deltaFOutboard, this_fullFOutboard
     PetscScalar :: speciesFactor
@@ -403,6 +424,8 @@ contains
 
        allocate(this_densityPerturbation(numSpecies,Ntheta))
        allocate(this_flow(numSpecies,Ntheta))
+       allocate(this_toroidalFlow(numSpecies,Ntheta))
+       allocate(this_poloidalFlow(numSpecies,Ntheta))
        allocate(this_kPar(numSpecies,Ntheta))
        allocate(this_pressurePerturbation(numSpecies,Ntheta))
        allocate(this_particleFluxBeforeThetaIntegral(numSpecies,Ntheta))
@@ -415,6 +438,7 @@ contains
        allocate(this_FSAKPar(numSpecies))
        allocate(this_flowOutboard(numSpecies))
        allocate(this_flowInboard(numSpecies))
+       allocate(this_FSAFlow(numSpecies))
        allocate(this_FSABFlow(numSpecies))
        allocate(this_FSAPressurePerturbation(numSpecies))
        allocate(this_particleFlux(numSpecies))
@@ -477,6 +501,14 @@ contains
 
              this_heatFluxBeforeThetaIntegral(ispecies,itheta) = (8/three) * heatFluxFactors &
                   * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+
+             this_toroidalFlow(ispecies,itheta) &
+                  = dot_product(xWeights, densityIntegralWeights * solnArray(indices)) &
+                  * 2*charges(ispecies)*2*omega/Delta*dPhiHatdpsi(ipsi)
+             
+             this_toroidalFlow(ispecies,itheta) &
+                  = this_toroidalFlow(ispecies,itheta) + dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices)) &
+                  * (8/three)*THats(ispecies,ipsi)*dBHatdtheta(itheta,ipsi) / (BHat(itheta,ipsi))
           end do
 
           L = 1
@@ -503,6 +535,10 @@ contains
              this_heatFluxBeforeThetaIntegral(ispecies,itheta) = this_heatFluxBeforeThetaIntegral(ispecies,itheta) &
                   + (four/15) * heatFluxFactors &
                   * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+
+             this_toroidalFlow(ispecies,itheta) &
+                  = this_toroidalFlow(ispecies,itheta) + dot_product(xWeights, x*x*x*x * solnArray(indices)) &
+                  * (four/15)*THats(ispecies,ipsi)*dBHatdtheta(itheta,ipsi) / (BHat(itheta,ipsi))
           end do
 
           L = 3
@@ -539,6 +575,9 @@ contains
           this_FSADensityPerturbation(ispecies) = dot_product(thetaWeights, &
                this_densityPerturbation(ispecies,:)/JHat(:,ipsi)) / VPrimeHat(ipsi)
 
+          this_FSAFlow(ispecies) = dot_product(thetaWeights, this_flow(ispecies,:)/JHat(:,ipsi)) / VPrimeHat(ipsi)
+
+          
           this_FSABFlow(ispecies) = dot_product(thetaWeights, this_flow(ispecies,:)*BHat(:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
 
           this_FSAkPar(ispecies) = dot_product(thetaWeights, this_kPar(ispecies,:)/JHat(:,ipsi)) / VPrimeHat(ipsi)
@@ -611,6 +650,8 @@ contains
     !call writeDebugArray(this_heatSourceProfile, "heatSourceProfile")
     call writeDebugArray(this_densityPerturbation,"densityPerturbation")
     call writeDebugArray(this_flow,"flow")
+    call writeDebugArray(this_toroidalFlow,"toroidalFlow")
+    call writeDebugArray(this_poloidalFlow,"poloidalFlow")
     call writeDebugArray(this_kPar,"kPar")
     call writeDebugArray(this_pressurePerturbation,"pressurePerturbation")
     call writeDebugArray(this_particleFluxBeforeThetaIntegral,"particleFluxBeforeThetaIntegral")
@@ -623,6 +664,7 @@ contains
     call writeDebugArray(this_flowOutboard,"flowOutboard")
     call writeDebugArray(this_flowInboard,"flowInboard")
     call writeDebugArray(this_FSABFlow,"FSABFlow")
+    call writeDebugArray(this_FSAFlow,"FSAFlow")
     call writeDebugArray(this_FSAPressurePerturbation,"FSAPressurePerturbation")
     call writeDebugArray(this_particleFlux,"particleFlux")
     call writeDebugArray(this_momentumFlux,"momentumFlux")
@@ -635,5 +677,21 @@ contains
     call closeDebugOutputFile()
 
   end subroutine calculateLocalMoments
+
+  !function Miller_QQ()
+!
+ !   implicit none
+  !  integer :: i
+   ! integer, parameter :: NThetaIntegral = 100
+!
+ !   PetscScalar :: theta, Miller_QQ
+!
+ !   Miller_QQ = 0
+  !           do i=1,NThetaIntegral
+   !             Miller_QQ = Miller_QQ + QQIntegrand(2*pi*i/NThetaIntegral)
+    !         end do
+     !        Miller_QQ = Miller_kappa / (2*pi*Miller_A) * (Miller_QQ * 2*pi/NThetaIntegral)
+
+  !end function Miller_QQ
 
 end module moments

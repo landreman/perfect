@@ -230,11 +230,12 @@ module globalVariables
 !  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation
   PetscScalar, dimension(:), allocatable :: VPrimeHat, FSABHat2, typicalB
   PetscScalar, dimension(:,:,:), allocatable :: flow, kPar, densityPerturbation, pressurePerturbation
+  PetscScalar, dimension(:,:,:), allocatable :: toroidalFlow, poloidalFlow
   PetscScalar, dimension(:,:,:), allocatable :: particleFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:,:), allocatable :: momentumFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:,:), allocatable :: heatFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:), allocatable :: kParOutboard, kParInboard, FSAKPar
-  PetscScalar, dimension(:,:), allocatable :: flowOutboard, flowInboard, FSABFlow
+  PetscScalar, dimension(:,:), allocatable :: flowOutboard, flowInboard,FSAFlow, FSABFlow
   PetscScalar, dimension(:,:), allocatable :: FSADensityPerturbation, FSAPressurePerturbation
 !  PetscScalar, dimension(:), allocatable :: kThetaOutboardWith3PointStencil, kThetaInboardWith3PointStencil
 !  PetscScalar, dimension(:), allocatable :: kThetaOutboardWith5PointStencil, kThetaInboardWith5PointStencil
@@ -340,6 +341,7 @@ contains
        deallocate(FSAKPar)
        deallocate(flowOutboard)
        deallocate(flowInboard)
+       deallocate(FSAFlow)
        deallocate(FSABFlow)
        deallocate(FSAPressurePerturbation)
 !       deallocate(LHSOfKParEquation)
