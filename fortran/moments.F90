@@ -29,6 +29,10 @@ contains
     PetscScalar, dimension(:), allocatable :: particleFluxFactors, particleFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: momentumFluxFactors, momentumFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: heatFluxFactors, heatFluxIntegralWeights
+    !for differentiation
+    PetscScalar, dimension(:,:), allocatable :: tempMatrix, ddpsi
+    PetscScalar, dimension(:), allocatable :: psiWeights
+    
     
     Vec :: solnOnProc0
     PetscScalar :: speciesFactor
@@ -39,7 +43,7 @@ contains
     integer :: ispecies
     integer :: ixi
 
-    PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,BP,BT
+    PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,BP,BT,Rh
     
 
     ! First, send the entire solution vector to the master process:
@@ -59,6 +63,8 @@ contains
 
        allocate(densityPerturbation(numSpecies,Ntheta,Npsi))
        allocate(flow(numSpecies,Ntheta,Npsi))
+       allocate(toroidalFlow(numSpecies,Ntheta,Npsi))
+       allocate(poloidalFlow(numSpecies,Ntheta,Npsi))
        allocate(kPar(numSpecies,Ntheta,Npsi))
        allocate(pressurePerturbation(numSpecies,Ntheta,Npsi))
        allocate(particleFluxBeforeThetaIntegral(numSpecies,Ntheta,Npsi))
@@ -109,6 +115,12 @@ contains
        allocate(momentumFluxIntegralWeights(Nx))
        allocate(heatFluxIntegralWeights(Nx))
 
+
+       ! to calculate poloidal and toroidal flow differentials
+       allocate(ddpsi(Npsi, Npsi))
+       allocate(tempMatrix(Npsi, Npsi))
+       allocate(psiWeights(Npsi))
+       
        densityIntegralWeights = x*x
        flowIntegralWeights = x*x*x
        pressureIntegralWeights = x*x*x*x
@@ -230,14 +242,37 @@ contains
                * dBHatdtheta / (BHat * BHat * BHat)
 
           do itheta=1,Ntheta
+             !NOTE: assumes magnetic geometry psi independent
              BP = BPoloidal(theta(itheta))
-             oneOverAbsNablaPhi=Miller_QQ/(BP*Miller_kappa*Miller_q)
+             BT = sqrt(BHat(itheta,1)**2 - BP**2)
+             Rh= RHat(theta(itheta))
+             !differentiate I_3 in fluxes
+             
+             call uniformDiffMatrices(Npsi, psiMin-(1d-10), psiMax+(1d-10), psiDerivativeScheme, psi, &
+                  psiWeights, ddpsi, tempMatrix)
+             toroidalFlow(ispecies,itheta,:) = matmul(ddpsi, toroidalFlow(ispecies,itheta,:))
+             poloidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:)
+             
+             toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies)*BP**2*Rh)/(BHat(itheta,:)**2*nHats(ispecies,:))&
+                  * toroidalFlow(ispecies,itheta,:)
+           poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies)*BT*IHat(:))/(BHat(itheta,:)**2*nHats(ispecies,:))&
+                  * poloidalFlow(ispecies,itheta,:) 
+
+             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) + (BT/BHat(itheta,:))*flow(ispecies,itheta,:)
+             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) + (BP/BHat(itheta,:))*flow(ispecies,itheta,:)
+
+             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -1/(2*Delta*psiAHat)*dPhiHatdpsi &
+                  *densityPerturbation(ispecies,itheta,:)*(BP**2*Rh)/(BHat(itheta,:)**2)
+             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +1/(2*Delta*psiAHat)*dPhiHatdpsi &
+                  *densityPerturbation(ispecies,itheta,:)*(BT*IHat)/(BHat(itheta,:)**2)
+
+             !since we are not using that variable for anything else
+             psiWeights = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
+                  + (2*omega*charges/(Delta*THats(ispecies,:)))*dPhiHatdpsi
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
-                  * 2*pi*(THats(ispecies,:)**(three/2)/(masses(ispecies)**(three/2)*nHats(ispecies,:))) &
-                  *(oneOverAbsNablaPhi*1/(charges(ispecies)*2*psiAHat)) &
-                  *((IHat(:)/(BHat(itheta,:)**2*RHat(theta(itheta))**2))-1)
-             !add zeroth order Maxwellian. TODO Compiled 2016-04-15 but not bugtested
-             !toroidalFlow(ispecies,itheta,:) =
+                  -THats(ispecies,:)/(2*psiAHat*BHat(itheta,:)**2)*psiWeights*BP**2*Rh
+             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
+                  +THats(ispecies,:)/(2*psiAHat*BHat(itheta,:)**2)*psiWeights*BT*IHat(:)
           end do
 
    !!$         if (psiDerivativeScheme == 0) then
@@ -502,13 +537,8 @@ contains
              this_heatFluxBeforeThetaIntegral(ispecies,itheta) = (8/three) * heatFluxFactors &
                   * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
 
-             this_toroidalFlow(ispecies,itheta) &
-                  = dot_product(xWeights, densityIntegralWeights * solnArray(indices)) &
-                  * 2*charges(ispecies)*2*omega/Delta*dPhiHatdpsi(ipsi)
-             
-             this_toroidalFlow(ispecies,itheta) &
-                  = this_toroidalFlow(ispecies,itheta) + dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices)) &
-                  * (8/three)*THats(ispecies,ipsi)*dBHatdtheta(itheta,ipsi) / (BHat(itheta,ipsi))
+             this_toroidalFlow(ispecies,itheta) = dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices)) &
+                  * 2*pi*(8/three)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
           L = 1
@@ -538,7 +568,7 @@ contains
 
              this_toroidalFlow(ispecies,itheta) &
                   = this_toroidalFlow(ispecies,itheta) + dot_product(xWeights, x*x*x*x * solnArray(indices)) &
-                  * (four/15)*THats(ispecies,ipsi)*dBHatdtheta(itheta,ipsi) / (BHat(itheta,ipsi))
+                  * 2*pi*(four/15)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
           L = 3
@@ -558,7 +588,7 @@ contains
                   + THats(ispecies,ipsi)/nHats(ispecies,ipsi)*dnHatdpsis(ispecies,ipsi)&
                   + 2*charges(ispecies)*omega/Delta*dPhiHatdpsi(ipsi))
           end do
-
+          
           this_particleFluxBeforeThetaIntegral(ispecies,:) = this_particleFluxBeforeThetaIntegral(ispecies,:) &
                * dBHatdtheta(:,ipsi) / (BHat(:,ipsi) * BHat(:,ipsi) * BHat(:,ipsi))
 
