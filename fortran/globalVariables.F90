@@ -233,7 +233,8 @@ module globalVariables
 !  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation
   PetscScalar, dimension(:), allocatable :: VPrimeHat, FSABHat2, typicalB
   PetscScalar, dimension(:,:,:), allocatable :: flow, kPar, densityPerturbation, pressurePerturbation
-  PetscScalar, dimension(:,:,:), allocatable :: magnetizationFlowPerturbation,toroidalFlow, poloidalFlow
+  PetscScalar, dimension(:,:,:), allocatable :: magnetizationFlowPerturbation,magnetizationPerturbation
+  PetscScalar, dimension(:,:,:), allocatable :: toroidalFlow,poloidalFlow
   PetscScalar, dimension(:,:,:), allocatable :: particleFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:,:), allocatable :: momentumFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:,:), allocatable :: heatFluxBeforeThetaIntegral
