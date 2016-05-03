@@ -201,6 +201,7 @@ contains
       call writeVariable(flow,"flow",runNum)
       call writeVariable(kPar,"kPar",runNum)
       call writeVariable(magnetizationFlowPerturbation,"magnetizationFlowPerturbation",runNum)
+      call writeVariable(magnetizationPerturbation,"magnetizationPerturbation",runNum)
       call writeVariable(toroidalFlow,"toroidalFlow",runNum)
       call writeVariable(poloidalFlow,"poloidalFlow",runNum)
       call writeVariable(pressurePerturbation,"pressurePerturbation",runNum)
