@@ -63,6 +63,7 @@ contains
 
        allocate(densityPerturbation(numSpecies,Ntheta,Npsi))
        allocate(flow(numSpecies,Ntheta,Npsi))
+       allocate(magnetizationFlowPerturbation(numSpecies,Ntheta,Npsi))
        allocate(toroidalFlow(numSpecies,Ntheta,Npsi))
        allocate(poloidalFlow(numSpecies,Ntheta,Npsi))
        allocate(kPar(numSpecies,Ntheta,Npsi))
@@ -250,12 +251,13 @@ contains
              
              call uniformDiffMatrices(Npsi, psiMin-(1d-10), psiMax+(1d-10), psiDerivativeScheme, psi, &
                   psiWeights, ddpsi, tempMatrix)
-             toroidalFlow(ispecies,itheta,:) = matmul(ddpsi, toroidalFlow(ispecies,itheta,:))
-             poloidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:)
+             magnetizationFlowPerturbation(ispecies,itheta,:) = matmul(ddpsi, magnetizationFlowPerturbation(ispecies,itheta,:))
+	     toroidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:) 
+             poloidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:)
              
-             toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies)*BP**2*Rh)/(BHat(itheta,:)**2*nHats(ispecies,:))&
+             toroidalFlow(ispecies,itheta,:)=-(Delta/(2*psiAHat))*(masses(ispecies)*BP**2*Rh)/(BHat(itheta,:)**2*nHats(ispecies,:))&
                   * toroidalFlow(ispecies,itheta,:)
-           poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies)*BT*IHat(:))/(BHat(itheta,:)**2*nHats(ispecies,:))&
+           poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies)*BP*IHat(:))/(BHat(itheta,:)**2*nHats(ispecies,:))&
                   * poloidalFlow(ispecies,itheta,:) 
 
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) + (BT/BHat(itheta,:))*flow(ispecies,itheta,:)
@@ -264,7 +266,7 @@ contains
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -1/(2*Delta*psiAHat)*dPhiHatdpsi &
                   *densityPerturbation(ispecies,itheta,:)*(BP**2*Rh)/(BHat(itheta,:)**2)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +1/(2*Delta*psiAHat)*dPhiHatdpsi &
-                  *densityPerturbation(ispecies,itheta,:)*(BT*IHat)/(BHat(itheta,:)**2)
+                  *densityPerturbation(ispecies,itheta,:)*(BP*IHat)/(BHat(itheta,:)**2)
 
              !since we are not using that variable for anything else
              psiWeights = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
@@ -272,7 +274,7 @@ contains
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
                   -THats(ispecies,:)/(2*psiAHat*BHat(itheta,:)**2)*psiWeights*BP**2*Rh
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
-                  +THats(ispecies,:)/(2*psiAHat*BHat(itheta,:)**2)*psiWeights*BT*IHat(:)
+                  +THats(ispecies,:)/(2*psiAHat*BHat(itheta,:)**2)*psiWeights*BP*IHat(:)
           end do
 
    !!$         if (psiDerivativeScheme == 0) then
@@ -424,7 +426,7 @@ contains
     PetscScalar, dimension(:), allocatable :: heatFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: this_particleSourceProfile, this_heatSourceProfile
     PetscScalar, dimension(:,:), allocatable :: this_densityPerturbation, this_flow, this_kPar,&
-                                                this_toroidalFlow, this_poloidalFlow,&
+                                                this_magnetizationFlowPerturbation,&
                                                 this_pressurePerturbation, this_particleFluxBeforeThetaIntegral,&
                                                 this_momentumFluxBeforeThetaIntegral, this_heatFluxBeforeThetaIntegral
     PetscScalar, dimension(:), allocatable :: this_FSADensityPerturbation, this_kParOutboard,&
@@ -459,8 +461,7 @@ contains
 
        allocate(this_densityPerturbation(numSpecies,Ntheta))
        allocate(this_flow(numSpecies,Ntheta))
-       allocate(this_toroidalFlow(numSpecies,Ntheta))
-       allocate(this_poloidalFlow(numSpecies,Ntheta))
+       allocate(this_magnetizationFlowPerturbation(numSpecies,Ntheta))
        allocate(this_kPar(numSpecies,Ntheta))
        allocate(this_pressurePerturbation(numSpecies,Ntheta))
        allocate(this_particleFluxBeforeThetaIntegral(numSpecies,Ntheta))
@@ -537,7 +538,8 @@ contains
              this_heatFluxBeforeThetaIntegral(ispecies,itheta) = (8/three) * heatFluxFactors &
                   * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
 
-             this_toroidalFlow(ispecies,itheta) = dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices)) &
+             this_magnetizationFlowPerturbation(ispecies,itheta) &
+		  = dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices)) &
                   * 2*pi*(8/three)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
@@ -566,8 +568,8 @@ contains
                   + (four/15) * heatFluxFactors &
                   * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
 
-             this_toroidalFlow(ispecies,itheta) &
-                  = this_toroidalFlow(ispecies,itheta) + dot_product(xWeights, x*x*x*x * solnArray(indices)) &
+             this_magnetizationFlowPerturbation(ispecies,itheta) &
+                  = this_magnetizationFlowPerturbation(ispecies,itheta) + dot_product(xWeights, x*x*x*x * solnArray(indices)) &
                   * 2*pi*(four/15)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
@@ -680,8 +682,7 @@ contains
     !call writeDebugArray(this_heatSourceProfile, "heatSourceProfile")
     call writeDebugArray(this_densityPerturbation,"densityPerturbation")
     call writeDebugArray(this_flow,"flow")
-    call writeDebugArray(this_toroidalFlow,"toroidalFlow")
-    call writeDebugArray(this_poloidalFlow,"poloidalFlow")
+    call writeDebugArray(this_magnetizationFlowPerturbation,"magnetizationFlowPerturbation")
     call writeDebugArray(this_kPar,"kPar")
     call writeDebugArray(this_pressurePerturbation,"pressurePerturbation")
     call writeDebugArray(this_particleFluxBeforeThetaIntegral,"particleFluxBeforeThetaIntegral")
