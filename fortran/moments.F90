@@ -31,7 +31,7 @@ contains
     PetscScalar, dimension(:), allocatable :: heatFluxFactors, heatFluxIntegralWeights
     !for differentiation
     PetscScalar, dimension(:,:), allocatable :: tempMatrix, ddpsi
-    PetscScalar, dimension(:), allocatable :: psiWeights
+    PetscScalar, dimension(:), allocatable :: tempPTflow
     
     
     Vec :: solnOnProc0
@@ -120,7 +120,7 @@ contains
        ! to calculate poloidal and toroidal flow differentials
        allocate(ddpsi(Npsi, Npsi))
        allocate(tempMatrix(Npsi, Npsi))
-       allocate(psiWeights(Npsi))
+       allocate(tempPTflow(Npsi))
        
        densityIntegralWeights = x*x
        flowIntegralWeights = x*x*x
@@ -250,31 +250,31 @@ contains
              !differentiate I_3 in fluxes
              
              call uniformDiffMatrices(Npsi, psiMin-(1d-10), psiMax+(1d-10), psiDerivativeScheme, psi, &
-                  psiWeights, ddpsi, tempMatrix)
+                  tempPTflow, ddpsi, tempMatrix)
              magnetizationFlowPerturbation(ispecies,itheta,:) = matmul(ddpsi, magnetizationFlowPerturbation(ispecies,itheta,:))
 	     toroidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:) 
              poloidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:)
              
-             toroidalFlow(ispecies,itheta,:)=-(Delta/(2*psiAHat))*(masses(ispecies)*BP**2*Rh)/(BHat(itheta,:)**2*nHats(ispecies,:))&
-                  * toroidalFlow(ispecies,itheta,:)
-           poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies)*BP*IHat(:))/(BHat(itheta,:)**2*nHats(ispecies,:))&
-                  * poloidalFlow(ispecies,itheta,:) 
+   toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
+                  *BP**2 * Rh * toroidalFlow(ispecies,itheta,:)
+   poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
+                  *(-1)*BP*IHat(:)* poloidalFlow(ispecies,itheta,:) 
 
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) + (BT/BHat(itheta,:))*flow(ispecies,itheta,:)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) + (BP/BHat(itheta,:))*flow(ispecies,itheta,:)
 
-             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -1/(2*Delta*psiAHat)*dPhiHatdpsi &
+             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -omega/(Delta*psiAHat)*dPhiHatdpsi &
                   *densityPerturbation(ispecies,itheta,:)*(BP**2*Rh)/(BHat(itheta,:)**2)
-             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +1/(2*Delta*psiAHat)*dPhiHatdpsi &
+             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +omega/(Delta*psiAHat)*dPhiHatdpsi &
                   *densityPerturbation(ispecies,itheta,:)*(BP*IHat)/(BHat(itheta,:)**2)
 
              !since we are not using that variable for anything else
-             psiWeights = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
+             tempPTflow = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
                   + (2*omega*charges/(Delta*THats(ispecies,:)))*dPhiHatdpsi
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
-                  -THats(ispecies,:)/(2*psiAHat*BHat(itheta,:)**2)*psiWeights*BP**2*Rh
+                  -THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BP**2*Rh
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
-                  +THats(ispecies,:)/(2*psiAHat*BHat(itheta,:)**2)*psiWeights*BP*IHat(:)
+                  +THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BP*IHat(:)
           end do
 
    !!$         if (psiDerivativeScheme == 0) then
