@@ -239,7 +239,8 @@ module globalVariables
   PetscScalar, dimension(:,:,:), allocatable :: momentumFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:,:), allocatable :: heatFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:), allocatable :: kParOutboard, kParInboard, FSAKPar
-  PetscScalar, dimension(:,:), allocatable :: flowOutboard, flowInboard,FSAFlow, FSABFlow
+  PetscScalar, dimension(:,:), allocatable :: flowOutboard, flowInboard, FSAFlow, FSABFlow
+  PetscScalar, dimension(:,:), allocatable :: FSAToroidalFlow,FSAPoloidalFlow
   PetscScalar, dimension(:,:), allocatable :: FSADensityPerturbation, FSAPressurePerturbation
 !  PetscScalar, dimension(:), allocatable :: kThetaOutboardWith3PointStencil, kThetaInboardWith3PointStencil
 !  PetscScalar, dimension(:), allocatable :: kThetaOutboardWith5PointStencil, kThetaInboardWith5PointStencil
@@ -304,6 +305,7 @@ contains
     deallocate(dBHatdpsi)
     deallocate(dBHatdtheta)
     deallocate(IHat)
+    deallocate(RHatArray)
     deallocate(dIHatdpsi)
     deallocate(PhiHat)
     deallocate(dPhiHatdpsi)
@@ -333,6 +335,8 @@ contains
 
        deallocate(densityPerturbation)
        deallocate(flow)
+       deallocate(toroidalFlow)
+       deallocate(poloidalFlow)
        deallocate(kPar)
        deallocate(pressurePerturbation)
        deallocate(particleFluxBeforeThetaIntegral)
@@ -347,6 +351,8 @@ contains
        deallocate(flowInboard)
        deallocate(FSAFlow)
        deallocate(FSABFlow)
+       deallocate(FSAToroidalFlow)
+       deallocate(FSAPoloidalFlow)
        deallocate(FSAPressurePerturbation)
 !       deallocate(LHSOfKParEquation)
        deallocate(particleFlux)

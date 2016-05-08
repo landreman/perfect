@@ -213,6 +213,8 @@ contains
       call writeVariable(flowOutboard,"flowOutboard",runNum)
       call writeVariable(flowInboard,"flowInboard",runNum)
       call writeVariable(FSAFlow,"FSAFlow",runNum)
+      call writeVariable(FSAToroidalFlow,"FSAToroidalFlow",runNum)
+      call writeVariable(FSAPoloidalFlow,"FSAPoloidalFlow",runNum)
       call writeVariable(FSABFlow,"FSABFlow",runNum)
       call writeVariable(kParOutboard,"kParOutboard",runNum)
       call writeVariable(kParInboard,"kParInboard",runNum)
