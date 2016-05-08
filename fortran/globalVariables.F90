@@ -227,7 +227,7 @@ module globalVariables
 
   PetscScalar, dimension(:), allocatable :: psi, theta
   PetscScalar, dimension(:,:), allocatable :: BHat, JHat, dBHatdtheta, dBHatdpsi
-  PetscScalar, dimension(:), allocatable :: IHat, dIHatdpsi, dPhiHatdpsi, PhiHat
+  PetscScalar, dimension(:), allocatable :: IHat, RHatArray, dIHatdpsi, dPhiHatdpsi, PhiHat
   PetscScalar, dimension(:,:), allocatable :: THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis
   PetscScalar, dimension(:,:), allocatable :: particleSourceProfile, heatSourceProfile
 !  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation

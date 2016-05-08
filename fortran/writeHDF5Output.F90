@@ -179,6 +179,7 @@ contains
       call writeVariable(dBHatdtheta,"d(BHat)d(theta)",runNum)
       call writeVariable(IHat,"IHat",runNum)
       call writeVariable(dIHatdpsi,"d(IHat)d(psi)",runNum)
+      call writeVariable(RHatArray,"RHat",runNum)
       call writeVariable(PhiHat,"PhiHat",runNum)
       call writeVariable(dPhiHatdpsi,"d(PhiHat)d(psi)",runNum)
       call writeVariable(THats,"THat",runNum)
