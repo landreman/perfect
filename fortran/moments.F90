@@ -81,6 +81,8 @@ contains
        allocate(FSAKPar(numSpecies,Npsi))
        allocate(flowOutboard(numSpecies,Npsi))
        allocate(flowInboard(numSpecies,Npsi))
+       allocate(FSAToroidalFlow(numSpecies,Npsi))
+       allocate(FSAPoloidalFlow(numSpecies,Npsi))
        allocate(FSAFlow(numSpecies,Npsi))
        allocate(FSABFlow(numSpecies,Npsi))
        allocate(FSAPressurePerturbation(numSpecies,Npsi))
@@ -328,6 +330,10 @@ contains
              FSABFlow(ispecies,ipsi) = dot_product(thetaWeights, flow(ispecies,:,ipsi)*BHat(:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
 
              FSAFlow(ispecies,ipsi) = dot_product(thetaWeights, flow(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
+
+         FSAToroidalFlow(ispecies,ipsi) = dot_product(thetaWeights, toroidalFlow(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
+
+         FSAPoloidalFlow(ispecies,ipsi) = dot_product(thetaWeights, poloidalFlow(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
 
              
              FSAkPar(ispecies,ipsi) = dot_product(thetaWeights, kPar(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
