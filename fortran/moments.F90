@@ -269,9 +269,9 @@ contains
              poloidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:)
              
    toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
-                  *BP**2 * RHatArray(itheta) * toroidalFlow(ispecies,itheta,:)
+                  *(-1)*BP**2 * RHatArray(itheta) * toroidalFlow(ispecies,itheta,:)
    poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
-                  *(-1)*BP*IHat(:)* poloidalFlow(ispecies,itheta,:) 
+                  *BP*IHat(:)* poloidalFlow(ispecies,itheta,:) 
 
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) + (BT/BHat(itheta,:))*flow(ispecies,itheta,:)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) + (BP/BHat(itheta,:))*flow(ispecies,itheta,:)
