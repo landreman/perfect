@@ -216,7 +216,7 @@ contains
                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
 
                 magnetizationPerturbation(ispecies,itheta,ipsi) &
-                  = magnetizationPerturbation(ispecies,itheta,ipsi) + dot_product(xWeights, x*x*x*x * solnArray(indices)) &
+                  = magnetizationPerturbation(ispecies,itheta,ipsi) - dot_product(xWeights, x*x*x*x * solnArray(indices)) &
                   * 2*pi*(four/15)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
 
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
