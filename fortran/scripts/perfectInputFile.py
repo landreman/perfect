@@ -216,6 +216,14 @@ class perfectInput:
                 value = value+"d0" # Write as a Fortran double precision literal
         subprocess.call("sed -i -e '/\&"+group+"/,/\&/{ s/^  "+var+" =.*/  "+var+" = "+str(value)+"/I } ' "+self.inputfilename, shell=True)
 
+    def changevar_string(self,group,var,value):
+        # Warning: this command will fail silently if the pattern is not found. Sorry about that.
+        # Warning: case insensitive
+        if numpy.issubdtype(type(value),basestring):
+            subprocess.call("sed -i -e '/\&"+group+"/,/\&/{ s/^  "+var+" =.*/  "+var+" = "+value+"/I } ' "+self.inputfilename, shell=True)
+        else:
+            raise TypeError("expected string input")
+
     def __init__(self,inputfilename=None):
         if inputfilename:
             self.read(inputfilename)
