@@ -177,7 +177,7 @@ contains
 
                 magnetizationPerturbation(ispecies,itheta,ipsi) &
 		  = dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices)) &
-                  * 2*pi*(8/three)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
+                  * 2*pi*(4/three)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
                 
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
                 !                  (4/three) * pPerpTermInKThetaFactors(ipsi) &
