@@ -563,7 +563,7 @@ contains
 
              this_magnetizationPerturbation(ispecies,itheta) &
 		  = dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices)) &
-                  * 2*pi*(8/three)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
+                  * 2*pi*(4/three)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
           L = 1
@@ -592,7 +592,7 @@ contains
                   * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
 
              this_magnetizationPerturbation(ispecies,itheta) &
-                  = this_magnetizationPerturbation(ispecies,itheta) + dot_product(xWeights, x*x*x*x * solnArray(indices)) &
+                  = this_magnetizationPerturbation(ispecies,itheta) - dot_product(xWeights, x*x*x*x * solnArray(indices)) &
                   * 2*pi*(four/15)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
