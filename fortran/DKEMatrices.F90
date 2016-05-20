@@ -1006,7 +1006,7 @@ contains
        do L=0, Nxi-1
           do iSpeciesB = 1,numSpecies
              do iSpeciesA = 1,numSpecies
-                if (iSpeciesA==iSpeciesB .or. whichMatrix==1) then
+                if ( .not.(iSpeciesA/=iSpeciesB .and. preconditioner_species==1) .or. whichMatrix==1) then
 
                    ! Build M11
                    ! Eventually un-remark the next line:
