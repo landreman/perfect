@@ -29,8 +29,6 @@ contains
     PetscScalar, dimension(:), allocatable :: particleFluxFactors, particleFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: momentumFluxFactors, momentumFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: heatFluxFactors, heatFluxIntegralWeights
-    !for differentiation
-    PetscScalar, dimension(:,:), allocatable :: tempMatrix, ddpsi
     PetscScalar, dimension(:), allocatable :: tempPTflow
     
     
@@ -121,10 +119,7 @@ contains
        allocate(momentumFluxIntegralWeights(Nx))
        allocate(heatFluxIntegralWeights(Nx))
 
-
        ! to calculate poloidal and toroidal flow differentials
-       allocate(ddpsi(Npsi, Npsi))
-       allocate(tempMatrix(Npsi, Npsi))
        allocate(tempPTflow(Npsi))
        
        densityIntegralWeights = x*x
@@ -263,11 +258,7 @@ contains
              BP = BPoloidal(theta(itheta))
              BT = sqrt(BHat(itheta,1)**2 - BP**2)
              RHatArray(itheta)= RHat(theta(itheta))
-             !differentiate I_3 in fluxes
-             !Also consider ddpsiLeft
-             call uniformDiffMatrices(Npsi, psiMin-(1d-10), psiMax+(1d-10), psiDerivativeScheme, psi, &
-                  tempPTflow, ddpsi, tempMatrix)
-             magnetizationFlowPerturbation(ispecies,itheta,:) = matmul(ddpsi, magnetizationPerturbation(ispecies,itheta,:))
+             magnetizationFlowPerturbation(ispecies,itheta,:) = matmul(ddpsiLeft, magnetizationPerturbation(ispecies,itheta,:))
 	     toroidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:) 
              poloidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:)
              
