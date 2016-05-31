@@ -210,18 +210,22 @@ module grids
     ! Build theta grid, integration weights, and differentiation matrices:
     ! *******************************************************************************
 
-    select case (thetaDerivativeScheme)
+    select case (thetaDerivativeScheme)       
     case (0)
        scheme = 20
+       scaledThetaGridShift =  thetaGridShift*two*pi/(Ntheta)
     case (1)
        scheme = 0
+       scaledThetaGridShift =  thetaGridShift*two*pi/(Ntheta)
     case (2)
        scheme = 10
+       scaledThetaGridShift =  thetaGridShift*two*pi/(Ntheta)
     case default
        if (masterProcInSubComm) then
           print *,"[",myCommunicatorIndex,"] Error! Invalid setting for thetaDerivativeScheme"
        end if
        stop
+
     end select
 
     allocate(theta(Ntheta))
@@ -229,7 +233,9 @@ module grids
     allocate(ddtheta(Ntheta,Ntheta))
     allocate(ddthetaToUse(Ntheta,Ntheta))
     allocate(d2dtheta2(Ntheta,Ntheta))
-    call uniformDiffMatrices(Ntheta, 0d0, two*pi, scheme, theta, thetaWeights, ddtheta, d2dtheta2)
+    
+    call uniformDiffMatrices(Ntheta, scaledThetaGridShift, two*pi + scaledThetaGridShift, scheme, theta, &
+         thetaWeights, ddtheta, d2dtheta2)
 
     ! Also make a sparser differentiation matrix for the preconditioner:
     allocate(theta_preconditioner(Ntheta))
@@ -237,7 +243,7 @@ module grids
     allocate(ddtheta_preconditioner(Ntheta,Ntheta))
     allocate(d2dtheta2_preconditioner(Ntheta,Ntheta))
     scheme = 0
-    call uniformDiffMatrices(Ntheta, 0d0, two*pi, scheme, theta_preconditioner, &
+    call uniformDiffMatrices(Ntheta, scaledThetaGridShift, two*pi + scaledThetaGridShift, scheme, theta_preconditioner, &
          thetaWeights_preconditioner, ddtheta_preconditioner, d2dtheta2_preconditioner)
 
     ! Find the theta grid point closest to 0 or 2*pi. We will call it the outboard side.
@@ -246,6 +252,16 @@ module grids
        temp2 = min(abs(theta(i)), abs(theta(i)-2*pi))
        if (temp2 < temp) then
           thetaIndexForOutboard = i
+          temp = temp2
+       end if
+    end do
+
+    ! Find the theta grid point closest to pi. We will call it the inboard side.
+    temp = 9999
+    do i=1,Ntheta
+       temp2 = abs(theta(i)-pi)
+       if (temp2 < temp) then
+          thetaIndexForInboard = i
           temp = temp2
        end if
     end do

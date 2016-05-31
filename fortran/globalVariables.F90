@@ -143,6 +143,7 @@ module globalVariables
   integer :: Ntheta
   PetscScalar :: NthetaMinFactor, NthetaMaxFactor
   integer :: NthetaNumRuns
+  PetscScalar :: thetaGridShift, scaledThetaGridShift
 
   integer :: Nxi
   PetscScalar :: NxiMinFactor, NxiMaxFactor
@@ -254,7 +255,7 @@ module globalVariables
   PetscScalar, dimension(:,:), allocatable :: nuPrimeProfile, nuStarProfile
   PetscScalar, dimension(:,:), allocatable :: deltaN, deltaT, deltaEta, U, r
   PetscScalar, dimension(:), allocatable :: xUniform, xiUniform
-  integer :: thetaIndexForOutboard
+  integer :: thetaIndexForOutboard, thetaIndexForInboard
   PetscScalar, dimension(:,:,:,:), allocatable :: deltaFOutboard, fullFOutboard
 
   PetscLogDouble :: elapsedTime

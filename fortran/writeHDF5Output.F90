@@ -158,6 +158,7 @@ contains
       call writeVariable(widthExtender,"widthExtender",runNum)
       call writeVariable(numSpecies,"Nspecies",runNum)
       call writeVariable(Ntheta,"Ntheta",runNum)
+      call writeVariable(thetaGridShift,"thetaGridShift",runNum)
       call writeVariable(Nxi,"Nxi",runNum)
       call writeVariable(NL,"NL",runNum)
       call writeVariable(Nx,"Nx",runNum)
@@ -284,6 +285,7 @@ contains
       call writeVariable(xUniform,"xUniform",runNum)
       call writeVariable(xiUniform,"xiUniform",runNum)
       call writeVariable(thetaIndexForOutboard,"thetaIndexForOutboard",runNum)
+      call writeVariable(thetaIndexForInboard,"thetaIndexForInboard",runNum)
       if (outputScheme > 1) then
         call writeVariable(deltaFOutboard,"deltaFOutboard",runNum)
         call writeVariable(fullFOutboard,"fullFOutboard",runNum)
