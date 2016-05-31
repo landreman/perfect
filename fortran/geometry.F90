@@ -33,6 +33,7 @@ contains
     select case (geometryToUse)
     case (0)
        ! Circular concentric flux surfaces
+       print *,"Warning! Poloidal and toroidal flows can only be calculated in Miller geometry."
 
     case (1)
        ! Miller geometry
@@ -47,6 +48,7 @@ contains
 
     case (2)
        ! Circular concentric flux surfaces with Boozer poloidal angle
+       print *,"Warning! Poloidal and toroidal flows can only be calculated in Miller geometry."
 
     case (3)
        ! EFIT interface
@@ -287,7 +289,8 @@ contains
        allocate(weights(N))
        allocate(bs(N))
        allocate(dBdthetaFine(N))
-       call uniformDiffMatrices(N, zero, two*pi, 20, thetaFine, weights, spectralDerivative, d2dtheta2)
+       call uniformDiffMatrices(N, scaledThetaGridShift, two*pi + scaledThetaGridShift, 20, thetaFine, &
+            weights, spectralDerivative, d2dtheta2)
 
        call computeBs_1D(thetaFine, bs)
        dBdthetaFine = matmul(spectralDerivative, bs)

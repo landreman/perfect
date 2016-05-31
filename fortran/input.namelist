@@ -267,6 +267,8 @@
   NxUniform = 25
   NxiUniform = 31
   xUniformMax = 3d+0
+
+  thetaGridShift = 0.0
 /
 
 &otherNumericalParameters

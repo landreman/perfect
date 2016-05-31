@@ -255,6 +255,9 @@ contains
 
           do itheta=1,Ntheta
              !NOTE: assumes magnetic geometry psi independent
+             ! Note: needs Miller geometry. New geometries need to implement BP
+             ! RHat could be obtained from IHat and BT, but is also a sensible output
+             ! from any geometry routine.
              BP = BPoloidal(theta(itheta))
              BT = sqrt(BHat(itheta,1)**2 - BP**2)
              RHatArray(itheta)= RHat(theta(itheta))
