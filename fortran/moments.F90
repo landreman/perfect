@@ -41,7 +41,7 @@ contains
     integer :: ispecies
     integer :: ixi
 
-    PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,BP,BT
+    PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,BP,BT,signBP
     
 
     ! First, send the entire solution vector to the master process:
@@ -258,7 +258,12 @@ contains
              ! Note: needs Miller geometry. New geometries need to implement BP
              ! RHat could be obtained from IHat and BT, but is also a sensible output
              ! from any geometry routine.
+             ! NOTE: BP from Miller appears to be always positive. Sign of JHat gives direction.
+             
              BP = BPoloidal(theta(itheta))
+             if (JHat(itheta,0)*BP < 0) then
+                BP=-BP
+             end if
              BT = sqrt(BHat(itheta,1)**2 - BP**2)
              RHatArray(itheta)= RHat(theta(itheta))
              magnetizationFlowPerturbation(ispecies,itheta,:) = matmul(ddpsiLeft, magnetizationPerturbation(ispecies,itheta,:))
