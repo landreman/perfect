@@ -77,6 +77,7 @@ module globalVariables
   PetscScalar :: delta = 0.0011d+0
   PetscScalar :: omega = 0.0014d+0
   PetscScalar :: psiAHat
+  PetscScalar, dimension(:), allocatable :: psiAHatArray
 
   PetscScalar :: psiMid, psiMin, psiMax
 
@@ -182,6 +183,10 @@ module globalVariables
   !
   ! ********************************************************
   ! ********************************************************
+
+  ! for non-uniform grid
+  integer :: psiGridType
+  character(len=100) :: psiAHatFilename
 
   integer :: psiDerivativeScheme
   integer :: thetaDerivativeScheme

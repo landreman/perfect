@@ -168,6 +168,8 @@ contains
       call writeVariable(Delta,"Delta",runNum)
       call writeVariable(omega,"omega",runNum)
       call writeVariable(psiAHat,"psiAHat",runNum)
+      call writeVariable(psiGridType,"psiGridType",runNum)
+      call writeVariable(psiAHatArray,"psiAHatArray",runNum)
       call writeVariable(nu_r,"nu_r",runNum)
       call writeVariable(Miller_q,"Miller_q",runNum)
       call writeVariable(epsil,"epsil",runNum)

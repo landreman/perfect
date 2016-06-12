@@ -46,7 +46,8 @@ contains
     namelist / otherNumericalParameters / thresh, xScaleFactor, &
          useIterativeSolver, useIterativeBoundarySolver, &
          psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
-         whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy
+         whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy &
+         psiGridType, psiAHatFilename
 
     namelist / preconditionerOptions / preconditioner_species, &
          preconditioner_x, preconditioner_psi, &
@@ -197,6 +198,15 @@ contains
     if (outputScheme < 0 .or. outputScheme > 2) then
        print *,"Error: outputScheme must be 0, 1, or 2."
        stop
+    end if
+
+    if (psiGridType .eq. 1) then
+       ! Check psiAHatFilename is set
+       if (.not. len(psiAHatFilename)>=0) then
+          print *,"If psiGridType==1 then psiAHatFilename must be set."
+          stop
+       end if
+       
     end if
 
   end subroutine readNamelistInput

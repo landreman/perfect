@@ -253,7 +253,7 @@ contains
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                              / (psiAHat*charges(ispecies))
+                              / (psiAHatArray(ipsi)*charges(ispecies))
                          if (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2) then
                             call MatSetValuesSparse(matrix, 1, rowIndices(itheta), Ntheta, colIndices, &
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -264,7 +264,7 @@ contains
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                              / (psiAHat*charges(ispecies))
+                              / (psiAHatArray(ipsi)*charges(ispecies))
                          if (signOfPsiDot > thresh .or. rightBoundaryScheme == 2) then
                             rowIndexArray = (ipsi-1)*localMatrixSize+rowIndices(itheta)
                             call MatSetValuesSparse(matrix, 1, rowIndexArray, &
@@ -298,7 +298,7 @@ contains
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi)&
-                              / (psiAHat*charges(ispecies))
+                              / (psiAHatArray(ipsi)*charges(ispecies))
                          if (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2) then
                             call MatSetValuesSparse(matrix, 1, rowIndices(itheta), Ntheta, colIndices, &
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -309,7 +309,7 @@ contains
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                              / (psiAHat*charges(ispecies))
+                              / (psiAHatArray(ipsi)*charges(ispecies))
                          if (signOfPsiDot > thresh .or. rightBoundaryScheme == 2) then
                             rowIndexArray = (ipsi-1)*localMatrixSize+rowIndices(itheta)
                             call MatSetValuesSparse(matrix, 1, rowIndexArray, &
@@ -372,31 +372,31 @@ contains
             do itheta=1,Ntheta
                spatialPartOfStreamingTermDiagonal1(itheta,:) = &
                     sqrtMass * omega*JHat(itheta,ipsi)*IHat(ipsi)*dPhiHatdpsi(ipsi) &
-                    / (psiAHat*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
+                    / (psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * ddthetaToUse(itheta,:)
 
                spatialPartOfStreamingTermDiagonal2(itheta,:) = &
                     sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
-                    /(psiAHat*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
+                    /(psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * IHat(ipsi)*dBHatdpsi(itheta,ipsi)/BHat(itheta,ipsi) &
                     * ddthetaToUse(itheta,:)
 
                spatialPartOfStreamingTermDiagonal3(itheta,:) = &
                     sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
-                    /(psiAHat*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
+                    /(psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * dIHatdpsi(ipsi) &
                     * ddthetaToUse(itheta,:)
 
                spatialPartOfStreamingTermOffDiagonal(itheta,:) = &
                     sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
-                    / (BHat(itheta,ipsi)*BHat(itheta,ipsi)*psiAHat) &
+                    / (BHat(itheta,ipsi)*BHat(itheta,ipsi)*psiAHatArray(ipsi)) &
                     * (IHat(ipsi)/(two*BHat(itheta,ipsi))*dBHatdpsi(itheta,ipsi) - dIHatdpsi(ipsi)) &
                     * ddthetaToUse(itheta,:)
             end do
             do ix=1,Nx
                thetaPartOfMirrorTerm = sqrt(masses(ispecies))*(omega*dPhiHatdpsi(ipsi)*IHat(ipsi) &
                     + delta*x2(ix)*THats(ispecies,ipsi)/charges(ispecies)*dIHatdpsi(ipsi)) &
-                    * JHat(:,ipsi)*dBHatdtheta(:,ipsi) / (two*psiAHat*(BHat(:,ipsi) ** 3))
+                    * JHat(:,ipsi)*dBHatdtheta(:,ipsi) / (two*psiAHatArray(ipsi)*(BHat(:,ipsi) ** 3))
 
                do L=0,Nxi-1
                   rowIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
@@ -426,7 +426,7 @@ contains
                   else
                      do itheta=1,Ntheta
                         signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                             / (psiAHat*charges(ispecies))
+                             / (psiAHatArray(ipsi)*charges(ispecies))
                         if ((ipsi==1 .and. signOfPsiDot<-thresh) .or. (ipsi==Npsi .and. signOfPsiDot>thresh)) then
                            call MatSetValuesSparse(matrix, 1, rowIndices(itheta), &
                                 Ntheta, colIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -460,7 +460,7 @@ contains
                      else
                         do itheta=1,Ntheta
                            signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                                / (psiAHat*charges(ispecies))
+                                / (psiAHatArray(ipsi)*charges(ispecies))
                            if ((ipsi==1 .and. signOfPsiDot<-thresh) .or. (ipsi==Npsi .and. signOfPsiDot>thresh)) then
                               call MatSetValuesSparse(matrix, 1, rowIndices(itheta), &
                                    Ntheta, colIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -496,7 +496,7 @@ contains
                      else
                         do itheta=1,Ntheta
                            signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                                / (psiAHat*charges(ispecies))
+                                / (psiAHatArray(ipsi)*charges(ispecies))
                            if ((ipsi==1 .and. signOfPsiDot<-thresh) .or. (ipsi==Npsi .and. signOfPsiDot>thresh)) then
                               call MatSetValuesSparse(matrix, 1, rowIndices(itheta), &
                                    Ntheta, colIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -568,14 +568,14 @@ contains
                 xPartOfXDot = transpose(xPartOfXDot)  ! PETSc uses the opposite convention of Fortran
                 do itheta=1,Ntheta
                    signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                        / (psiAHat*charges(ispecies))
+                        / (psiAHatArray(ipsi)*charges(ispecies))
                    if (((ipsi > 1) .and. (ipsi < Npsi)) .or. ((ipsi == 1) .and. (signOfPsiDot < -thresh)) &
                         .or. ((ipsi==Npsi) .and. (signOfPsiDot > thresh))) then
                       ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                       ! so impose the kinetic equation here.
 
                       xDotFactor = JHat(itheta,ipsi) * IHat(ipsi) * dBHatdtheta(itheta,ipsi) &
-                           / (two*psiAHat*(BHat(itheta,ipsi) ** 3))
+                           / (two*psiAHatArray(ipsi)*(BHat(itheta,ipsi) ** 3))
                       rowIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
                            + [(ix-1,ix=1,Nx)]*Ntheta*Nxi + L*Ntheta + itheta - 1
 
@@ -678,7 +678,7 @@ contains
           do itheta = 1, Ntheta
              thetaPartOfPsiDot = -oneHalf * sqrt(masses(ispecies)) * delta * JHat(itheta,:) &
                   * IHat(:) * THats(ispecies,:) * dBHatdtheta(itheta,:) &
-                  / (charges(ispecies) * psiAHat * (BHat(itheta,:) ** 3))
+                  / (charges(ispecies) * psiAHatArray(ipsi) * (BHat(itheta,:) ** 3))
              if (upwinding .and. (maxval(thetaPartOfPsiDot)>0) .and. (minval(thetaPartOfPsiDot)<0)) then
                 print *,"Warning: psiDot at itheta =",itheta,&
                      " changes sign with psi, so upwinding is not well-defined."
@@ -1119,7 +1119,7 @@ contains
 
                    do itheta=1,Ntheta
                       signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                           / (psiAHat*charges(iSpeciesA))
+                           / (psiAHatArray(ipsi)*charges(iSpeciesA))
                       if ((ipsi > 1 .and. ipsi < Npsi) &
                            .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
                            .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
@@ -1221,7 +1221,7 @@ contains
        do ispecies = 1,numSpecies
           do itheta=1,Ntheta
              signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                  /(psiAHat*charges(ispecies))
+                  /(psiAHatArray(ipsi)*charges(ispecies))
              if (signOfPsiDot > -thresh) then
                 do ix=1,Nx
                    do L=0,(Nxi-1)
@@ -1238,7 +1238,7 @@ contains
        do ispecies = 1,numSpecies
           do itheta=1,Ntheta
              signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                  / (psiAHat*charges(ispecies))
+                  / (psiAHatArray(ipsi)*charges(ispecies))
              if (signOfPsiDot < thresh) then
                 do ix=1,Nx
                    do L=0,(Nxi-1)
@@ -1290,7 +1290,7 @@ contains
           do ispecies = 1,numSpecies
              do itheta=1,Ntheta
                 signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                     / (psiAHat*charges(ispecies))
+                     / (psiAHatArray(ipsi)*charges(ispecies))
                 if ((ipsi > 1 .and. ipsi < Npsi) &
                      .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
                      .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
@@ -1317,7 +1317,7 @@ contains
           do ispecies = 1,numSpecies
              do itheta=1,Ntheta
                 signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                     / (psiAHat*charges(ispecies))
+                     / (psiAHatArray(ipsi)*charges(ispecies))
                 if ((ipsi > 1 .and. ipsi < Npsi) &
                      .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
                      .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then

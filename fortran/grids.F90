@@ -135,6 +135,7 @@ module grids
     psiMax = psiMid + psiDiameter/two + widthExtender + rightBoundaryShift
 
     allocate(psi(Npsi))
+    allocate(psiAHatArray(Npsi))
 
     if (Npsi<5) then ! if Npsi<5 then we can do without psi-derivatives, but the simulation must be local
       
@@ -175,6 +176,30 @@ module grids
       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
       ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
 
+      select case (psiGridType)
+      case(0)
+         ! uniform grid
+         do i=1,Npsi
+            psiAHatArray[i] = psiAHat
+         end do
+      case(1)
+         ! Create groupname to be read
+         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+       
+         ! Open input file
+         call openInputFile(psiAHatFilename,HDF5Groupname)
+
+         call readVariable(psiAHatArray, "psiAHatArray")
+
+         call closeInputFile() 
+       
+      case default
+         print *,"Error! Invalid setting for psiGridType"
+         stop
+
+      end select
+         
+         
       select case (psiDerivativeScheme)
       case (1)
          ! centered finite differences, 3-point stencil
