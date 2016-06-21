@@ -6,7 +6,9 @@ module grids
   use polynomialDiffMatrices
   use printToStdout
   use xGrid
+  use readHDF5Input
 
+  
 #include <finclude/petsckspdef.h>
 !#include <finclude/petscdmdadef.h>
 
@@ -49,7 +51,9 @@ module grids
     integer :: scheme, ipsiMinInterior, ipsiMaxInterior, localNpsiInterior
     PetscScalar :: temp, temp2
     DM :: myDM
+    character(len=100) :: HDF5Groupname
 
+    
         if (forceOddNtheta) then
        if (mod(Ntheta, 2) == 0) then
           Ntheta = Ntheta + 1
@@ -180,7 +184,7 @@ module grids
       case(0)
          ! uniform grid
          do i=1,Npsi
-            psiAHatArray[i] = psiAHat
+            psiAHatArray(i) = psiAHat
          end do
       case(1)
          ! Create groupname to be read

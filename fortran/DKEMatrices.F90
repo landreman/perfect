@@ -676,9 +676,10 @@ contains
        !allocate(localddpsiToUse(localNpsiInterior,Npsi))
        do ispecies = 1,numSpecies
           do itheta = 1, Ntheta
+             ! evaluate psiAHatArray at ipsi=2, since it should not matter when it comes to sign changes
              thetaPartOfPsiDot = -oneHalf * sqrt(masses(ispecies)) * delta * JHat(itheta,:) &
                   * IHat(:) * THats(ispecies,:) * dBHatdtheta(itheta,:) &
-                  / (charges(ispecies) * psiAHatArray(ipsi) * (BHat(itheta,:) ** 3))
+                  / (charges(ispecies) * psiAHatArray(2) * (BHat(itheta,:) ** 3))
              if (upwinding .and. (maxval(thetaPartOfPsiDot)>0) .and. (minval(thetaPartOfPsiDot)<0)) then
                 print *,"Warning: psiDot at itheta =",itheta,&
                      " changes sign with psi, so upwinding is not well-defined."

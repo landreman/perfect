@@ -210,7 +210,7 @@ contains
 
           do itheta=1,Ntheta
              kpar(ispecies,itheta,:) = FSABHat2/(BHat(itheta,:)*BHat(itheta,:)*dTHatdpsis(ispecies,:)) &
-                  * (2*charges(ispecies)*psiAHatArray[:]*BHat(itheta,:)/IHat*flow(ispecies,itheta,:) + dTHatdpsis(ispecies,:) &
+                  * (2*charges(ispecies)*psiAHatArray(:)*BHat(itheta,:)/IHat*flow(ispecies,itheta,:) + dTHatdpsis(ispecies,:) &
                   + THats(ispecies,:)/nHats(ispecies,:)*dnHatdpsis(ispecies,:) + 2*charges(ispecies)*omega/Delta*dPhiHatdpsi)
           end do
 
@@ -517,7 +517,7 @@ contains
 
           do itheta=1,Ntheta
              this_kPar(ispecies,itheta) = FSABHat2(ipsi)/(BHat(itheta,ipsi)*BHat(itheta,ipsi)*dTHatdpsis(ispecies,ipsi)) &
-                  * (2*charges(ispecies)*psiAHatArray[:]*BHat(itheta,ipsi)/IHat(ipsi)*this_flow(ispecies,itheta)&
+                  * (2*charges(ispecies)*psiAHatArray(ipsi)*BHat(itheta,ipsi)/IHat(ipsi)*this_flow(ispecies,itheta)&
                   + dTHatdpsis(ispecies,ipsi) &
                   + THats(ispecies,ipsi)/nHats(ispecies,ipsi)*dnHatdpsis(ispecies,ipsi)&
                   + 2*charges(ispecies)*omega/Delta*dPhiHatdpsi(ipsi))

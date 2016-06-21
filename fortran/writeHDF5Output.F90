@@ -147,6 +147,9 @@ contains
     integer :: temp
 
     if (outputScheme > 0) then
+       if (psiGridType == 1) then
+          call convertToPsiNDerivatives()
+       end if
 
       call writeVariable_1d_nonalloc(charges,numSpecies,"charges",runNum)
       call writeVariable_1d_nonalloc(masses,numSpecies,"masses",runNum)
@@ -177,7 +180,7 @@ contains
       call writeVariable(theta,"theta",runNum)
       call writeVariable(JHat,"JHat",runNum)
       call writeVariable(BHat,"BHat",runNum)
-      call writeVariable(dBHatdpsi,"d(BHat)d(psi)",runNum)
+      call writeVariable(dBHatdpsi,"d(BHat)d(psi)",runNum) !not d/dpsiN
       call writeVariable(dBHatdtheta,"d(BHat)d(theta)",runNum)
       call writeVariable(IHat,"IHat",runNum)
       call writeVariable(dIHatdpsi,"d(IHat)d(psi)",runNum)
@@ -884,5 +887,31 @@ contains
     return
   end function rank_5d
 
+
+ 
+  ! -------------------------------------------------------------------------------------
+  
+  subroutine convertToPsiNDerivatives()
+    implicit none
+    integer :: ipsi,itheta,ispecies
+    ! psi
+    dIHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dIHatdpsi(ipsi)
+    dPhiHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dPhiHatdpsi(ipsi)
+    
+    do ipsi=1,Npsi
+       ! psi
+       dIHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dIHatdpsi(ipsi)
+       dPhiHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dPhiHatdpsi(ipsi)
+       
+       !psi,theta
+       dBHatdpsi(ipsi,:) = (psiAHat/psiAHatArray(ipsi))*dBHatdpsi(ipsi,:)
+      
+       !psi,species
+       dTHatdpsis(ipsi,:)=(psiAHat/psiAHatArray(ipsi))*dTHatdpsis(ipsi,:)
+       dnHatdpsis(ipsi,:)=(psiAHat/psiAHatArray(ipsi))*dnHatdpsis(ipsi,:)
+       detaHatdpsis(ipsi,:)=(psiAHat/psiAHatArray(ipsi))*detaHatdpsis(ipsi,:)
+    end do
+  end subroutine convertToPsiNDerivatives
+  
 end module writeHDF5Output
 

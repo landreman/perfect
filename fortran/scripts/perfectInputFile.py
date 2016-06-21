@@ -102,14 +102,22 @@ class perfectInput:
         #!!!! To me, this does not seem like a relevant check for a class to read perfect inputs.
         #    print "This input file does not require a profiles file (profilesScheme!=7)."
         #    exit(1)
-        if resolutionParameters["NpsiNumRuns"]>0 or resolutionParameters["psiDiameterNumRuns"]>0 or resolutionParameters["widthExtenderNumRuns"]>0:
-            print "Scans that change Npsi are not supported"
+        self.programMode=flowControl["programMode"]
+
+        if (resolutionParameters["NpsiNumRuns"]>0 or resolutionParameters["psiDiameterNumRuns"]>0 or resolutionParameters["widthExtenderNumRuns"]>0) and ((self.programMode == 2) or (self.programMode == 3)):
+            print "perfectInputFile: Error: Scans that change Npsi are not supported"
             exit(1)
+        
         self.outputFilename=flowControl["outputFilename"]
         self.solveSystem=flowControl["solveSystem"]
-            
         self.profilesScheme = physicsParameters["profilesScheme"]
-        self.profilesFilename = physicsParameters["profilesFilename"]
+        if self.profilesScheme == 7:
+            try:   
+                self.profilesFilename = physicsParameters["profilesFilename"]
+            except KeyError:
+                print "PerfectInputFile: Error: profilesScheme == 7, but no profilesFilename specified."
+                exit(1)
+        self.psiAHat = physicsParameters["psiAHat"]
         self.NpsiPerDiameter = resolutionParameters["NpsiPerDiameter"]
         self.psiDiameter = resolutionParameters["psiDiameter"]
         self.widthExtender = resolutionParameters["widthExtender"]
@@ -123,8 +131,8 @@ class perfectInput:
         self.rightBoundaryShift = physicsParameters["rightBoundaryShift"]
         self.psiMid = physicsParameters["psiMid"]
         self.desiredU = physicsParameters["desiredU"]
-        if physicsParameters["desiredUNumRuns"]>0:
-            print "Error, scans in desiredU not supported"
+        if (physicsParameters["desiredUNumRuns"]>0) and (self.programMode == 4):
+            print "PerfectInputFile: Error: scans in desiredU not supported"
             exit(2)
         self.desiredFWHMInRhoTheta = physicsParameters["desiredFWHMInRhoTheta"]
         self.Delta= physicsParameters["Delta"]
@@ -137,6 +145,10 @@ class perfectInput:
         self.makeLocalApproximation=physicsParameters["makeLocalApproximation"]
 
         # psi grid is uniformly spaced and should always include psiMin and psiMax points (options for psiDerivative Scheme are 1 and 2)
+        try:
+            self.psiGridType = otherNumericalParameters["psiGridType"]
+        except KeyError:
+            self.psiGridType = 0
         self.psiMin = self.psiMid - self.psiDiameter/2. - self.widthExtender + self.leftBoundaryShift
         self.psiMax = self.psiMid + self.psiDiameter/2. + self.widthExtender + self.rightBoundaryShift
         self.psi = numpy.linspace(self.psiMin, self.psiMax, self.Npsi)
@@ -170,8 +182,13 @@ class perfectInput:
         # is not defined by inputfile
         geometryParameters = self.inputfile["geometryParameters"]
         self.geometryToUse = geometryParameters["geometryToUse"]
-        self.geometryFilename = geometryParameters["geometryFilename"]
-
+        if self.geometryToUse == 4:
+            try:
+                self.geometryFilename = geometryParameters["geometryFilename"]
+            except KeyError:
+                print "PerfectInputFile: Error: geometryToUse == 4, but no geometryFilename specified."
+                exit(1)
+                
         self.epsil = geometryParameters["epsil"]
         self.Miller_kappa = geometryParameters["Miller_kappa"]
         self.Miller_delta = geometryParameters["Miller_delta"]
