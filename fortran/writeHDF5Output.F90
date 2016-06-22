@@ -145,7 +145,6 @@ contains
 
     integer, intent(in) :: runNum
     integer :: temp
-
     if ((psiGridType == 1) .and. masterProcInSubComm) then
        call convertToPsiNDerivatives()
        print *,"Converted output derivatives to psiN"
@@ -894,7 +893,7 @@ contains
   
   subroutine convertToPsiNDerivatives()
     implicit none
-    integer :: ipsi
+    integer :: ipsi,itheta,ispecies
     ! psi
     dIHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dIHatdpsi(ipsi)
     dPhiHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dPhiHatdpsi(ipsi)
@@ -905,12 +904,16 @@ contains
        dPhiHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dPhiHatdpsi(ipsi)
 
        !psi,theta
-       dBHatdpsi(ipsi,:) = (psiAHat/psiAHatArray(ipsi))*dBHatdpsi(ipsi,:)
-      
+       do itheta=1,Ntheta
+          dBHatdpsi(ipsi,itheta) = (psiAHat/psiAHatArray(ipsi))*dBHatdpsi(ipsi,itheta)
+       end do
+    
        !psi,species
-       dTHatdpsis(ipsi,:)=(psiAHat/psiAHatArray(ipsi))*dTHatdpsis(ipsi,:)
-       dnHatdpsis(ipsi,:)=(psiAHat/psiAHatArray(ipsi))*dnHatdpsis(ipsi,:)
-       detaHatdpsis(ipsi,:)=(psiAHat/psiAHatArray(ipsi))*detaHatdpsis(ipsi,:)
+       do ispecies=1,numSpecies
+          dTHatdpsis(ipsi,ispecies)=(psiAHat/psiAHatArray(ipsi))*dTHatdpsis(ipsi,ispecies)
+          dnHatdpsis(ipsi,ispecies)=(psiAHat/psiAHatArray(ipsi))*dnHatdpsis(ipsi,ispecies)
+          detaHatdpsis(ipsi,ispecies)=(psiAHat/psiAHatArray(ipsi))*detaHatdpsis(ipsi,ispecies)
+       end do
     end do
   end subroutine convertToPsiNDerivatives
   

@@ -25,13 +25,13 @@ def create_psiAHat_of_Npsi(psiAHatFilename, Npsi, psiAHatArray,psiArray=None):
 
     psiAHatArray = numpy.array(psiAHatArray)
     if psiAHatArray.shape != (Npsi,):
-        print "Error: psiAHatArray has dimensions " + str(var.shape) + " instead of (Npsi,) = " + str((Npsi,))  
+        print "Error: psiAHatArray has dimensions " + str(psiAHatArray.shape) + " instead of (Npsi,) = " + str((Npsi,))  
     profilesgroup.create_dataset("psiAHatArray",data=psiAHatArray)
     
     if psiArray != None:
         psiArray = numpy.array(psiArray)
         if psiArray.shape != (Npsi,):
-            print "Error: psiArray has dimensions " + str(var.shape) + " instead of (Npsi,) = " + str((Npsi,))  
+            print "Error: psiArray has dimensions " + str(psiArray.shape) + " instead of (Npsi,) = " + str((Npsi,))  
         profilesgroup.create_dataset("psiArray",data=psiArray)
     
         
