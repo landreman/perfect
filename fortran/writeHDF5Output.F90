@@ -146,11 +146,12 @@ contains
     integer, intent(in) :: runNum
     integer :: temp
 
-    if (outputScheme > 0) then
-       if (psiGridType == 1) then
-          call convertToPsiNDerivatives()
-       end if
+    if ((psiGridType == 1) .and. masterProcInSubComm) then
+       call convertToPsiNDerivatives()
+       print *,"Converted output derivatives to psiN"
+    end if
 
+    if (outputScheme > 0) then      
       call writeVariable_1d_nonalloc(charges,numSpecies,"charges",runNum)
       call writeVariable_1d_nonalloc(masses,numSpecies,"masses",runNum)
       call writeVariable_1d_nonalloc(scalarTHats,numSpecies,"scalarTHats",runNum)
@@ -180,7 +181,7 @@ contains
       call writeVariable(theta,"theta",runNum)
       call writeVariable(JHat,"JHat",runNum)
       call writeVariable(BHat,"BHat",runNum)
-      call writeVariable(dBHatdpsi,"d(BHat)d(psi)",runNum) !not d/dpsiN
+      call writeVariable(dBHatdpsi,"d(BHat)d(psi)",runNum)
       call writeVariable(dBHatdtheta,"d(BHat)d(theta)",runNum)
       call writeVariable(IHat,"IHat",runNum)
       call writeVariable(dIHatdpsi,"d(IHat)d(psi)",runNum)
@@ -893,7 +894,7 @@ contains
   
   subroutine convertToPsiNDerivatives()
     implicit none
-    integer :: ipsi,itheta,ispecies
+    integer :: ipsi
     ! psi
     dIHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dIHatdpsi(ipsi)
     dPhiHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dPhiHatdpsi(ipsi)
@@ -902,7 +903,7 @@ contains
        ! psi
        dIHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dIHatdpsi(ipsi)
        dPhiHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dPhiHatdpsi(ipsi)
-       
+
        !psi,theta
        dBHatdpsi(ipsi,:) = (psiAHat/psiAHatArray(ipsi))*dBHatdpsi(ipsi,:)
       
