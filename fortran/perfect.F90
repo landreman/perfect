@@ -131,9 +131,6 @@ program perfect
   end select
 
   call closeOutputFile()
-  if (masterProc) then
-     print *,"Output has been written. Will now crash at PetscFinalize."
-  end if
   call PetscFinalize(ierr)
 
 end program perfect

@@ -297,6 +297,7 @@ contains
 
     deallocate(psi)
     deallocate(theta)
+    deallocate(psiAHatArray)
     deallocate(xUniform)
     deallocate(xiUniform)
     deallocate(JHat)
