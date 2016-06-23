@@ -894,25 +894,26 @@ contains
   subroutine convertToPsiNDerivatives()
     implicit none
     integer :: ipsi,itheta,ispecies
-    ! psi
-    dIHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dIHatdpsi(ipsi)
-    dPhiHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dPhiHatdpsi(ipsi)
+    PetscScalar :: scaleFactor
     
     do ipsi=1,Npsi
+       scaleFactor = psiAHat/psiAHatArray(ipsi)
+       !print *,"ipsi: ",ipsi
+       !print *,"scale factor: ",scaleFactor
        ! psi
-       dIHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dIHatdpsi(ipsi)
-       dPhiHatdpsi(ipsi)=(psiAHat/psiAHatArray(ipsi))*dPhiHatdpsi(ipsi)
+       dIHatdpsi(ipsi)=scaleFactor*dIHatdpsi(ipsi)
+       dPhiHatdpsi(ipsi)=scaleFactor*dPhiHatdpsi(ipsi)
 
        !psi,theta
        do itheta=1,Ntheta
-          dBHatdpsi(ipsi,itheta) = (psiAHat/psiAHatArray(ipsi))*dBHatdpsi(ipsi,itheta)
+          dBHatdpsi(itheta,ipsi) = scaleFactor*dBHatdpsi(itheta,ipsi)
        end do
     
        !psi,species
        do ispecies=1,numSpecies
-          dTHatdpsis(ipsi,ispecies)=(psiAHat/psiAHatArray(ipsi))*dTHatdpsis(ipsi,ispecies)
-          dnHatdpsis(ipsi,ispecies)=(psiAHat/psiAHatArray(ipsi))*dnHatdpsis(ipsi,ispecies)
-          detaHatdpsis(ipsi,ispecies)=(psiAHat/psiAHatArray(ipsi))*detaHatdpsis(ipsi,ispecies)
+          dTHatdpsis(ispecies,ipsi)=scaleFactor*dTHatdpsis(ispecies,ipsi)
+          dnHatdpsis(ispecies,ipsi)=scaleFactor*dnHatdpsis(ispecies,ipsi)
+          detaHatdpsis(ispecies,ipsi)=scaleFactor*detaHatdpsis(ispecies,ipsi)
        end do
     end do
   end subroutine convertToPsiNDerivatives
