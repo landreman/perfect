@@ -145,10 +145,12 @@ class perfectInput:
         self.makeLocalApproximation=physicsParameters["makeLocalApproximation"]
 
         # psi grid is uniformly spaced and should always include psiMin and psiMax points (options for psiDerivative Scheme are 1 and 2)
+        #self.psiGridType = otherNumericalParameters["psiGridType"]
         try:
             self.psiGridType = otherNumericalParameters["psiGridType"]
         except KeyError:
             self.psiGridType = 0
+        
         self.psiMin = self.psiMid - self.psiDiameter/2. - self.widthExtender + self.leftBoundaryShift
         self.psiMax = self.psiMid + self.psiDiameter/2. + self.widthExtender + self.rightBoundaryShift
         self.psi = numpy.linspace(self.psiMin, self.psiMax, self.Npsi)

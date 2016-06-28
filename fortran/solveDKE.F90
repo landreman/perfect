@@ -282,11 +282,11 @@ contains
        ! Where trajectories enter the domain, copy solnLeft to the global rhs:
        if (leftBoundaryScheme /= 2) then
          call VecGetArrayF90(solnLeft, solnArray, ierr)
-         ipsi = 1
+         ipsi=1
          do ispecies=1,numSpecies
             do itheta=1,Ntheta
                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                    / (psiAHatArray(ipsi)*charges(ispecies))
+                    / (psiAHat*charges(ispecies))
                if (signOfPsiDot > -thresh) then
                   do L=0,(Nxi-1)
                      do ix=1,Nx
@@ -401,7 +401,7 @@ contains
          do ispecies = 1,numSpecies
             do itheta=1,Ntheta
                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                    / (psiAHatArray(ipsi)*charges(ispecies))
+                    / (psiAHat*charges(ispecies))
                if (signOfPsiDot < thresh) then
                   do L=0,(Nxi-1)
                      do ix=1,Nx
