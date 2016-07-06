@@ -155,8 +155,6 @@ thetaForBFilter(end)=[];
 BModes = zeros(NThetaFilter, Npsi);
 JModes = zeros(NThetaFilter, Npsi);
 RModes = zeros(NThetaFilter, Npsi);
-disp(BData)
-disp(RData)
 for psiIndex = 1:Npsi
   %temp = interp1(thetaData{psiIndex}, BData{psiIndex}/B0, thetaForBFilter, 'spline');
   temp = interp1(thetaData{psiIndex}, BData{psiIndex}, thetaForBFilter, 'spline');
@@ -193,21 +191,45 @@ JHat = zeros(Ntheta,Npsi);
 RHat = zeros(Ntheta,Npsi);
 dBHatDPsi = zeros(Ntheta,Npsi);
 for itheta = 1:Ntheta
-  [p,S,mu] = polyfit(psi, BHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
-  [y,~]= polyval(p,psi,S,mu);
-  BHat(itheta,:) = y;
+  if Npsi >= 5
+    [p,S,mu] = polyfit(psi, BHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
+    [y,~]= polyval(p,psi,S,mu);
+    BHat(itheta,:) = y;
+  elseif Npsi == 1
+    BHat(itheta,:) = BHat_beforeSmoothing(itheta,:);
+  else
+    error('Invalid Npsi, must be 1 or greater than 5')
+  end
 
   % Analytically differentiate the fitting polynomial:
-  [y,~]= polyval([0,polyder(p)],psi,S,mu);
-  dBHatDPsi(itheta,:) = y / mu(2);
+  if Npsi >= 5
+    [y,~]= polyval([0,polyder(p)],psi,S,mu);
+    dBHatDPsi(itheta,:) = y / mu(2);
+  elseif Npsi == 1
+    dBHatDPsi(itheta,:) = zeros(Npsi);
+  else
+    error('Invalid Npsi, must be 1 or greater than 5');
+  end
 
-  [p,S,mu] = polyfit(psi, JHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
-  [y,~]= polyval(p,psi,S,mu);
-  JHat(itheta,:) = y;
+  if Npsi >= 5
+    [p,S,mu] = polyfit(psi, JHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
+    [y,~]= polyval(p,psi,S,mu);
+    JHat(itheta,:) = y;
+  elseif Npsi == 1
+    JHat(itheta,:) = JHat_beforeSmoothing(itheta,:);
+  else
+    error('Invalid Npsi, must be 1 or greater than 5')
+  end
 
-  [p,S,mu] = polyfit(psi, RHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
-  [y,~]= polyval(p,psi,S,mu);
-  RHat(itheta,:) = y;
+  if Npsi >= 5
+    [p,S,mu] = polyfit(psi, RHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
+    [y,~]= polyval(p,psi,S,mu);
+    RHat(itheta,:) = y;
+  elseif Npsi == 1
+    RHat(itheta,:) = RHat_beforeSmoothing(itheta,:);
+  else
+    error('Invalid Npsi, must be 1 or greater than 5')
+  end
 end
 
 % Spectral uniform differentiation matrix:
@@ -232,15 +254,23 @@ geometryFilePath = strcat(pwd,'/',geometryFilename);
 group = sprintf('%s%i%s%i%s','/Npsi',Npsi,'Ntheta',Ntheta,'/');
 hdf5write(geometryFilePath, strcat(group,'psiMin'), psiMin)
 hdf5write(geometryFilePath, strcat(group,'psiMax'), psiMax, 'WriteMode', 'append')
-hdf5write(geometryFilePath, strcat(group,'BHat'), BHat, 'WriteMode', 'append')
-hdf5write(geometryFilePath, strcat(group,'dBHatdpsi'), dBHatDPsi, 'WriteMode', 'append')
-hdf5write(geometryFilePath, strcat(group,'dBHatdtheta'), dBHatdtheta, 'WriteMode', 'append')
-hdf5write(geometryFilePath, strcat(group,'JHat'), JHat, 'WriteMode', 'append')
-hdf5write(geometryFilePath, strcat(group,'IHat'), IHat, 'WriteMode', 'append')
-hdf5write(geometryFilePath, strcat(group,'dIHatdpsi'), dIHatdpsi, 'WriteMode', 'append')
+h5create(geometryFilePath,strcat(group,'BHat'),[Ntheta,Npsi])
+h5write(geometryFilePath,strcat(group,'BHat'),BHat)
+h5create(geometryFilePath,strcat(group,'dBHatdpsi'),[Ntheta,Npsi])
+h5write(geometryFilePath,strcat(group,'dBHatdpsi'),dBHatDPsi)
+h5create(geometryFilePath,strcat(group,'dBHatdtheta'),[Ntheta,Npsi])
+h5write(geometryFilePath,strcat(group,'dBHatdtheta'),dBHatdtheta)
+h5create(geometryFilePath,strcat(group,'JHat'),[Ntheta,Npsi])
+h5write(geometryFilePath,strcat(group,'JHat'),JHat)
+h5create(geometryFilePath,strcat(group,'IHat'),[Npsi])
+h5write(geometryFilePath,strcat(group,'IHat'),IHat)
+h5create(geometryFilePath,strcat(group,'dIHatdpsi'),[Npsi])
+h5write(geometryFilePath,strcat(group,'dIHatdpsi'),dIHatdpsi)
 % Write extra stuff into geometry files that is not used by PERFECT, but may be useful elsewhere
 hdf5write(geometryFilePath, strcat(group,'R0'), R0, 'WriteMode', 'append')
-hdf5write(geometryFilePath, strcat(group,'epsilon'), epsilon, 'WriteMode', 'append')
-hdf5write(geometryFilePath, strcat(group,'RHat'), RHat, 'WriteMode', 'append')
+h5create(geometryFilePath,strcat(group,'epsilon'),[Npsi])
+h5write(geometryFilePath,strcat(group,'epsilon'),epsilon)
+h5create(geometryFilePath,strcat(group,'RHat'),[Ntheta,Npsi])
+h5write(geometryFilePath,strcat(group,'RHat'),RHat)
 
 quit

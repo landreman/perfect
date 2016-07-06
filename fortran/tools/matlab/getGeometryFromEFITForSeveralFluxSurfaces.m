@@ -92,6 +92,7 @@ for i=1:N
     % One such point will always be present, and if there is only 1 point it is not a problem,
     % but if there are more than 1 such point, remove all but the last:
     thetaIncreasing(find(thetaIncreasing,1,'last')) = false;
+    thetaIncreasing = ~thetaIncreasing;
     thetaSurf(thetaIncreasing) = [];
     BSurf(thetaIncreasing) = [];
     BDotGradThetaSurf(thetaIncreasing) = [];
@@ -112,7 +113,7 @@ for i=1:N
     
     thetaSurfs{i} = thetaSurf;
     BSurfs{i} = BSurf;
-    RSurfs{i} = RSurf
+    RSurfs{i} = RSurf;
     BDotGradThetaSurfs{i} = BDotGradThetaSurf;
     as(i) = (max(Rs)-min(Rs))/2;
 end
@@ -229,4 +230,3 @@ if plotStuff
     waitfor(fig3);
     
 end
-
