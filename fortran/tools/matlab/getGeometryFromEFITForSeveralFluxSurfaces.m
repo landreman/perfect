@@ -1,4 +1,4 @@
-function [thetaSurfs, BSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff)
+function [thetaSurfs, BSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, as, R0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff)
 
 % 'BSurfs' and 'B0' should have units of Tesla.
 % Both 'as' and 'R0' should have units of meters.
@@ -14,6 +14,7 @@ efit = read_eqdsk(filename);
 
 psiN = (efit.psi_grid-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
 psiN2D = (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
+psi0 = (efit.psiedge-efit.psiaxis); % Needed to set psiAHat for PERFECT
 
 qSurfs = interp1(psiN, efit.q, desiredPsiNs, 'spline');
 ISurfs = interp1(psiN, efit.T, desiredPsiNs, 'spline');

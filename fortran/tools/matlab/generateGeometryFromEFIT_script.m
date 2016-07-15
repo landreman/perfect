@@ -143,7 +143,7 @@ end
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BData, BDotGradThetaData, IHat, qData, RData, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff);
+[thetaData, BData, BDotGradThetaData, IHat, qData, RData, as, R0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';
@@ -272,5 +272,6 @@ h5create(geometryFilePath,strcat(group,'epsilon'),[Npsi])
 h5write(geometryFilePath,strcat(group,'epsilon'),epsilon)
 h5create(geometryFilePath,strcat(group,'RHat'),[Ntheta,Npsi])
 h5write(geometryFilePath,strcat(group,'RHat'),RHat)
+hdf5write(geometryFilePath,strcat(group,'psi0'),psi0, 'WriteMode', 'append')
 
 quit
