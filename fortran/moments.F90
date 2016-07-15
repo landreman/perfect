@@ -350,11 +350,15 @@ contains
              heatFlux(ispecies,ipsi) = dot_product(thetaWeights, heatFluxBeforeThetaIntegral(ispecies,:,ipsi))
 
              if (includeNeutrals) then
-               neutralMomentumFlux1(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral1(:,ipsi))
-               neutralMomentumFlux2(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral2(:,ipsi))
-               neutralMomentumFlux3(ipsi) = dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral3(:,ipsi))
+               ! neutralMomentumFlux1 is proportional to momentumFlux and does not need a JHat factor in the integral
+               neutralMomentumFlux1(ipsi) = &
+                   dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral1(:,ipsi))
+               neutralMomentumFlux2(ipsi) = &
+                   dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral2(:,ipsi)/JHat(:,ipsi))
+               neutralMomentumFlux3(ipsi) = &
+                   dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral3(:,ipsi)/JHat(:,ipsi))
                neutralMomentumFluxDiamagnetic(ipsi) = &
-                   dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegralDiamagnetic(:,ipsi))
+                   dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegralDiamagnetic(:,ipsi)/JHat(:,ipsi))
              end if
 
              !          pPerpTermInKThetaWith3PointStencil(:,ipsi) = pPerpTermInKThetaWith3PointStencil(:,ipsi) &
