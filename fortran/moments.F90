@@ -28,6 +28,7 @@ contains
     PetscScalar, dimension(:), allocatable :: particleFluxFactors, particleFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: momentumFluxFactors, momentumFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: heatFluxFactors, heatFluxIntegralWeights
+    PetscScalar, dimension(:), allocatable :: tauXHat
     Vec :: solnOnProc0
     PetscScalar :: speciesFactor
     VecScatter :: VecScatterContext
@@ -100,6 +101,7 @@ contains
        allocate(momentumFluxFactors(Npsi))
        allocate(heatFluxFactors(Npsi))
        !       allocate(pPerpTermInKThetaFactors(Npsi))
+       allocate(tauXHat(Npsi))
 
        allocate(flowIntegralWeights(Nx))
        allocate(densityIntegralWeights(Nx))
@@ -147,26 +149,27 @@ contains
                * IHat * ((THats(ispecies,:)/masses(ispecies)) ** (5/two))
           !       pPerpTermInKThetaFactors = THat ** (5/two)
 
+          tauXHat = 1d0/nHats(1,:)/sqrt(THats(1,:)/masses(1))/CXCrossSectionHat
           if (includeNeutrals) then
             do itheta=1,Ntheta
               neutralMomentumFluxFactors1(itheta,:) = nHatNeutral(itheta,:)/nHats(1,:)*momentumFluxFactors
-              neutralMomentumFluxFactors2(itheta,:) = 2d0*pi*Delta/CXCrossSectionHat/nHats(1,:)*RHat(itheta,:)&
+              neutralMomentumFluxFactors2(itheta,:) = 2d0*pi*Delta*tauXHat*RHat(itheta,:)&
                   *Thats(1,:)**3/psiAHat/nHats(1,:)/masses(1)**2*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)&
                   *dnHatNeutraldpsi(itheta,:)&
                   *IHat/RHat(itheta,:)/BHat(itheta,:)
-              neutralMomentumFluxFactors3(itheta,:) = 2d0*pi*Delta/CXCrossSectionHat/nHats(1,:)*RHat(itheta,:)&
+              neutralMomentumFluxFactors3(itheta,:) = 2d0*pi*Delta*tauXHat*RHat(itheta,:)&
                   *Thats(1,:)**3/psiAHat/nHats(1,:)/masses(1)**2*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)&
                   *dnHatNeutraldpsi(itheta,:)&
                   *omega/psiAHat*RHat(itheta,:)*sqrt(masses(1)/THats(1,:))&
                   *(IHat**2/RHat(itheta,:)**2/BHat(itheta,:)**2-1d0)*dPhiHatdpsi
-              neutralMomentumFluxFactors4(itheta,:) = 2d0*pi*Delta/CXCrossSectionHat/nHats(1,:)*RHat(itheta,:)&
+              neutralMomentumFluxFactors4(itheta,:) = 2d0*pi*Delta*tauXHat*RHat(itheta,:)&
                   *Thats(1,:)**3/psiAHat/nHats(1,:)/masses(1)**2*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)&
                   *dnHatNeutraldpsi(itheta,:)&
                   *Delta/psiAHat*RHat(itheta,:)/2d0/charges(1)/BHat(itheta,:)*sqrt(THats(1,:)*masses(1))&
                   *(IHat**2/RHat(itheta,:)**2/BHat(itheta,:)**2-1d0)*dBHatdpsi(itheta,:)
               ! The diamagnetic flux does not actually depend on the solution, so can be computed directly
               neutralMomentumFluxBeforeThetaIntegralDiamagnetic(itheta,:) = &
-                  Delta/2d0/psiAHat**2/CXCrossSectionHat/nHats(1,:)*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)**2&
+                  Delta/2d0/psiAHat**2*tauXHat*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)**2&
                   *THats(1,:)**2/BHat(itheta,:)**2*dnHatNeutraldpsi(itheta,:)*(dnHatdpsis(1,:)/nHats(1,:)&
                   +2d0*omega/Delta*charges(1)/THats(1,:)*dPhiHatdpsi+2d0*dTHatdpsis(1,:)/THats(1,:))
             end do
