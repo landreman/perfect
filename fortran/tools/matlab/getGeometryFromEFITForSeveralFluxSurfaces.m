@@ -81,9 +81,9 @@ for i=1:N
     BDotGradTheta = BR .* dthetadR + BZ .* dthetadZ;
     %bDotGradTheta = BDotGradTheta ./ B;
     
-    thetaSurf = interp2(R, Z, theta, Rs, Zs);
-    BSurf = interp2(R, Z, B, Rs, Zs);
-    BDotGradThetaSurf = interp2(R, Z, BDotGradTheta, Rs, Zs);
+    thetaSurf = interp2(R, Z, theta, Rs, Zs,'spline');
+    BSurf = interp2(R, Z, B, Rs, Zs,'spline');
+    BDotGradThetaSurf = interp2(R, Z, BDotGradTheta, Rs, Zs,'spline');
     
     % Sometimes, a point can fall in the tiny sliver of the R-Z plane where theta decreases
     % from 2pi back to 0 as you move clockwise, instead of the main region
@@ -97,6 +97,8 @@ for i=1:N
     thetaSurf(thetaIncreasing) = [];
     BSurf(thetaIncreasing) = [];
     BDotGradThetaSurf(thetaIncreasing) = [];
+    Rs(thetaIncreasing) = [];
+    Zs(thetaIncreasing) = [];
     
     % Make 3 copies:
     thetaSurf = [thetaSurf-2*pi, thetaSurf, thetaSurf+2*pi];

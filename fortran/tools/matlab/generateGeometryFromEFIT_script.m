@@ -167,8 +167,6 @@ for psiIndex = 1:Npsi
   RModes(:,psiIndex) = fft(temp)/NThetaFilter;
 end
 
-numFourierModesInThetaToKeepInEFITGeometry = 5;
-
 epsilon = as/R0;
 Miller_A = 1./epsilon;
 Miller_q = qData;
