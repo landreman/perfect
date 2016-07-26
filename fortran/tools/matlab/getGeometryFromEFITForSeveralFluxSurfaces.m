@@ -90,10 +90,13 @@ for i=1:N
     % where theta increases as you move clockwise. We must remove these
     % points.
     thetaIncreasing = (thetaSurf - circshift(thetaSurf, [0,1])) > 0;
+    % Written for theta (mostly) decreasing around the contour, if theta generally increases, then need to take the complement of theteIncreasing
+    if sum(thetaIncreasing)>numel(thetaIncreasing)/2.
+      thetaIncreasing = ~thetaIncreasing;
+    end
     % One such point will always be present, and if there is only 1 point it is not a problem,
     % but if there are more than 1 such point, remove all but the last:
     thetaIncreasing(find(thetaIncreasing,1,'last')) = false;
-    thetaIncreasing = ~thetaIncreasing;
     thetaSurf(thetaIncreasing) = [];
     BSurf(thetaIncreasing) = [];
     BDotGradThetaSurf(thetaIncreasing) = [];
