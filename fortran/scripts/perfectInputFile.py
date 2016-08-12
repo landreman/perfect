@@ -93,7 +93,9 @@ class perfectInput:
     def read(self,inputfilename):
         self.inputfilename = inputfilename
         self.inputfile = f90nml.read(inputfilename)
+        flowControl = self.inputfile["flowControl"]
         physicsParameters = self.inputfile["physicsParameters"]
+        speciesParameters = self.inputfile["speciesParameters"]
         resolutionParameters = self.inputfile["resolutionParameters"]
         otherNumericalParameters = self.inputfile["otherNumericalParameters"]
         #if not physicsParameters["profilesScheme"] == 7: # Check that we actually need to create profiles for this input file
@@ -103,10 +105,19 @@ class perfectInput:
         if resolutionParameters["NpsiNumRuns"]>0 or resolutionParameters["psiDiameterNumRuns"]>0 or resolutionParameters["widthExtenderNumRuns"]>0:
             print "Scans that change Npsi are not supported"
             exit(1)
-        self.profilesFilename = self.inputfile["physicsParameters"]["profilesFilename"]
+        self.outputFilename=flowControl["outputFilename"]
+        self.solveSystem=flowControl["solveSystem"]
+            
+        self.profilesScheme = physicsParameters["profilesScheme"]
+        self.profilesFilename = physicsParameters["profilesFilename"]
         self.NpsiPerDiameter = resolutionParameters["NpsiPerDiameter"]
         self.psiDiameter = resolutionParameters["psiDiameter"]
         self.widthExtender = resolutionParameters["widthExtender"]
+        self.Nxi = resolutionParameters["Nxi"]
+        
+        
+        self.charges=speciesParameters["charges"]
+        self.masses=speciesParameters["masses"]
 
         self.Delta = physicsParameters["delta"]
         self.omega = physicsParameters["omega"]
@@ -120,6 +131,9 @@ class perfectInput:
             print "Error, scans in desiredU not supported"
             exit(2)
         self.desiredFWHMInRhoTheta = physicsParameters["desiredFWHMInRhoTheta"]
+        self.Delta= physicsParameters["Delta"]
+        self.omega= physicsParameters["omega"]
+        self.nu_r= physicsParameters["nu_r"]
         self.dTHatdpsiScalar = physicsParameters["dTHatdpsiScalar"]
         self.detaHatdpsiScalar = physicsParameters["detaHatdpsiScalar"]
 
@@ -169,9 +183,9 @@ class perfectInput:
         self.Miller_s_kappa = geometryParameters["Miller_s_kappa"]
         self.Miller_dRdr = geometryParameters["Miller_dRdr"]
         self.Miller_q = geometryParameters["Miller_q"]
-#        if self.geometryToUse==1:
-#            self.Miller_x = numpy.arcsin(self.Miller_delta)
-#            self.Miller_A = 1./self.epsil
+        if self.geometryToUse==1:
+            self.Miller_x = numpy.arcsin(self.Miller_delta)
+            self.Miller_A = 1./self.epsil
 #            NThetaIntegral = 100
 #            QQIntegrand = ((1.+self.Miller_s_kappa)*numpy.sin(self.theta + self.Miller_x*numpy.sin(self.theta)) * (1.+self.Miller_x*numpy.cos(self.theta)) * numpy.sin(self.theta) + numpy.cos(self.theta) * (self.Miller_dRdr + numpy.cos(self.theta + self.Miller_x*numpy.sin(self.theta)) - self.Miller_s_delta*numpy.sin(self.theta + self.Miller_x*numpy.sin(self.theta)) * numpy.sin(self.theta))) / self.RHat(self.theta)
 #            self.Miller_QQ = self.Miller_kappa / (2.*numpy.pi*self.Miller_A) * QQIntegrand.sum() * 2.*numpy.pi/NThetaIntegral

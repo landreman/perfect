@@ -24,6 +24,20 @@ interface writeVariable
   module procedure writeVariable_5d
 end interface writeVariable
 
+interface rank
+   module procedure rank_real
+   module procedure rank_integer
+   module procedure rank_character
+   module procedure rank_scalar
+   module procedure rank_1d
+   !module procedure rank_1d_nonalloc
+   module procedure rank_2d
+   module procedure rank_3d
+   module procedure rank_4d
+   module procedure rank_5d
+end interface rank
+
+
 ! Stuff for writing debugging output:
 integer(HID_T), private :: HDF5DebugFileID
 interface writeDebugArray
@@ -78,8 +92,10 @@ contains
 
     implicit none
 
-    integer :: i, rank
+    integer :: i
     character(len=*), intent(in) :: gitCommit
+    character(len=32) :: arg
+    character(:),allocatable:: argString
     character(20) :: groupName
 
 #ifdef HAVE_PARALLEL_HDF5
@@ -95,6 +111,21 @@ contains
        ! Save the git commit hash of the PERFECT binary in the file:
        call writeStringNoGroup(gitCommit,"gitCommit")
 
+       ! Save the extra command line arguments in the file:
+       argString=""
+       do i = 1, iargc()
+          call getarg(i, arg)
+          if (i == 1) then
+                argString=trim(arg)
+          else
+             argString=trim(argString)//" "//trim(arg)
+          end if        
+       end do
+       if (len(argString)==0) then
+          argString=" "
+       end if
+       call writeStringNoGroup(argString,"cmdFlags")
+
        do i=1,numRunsInScan
           ! Create a group to hold all data for the run:
           write (groupName, "(a, i3)") "run",i
@@ -104,6 +135,8 @@ contains
 
   end subroutine setupOutput
 
+
+  
   ! -----------------------------------------------------------------------------------
 
   subroutine writeRunToOutputFile(runNum)
@@ -390,7 +423,7 @@ contains
       dimensions = varsize
     end if
     call MPI_Bcast(dimensions,2*size(dimensions),MPI_INTEGER,0,MPIComm,ierror) ! 2*size(dimensions) since there seems to be no MPI datatype for long integers in Fortran, while the HSIZE_T kind is a long integer
-    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5screate_simple_f(size(shape(var)), dimensions, dspaceID, HDF5Error)
     call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
     if (masterProcInSubComm) then
       call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
@@ -399,7 +432,7 @@ contains
     call h5sclose_f(dspaceID, HDF5Error)
 #else
     if (masterProcInSubComm) then
-      call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+      call h5screate_simple_f(size(shape(var)), dimensions, dspaceID, HDF5Error)
       call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
       call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
       call h5dclose_f(dsetID, HDF5Error)
@@ -785,6 +818,69 @@ contains
     call h5sclose_f(dspaceID, HDF5Error)
 
   end subroutine writeDebugArray_5d
+
+
+  integer function rank_real(A)
+    real, intent(in) :: A(:)
+    rank_real=size(shape(A))
+    return
+  end function rank_real
+
+  integer function rank_character(A)
+    character(len=*), intent(in) :: A
+    rank_character=size(shape(A))
+    return
+  end function rank_character
+
+  integer function rank_integer(A)
+    integer, intent(in) :: A
+    rank_integer=size(shape(A))
+    return
+  end function rank_integer
+
+  integer function rank_scalar(A)
+    PetscScalar, intent(in) :: A
+    rank_scalar=size(shape(A))
+    return
+  end function rank_scalar
+
+  integer function rank_1d(A)
+    PetscScalar, dimension(:), allocatable, intent(in) :: A
+    rank_1d=size(shape(A))
+    return
+  end function rank_1d
+
+  ! conflicts with rank_1d
+  !integer function rank_1d_nonalloc(A)
+  !  PetscScalar, dimension(:), intent(in) :: A
+  !  rank_1d_nonalloc=size(shape(A))
+  !  return
+  !end function rank_1d_nonalloc
+
+  integer function rank_2d(A)
+    PetscScalar, dimension(:,:), allocatable, intent(in) :: A
+    rank_2d=size(shape(A))
+    return
+  end function rank_2d
+
+  integer function rank_3d(A)
+    PetscScalar, dimension(:,:,:), allocatable, intent(in) :: A
+    rank_3d=size(shape(A))
+    return
+  end function rank_3d
+
+  integer function rank_4d(A)
+    PetscScalar, dimension(:,:,:,:), allocatable, intent(in) :: A
+    rank_4d=size(shape(A))
+    return
+  end function rank_4d
+
+
+  integer function rank_5d(A)
+    PetscScalar, dimension(:,:,:,:,:), allocatable, intent(in) :: A
+    rank_5d=size(shape(A))
+    return
+  end function rank_5d
 
 end module writeHDF5Output
 
