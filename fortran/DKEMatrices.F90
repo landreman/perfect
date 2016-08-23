@@ -1006,8 +1006,8 @@ contains
        do L=0, Nxi-1
           do iSpeciesB = 1,numSpecies
              do iSpeciesA = 1,numSpecies
-                if ( .not.(iSpeciesA/=iSpeciesB .and. preconditioner_species==1) .or. whichMatrix==1 ) then
-
+                if (includeCollisionOperator .and. ((iSpeciesA == iSpeciesB .or. preconditioner_species==0) &
+                     .or. whichMatrix==1)) then
                    ! Build M11
                    ! Eventually un-remark the next line:
                    M11 = -nu_r * CECD(iSpeciesA, iSpeciesB,:,:)

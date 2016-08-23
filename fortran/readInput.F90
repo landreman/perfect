@@ -27,7 +27,8 @@ contains
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
          detaHatdpsiScalar, sourcePoloidalVariation, &
          Delta, omega, psiAHat, psiMid,  &
-         exponent, setTPrimeToBalanceHeatFlux, includeddpsiTerm, &
+         exponent, setTPrimeToBalanceHeatFlux, &
+         includeCollisionOperator, includeddpsiTerm, &
          leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme
 
     namelist / resolutionParameters / forceOddNtheta, &
@@ -94,6 +95,9 @@ contains
           print *,"Successfully read parameters from speciesParameters namelist in ", filename, "."
        end if
 
+       ! include collision operator by default
+       includeCollisionOperator= .true.
+       
        read(fileUnit, nml=physicsParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &

@@ -96,6 +96,8 @@ module globalVariables
 
   logical :: makeLocalApproximation
 
+  logical :: includeCollisionOperator
+
   logical :: includeddpsiTerm
 
   PetscScalar :: leftBoundaryShift=0, rightBoundaryShift=0

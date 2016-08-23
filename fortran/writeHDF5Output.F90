@@ -267,6 +267,12 @@ contains
          temp = integerToRepresentFalse
       end if
       call writeVariable(temp,"includeddpsiTerm",runNum)
+      if (includeCollisionOperator) then
+         temp = integerToRepresentTrue
+      else
+         temp = integerToRepresentFalse
+      end if
+      call writeVariable(temp,"includeCollisionOperator",runNum)
       call writeVariable(preconditioner_species,"preconditioner_species",runNum)
       call writeVariable(preconditioner_x,"preconditioner_x",runNum)
       call writeVariable(preconditioner_x_min_L,"preconditioner_x_min_L",runNum)
@@ -899,7 +905,6 @@ contains
     do ipsi=1,Npsi
        scaleFactor = psiAHat/psiAHatArray(ipsi)
        !print *,"ipsi: ",ipsi
-       !print *,"scale factor: ",scaleFactor
        ! psi
        dIHatdpsi(ipsi)=scaleFactor*dIHatdpsi(ipsi)
        dPhiHatdpsi(ipsi)=scaleFactor*dPhiHatdpsi(ipsi)
