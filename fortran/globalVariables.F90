@@ -190,7 +190,7 @@ module globalVariables
 
   integer :: psiDerivativeScheme
   integer :: thetaDerivativeScheme
-  integer :: xDerivativeScheme
+  integer :: xDerivativeScheme=2
 
   PetscScalar :: thresh
 
@@ -266,6 +266,7 @@ module globalVariables
   ! ********************************************************
 
   PetscScalar, dimension(:,:), allocatable :: sqrtTHats
+  PetscScalar, dimension(:,:,:,:,:,:), allocatable :: RosenbluthPotentialTerms
 
   ! ********************************************************
   !

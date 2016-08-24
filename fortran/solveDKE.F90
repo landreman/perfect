@@ -103,6 +103,17 @@ contains
     ! Fill some arrays that can be computed from the radial physics profiles.
     call computeDerivedProfileQuantities()
 
+
+    if (xDerivativeScheme==2 .and. localNpsi>0) then
+       ! The localNpsi>0 test is included above to avoid problems with array dimensions of size 0
+       ! in case the # of procs exceeds Npsi.
+       allocate(RosenbluthPotentialTerms(numSpecies,numSpecies,NL,Nx,Nx,localNpsi))
+       call computeRosenbluthPotentialResponse(Nx, x, xWeights, numSpecies, masses, &
+            THats(:,ipsiMin:ipsiMax), nHats(:,ipsiMin:ipsiMax), charges, NL, localNpsi, &
+            RosenbluthPotentialTerms,.false.)
+    end if
+    
+
     ! *********************************************************
     ! *********************************************************
     !
@@ -131,13 +142,9 @@ contains
     call VecAssemblyEnd(rhs, ierr)
 
     ! ***********************************************************************
+    ! Clean up
     ! ***********************************************************************
-    ! 
-    !  Permute the rows and columns of the linear system, if desired:
-    !
-    ! ***********************************************************************
-    ! ***********************************************************************
-    ! call permuteRowsAndColumns()
+    if (allocated(RosenbluthPotentialTerms)) deallocate(RosenbluthPotentialTerms)
 
     ! ***********************************************************************
     ! ***********************************************************************

@@ -155,7 +155,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   end if
 
   select case (xDerivativeScheme)
-  case (0)
+  case (0,2)
      ! Spectral collocation
      predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Nx*3-1          ! xdot*d/dx terms (dense in x, tridiagonal in L, -1 since we already counted the diagonal)
      if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
@@ -167,12 +167,12 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
      if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
        predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 5*(numSpecies-1) ! collision operator (pentadiagonal in x, dense in species, -5 since we already counted the terms diagonal in both x and species.)
      end if
-  case (2)
-     ! 3 point stencil, only used for preconditioner at the moment
-     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*3-1      ! xdot*d/dx terms (tridiagonal in psi, tridiagonal in L, -1 since we already counted the diagonal)
-     if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
-       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*(numSpecies-1) ! collision operator (tridiagonal in x, dense in species, -3 since we already counted the terms diagonal in both x and species.)
-     end if
+!!$  case (2)
+!!$     ! 3 point stencil, only used for preconditioner at the moment
+!!$     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*3-1      ! xdot*d/dx terms (tridiagonal in psi, tridiagonal in L, -1 since we already counted the diagonal)
+!!$     if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
+!!$       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*(numSpecies-1) ! collision operator (tridiagonal in x, dense in species, -3 since we already counted the terms diagonal in both x and species.)
+!!$     end if
   case (8)
      ! Drop everything off-diagonal in x for the preconditioner, so do nothing
   case default
