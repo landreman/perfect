@@ -1,4 +1,4 @@
-!#define HAVE_PARALLEL_HDF5
+#define HAVE_PARALLEL_HDF5
 
 module writeHDF5Output
 
