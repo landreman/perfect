@@ -1030,7 +1030,8 @@ contains
                          ! New scheme for the Rosenbluth potential terms.
                          do i=1,Nx
                             ! The DKE normalization in perfect has an extra sqrt(m) compared to the normalization in SFINCS. Add the factor here:
-                            M11(i, :) = M11(i,:) - nu_r * sqrt_m * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,i,:,ipsi-ipsiMin+1) 
+                            M11(i, :) = M11(i,:) &
+                                 - nu_r * sqrt_m * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,i,:,ipsi-ipsiMin+1) 
                          end do
 
                          KWithoutThetaPart = M11
@@ -1286,33 +1287,20 @@ contains
     integer :: rowIndex, colIndex
     integer :: this_ipsiMin,this_ipsiMax
 
-    print *,ipsiMin
-    print *,ipsiMax
-
-    print *,lowestEnforcedIpsi
-    print *,highestEnforcedIpsi
-    
     if (ipsiMax < lowestEnforcedIpsi) then
        ! this processor do not own any indices with sources
        ! UNTESTED
-       print *,"lol"
        return
     end if
     
     if (ipsiMin > highestEnforcedIpsi) then
        ! this processor do not own any indices with sources
        ! UNTESTED
-       print *,"lol"
        return 
     end if
 
     this_ipsiMin = max(ipsiMin,lowestEnforcedIpsi)
     this_ipsiMax = min(ipsiMax,highestEnforcedIpsi)
-
-    print *,"Lowest,highest in sources()"   
-    print *,this_ipsiMin
-    print *,this_ipsiMax
-    
 
     allocate(sourceThetaPart(Ntheta))
     select case (sourcePoloidalVariation)
