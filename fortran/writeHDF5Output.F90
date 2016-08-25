@@ -9,7 +9,12 @@ use HDF5
 
 implicit none
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsysdef.h>
+#endif
 
 integer, private :: HDF5Error
 integer(HID_T), private :: HDF5FileID, parallelID

@@ -8,10 +8,12 @@ module grids
   use printToStdout
   use xGrid
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
-!#include <finclude/petscdmdadef.h>
-
-!#include "PETScVersions.F90"
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
 
   implicit none
 
@@ -31,7 +33,7 @@ module grids
   PetscScalar, dimension(:), allocatable :: LegendresOnXiUniform_m1, LegendresOnXiUniform_m2
   PetscScalar, dimension(:,:), allocatable :: regridPolynomialToUniform
   PetscScalar, dimension(:,:), allocatable :: regridPolynomialToUniformForDiagnostics
-  integer :: ipsiMin, ipsiMax, NxPotentials
+  integer :: ipsiMin, ipsiMax, localNpsi, NxPotentials
   logical :: procThatHandlesLeftBoundary, procThatHandlesRightBoundary
   PetscScalar :: xMaxNotTooSmall
 
@@ -46,7 +48,6 @@ module grids
     logical, intent(in) :: upwinding
     PetscErrorCode :: ierr
     integer :: i, ix, j
-    integer :: localNpsi
     integer :: scheme, ipsiMinInterior, ipsiMaxInterior, localNpsiInterior
     PetscScalar :: temp, temp2
     DM :: myDM
@@ -261,9 +262,9 @@ module grids
     allocate(d2dx2ToUse(Nx,Nx))
 
     select case (xDerivativeScheme)
-    case (0)
+    case (0,2)
        ! Polynomial spectral collocation
-       call makeXGrid(Nx, x, xWeights)
+       call makeXGrid(Nx, x, xWeights, .false.)
        xWeights = xWeights / exp(-x*x)
        x = x * xScaleFactor
        xWeights = xWeights * xScaleFactor
@@ -338,6 +339,7 @@ module grids
   !!$#endif
   !!$       erfs(i) = temp1
   !!$    end do
+
 
     ! For all preconditioner_x values except 5, we do not need to make
     ! d2dx2Preconditioner, because the xDot term only needs the first derivative.

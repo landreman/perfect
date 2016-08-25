@@ -14,10 +14,13 @@ module solveDKE
   use profiles
   use sparsify
 
-#include <finclude/petsckspdef.h>
-#include <finclude/petscdmdadef.h>
-
 #include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
+#include <finclude/petsckspdef.h>
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
+
   
   implicit none
 
@@ -100,6 +103,17 @@ contains
     ! Fill some arrays that can be computed from the radial physics profiles.
     call computeDerivedProfileQuantities()
 
+
+    if (xDerivativeScheme==2 .and. localNpsi>0) then
+       ! The localNpsi>0 test is included above to avoid problems with array dimensions of size 0
+       ! in case the # of procs exceeds Npsi.
+       allocate(RosenbluthPotentialTerms(numSpecies,numSpecies,NL,Nx,Nx,localNpsi))
+       call computeRosenbluthPotentialResponse(Nx, x, xWeights, numSpecies, masses, &
+            THats(:,ipsiMin:ipsiMax), nHats(:,ipsiMin:ipsiMax), charges, NL, localNpsi, &
+            RosenbluthPotentialTerms,.false.)
+    end if
+    
+
     ! *********************************************************
     ! *********************************************************
     !
@@ -118,9 +132,7 @@ contains
     ! *******************************************************************************
     ! *******************************************************************************
     call DKECreateRhsVector()
-
     call deallocateInitializationGridArrays()
-
     ! *********************************************************************************************
     ! If this process handles the left or right boundary, solve the local kinetic equation there:
     ! *********************************************************************************************
@@ -130,13 +142,9 @@ contains
     call VecAssemblyEnd(rhs, ierr)
 
     ! ***********************************************************************
+    ! Clean up
     ! ***********************************************************************
-    ! 
-    !  Permute the rows and columns of the linear system, if desired:
-    !
-    ! ***********************************************************************
-    ! ***********************************************************************
-    ! call permuteRowsAndColumns()
+    if (allocated(RosenbluthPotentialTerms)) deallocate(RosenbluthPotentialTerms)
 
     ! ***********************************************************************
     ! ***********************************************************************
@@ -190,6 +198,9 @@ contains
     PetscScalar, pointer :: solnArray(:)
     PetscLogDouble, intent(inout) :: time1
     PetscLogDouble :: time2
+#if (PETSC_VERSION_MAJOR > 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR > 6))
+    PetscViewerAndFormat :: vf
+#endif
 
     if (procThatHandlesLeftBoundary) then
        ! This process handles the left boundary, so solve the local kinetic equation there.
@@ -220,7 +231,12 @@ contains
              call KSPSetTolerances(KSPBoundary, solverTolerance, 1.d-50, &
                   1.d10, PETSC_DEFAULT_INTEGER, ierr)
              call KSPSetFromOptions(KSPBoundary, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
+#else
+             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf, ierr)
+             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf, PetscViewerAndFormatDestroy, ierr)
+#endif
           else
              ! Direct solver:
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
@@ -335,7 +351,12 @@ contains
              call KSPSetTolerances(KSPBoundary, solverTolerance, 1.d-50, &
                   1.d10, PETSC_DEFAULT_INTEGER, ierr)
              call KSPSetFromOptions(KSPBoundary, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
+#else
+             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf, ierr)
+             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf, PetscViewerAndFormatDestroy, ierr)
+#endif
           else
              ! Direct solver:
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
@@ -534,6 +555,9 @@ contains
     double precision :: myMatInfo(MAT_INFO_SIZE)
     PetscLogDouble, intent(inout) :: time1
     PetscLogDouble :: time2
+#if (PETSC_VERSION_MAJOR > 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR > 6))
+    PetscViewerAndFormat :: vf
+#endif
 
     call KSPCreate(MPIComm, KSPInstance, ierr)
     CHKERRQ(ierr)
@@ -546,6 +570,7 @@ contains
        ! Syntax for PETSc version 3.5 and later
        call KSPSetOperators(KSPInstance, matrix, preconditionerMatrix, ierr)
 #endif
+
        CHKERRQ(ierr)
        call KSPGetPC(KSPInstance, preconditionerContext, ierr)
        CHKERRQ(ierr)
@@ -558,7 +583,12 @@ contains
        CHKERRQ(ierr)
        call KSPSetFromOptions(KSPInstance, ierr)
        CHKERRQ(ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
        call KSPMonitorSet(KSPInstance, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
+#else
+       call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf, ierr)
+       call KSPMonitorSet(KSPInstance, KSPMonitorDefault, vf, PetscViewerAndFormatDestroy, ierr)
+#endif
     else
        ! Direct solver:
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))

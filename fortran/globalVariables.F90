@@ -2,7 +2,12 @@ module globalVariables
 
   implicit none
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsysdef.h>
+#endif
 
   integer, parameter :: integerToRepresentTrue  =  1
   integer, parameter :: integerToRepresentFalse = -1
@@ -186,7 +191,7 @@ module globalVariables
 
   integer :: psiDerivativeScheme
   integer :: thetaDerivativeScheme
-  integer :: xDerivativeScheme
+  integer :: xDerivativeScheme=2
 
   PetscScalar :: thresh
 
@@ -263,6 +268,7 @@ module globalVariables
   ! ********************************************************
 
   PetscScalar, dimension(:,:), allocatable :: sqrtTHats
+  PetscScalar, dimension(:,:,:,:,:,:), allocatable :: RosenbluthPotentialTerms
 
   ! ********************************************************
   !

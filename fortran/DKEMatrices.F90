@@ -1,9 +1,13 @@
 module DKEMatrices
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
 #include <finclude/petscdmdadef.h>
-
-#include "PETScVersions.F90"
+#else
+#include <petsc/finclude/petsckspdef.h>
+#include <petsc/finclude/petscdmdadef.h>
+#endif
   
   use globalVariables
   use grids
@@ -784,7 +788,7 @@ contains
     PetscScalar, dimension(:,:,:,:), allocatable :: CECD
     PetscScalar :: temp, temp1, temp2, speciesFactor, speciesFactor2
     PetscScalar :: signOfPsiDot
-    PetscScalar :: T32
+    PetscScalar :: T32, sqrt_m
     integer :: i, j, ix, ix_row, ix_col, itheta, ipsi, L
     integer :: rowIndex, colIndex
     integer :: iSpeciesA, iSpeciesB
@@ -1007,12 +1011,13 @@ contains
        ! *****************************************************************
 
        do L=0, Nxi-1
-          do iSpeciesB = 1,numSpecies
-             do iSpeciesA = 1,numSpecies
+          !print *,"Adding L=",L
+          do iSpeciesA = 1,numSpecies
+             sqrt_m = sqrt(masses(iSpeciesA))
+             do iSpeciesB = 1,numSpecies
                 if ( .not.(iSpeciesA/=iSpeciesB .and. preconditioner_species==1) .or. whichMatrix==1 ) then
 
                    ! Build M11
-                   ! Eventually un-remark the next line:
                    M11 = -nu_r * CECD(iSpeciesA, iSpeciesB,:,:)
                    if (iSpeciesA == iSpeciesB) then
                       do i=1,Nx
@@ -1024,49 +1029,61 @@ contains
                    !   if (.false.) then
                       ! Add Rosenbluth potential terms.
 
-                      speciesFactor2 = sqrt(THats(iSpeciesA,ipsi)*masses(iSpeciesB) &
-                           / (THats(iSpeciesB,ipsi) * masses(iSpeciesA)))
+                      if (xDerivativeScheme==2) then
+                         ! New scheme for the Rosenbluth potential terms.
+                         do i=1,Nx
+                            ! The DKE normalization in perfect has an extra sqrt(m) compared to the normalization in SFINCS. Add the factor here:
+                            M11(i, :) = M11(i,:) - nu_r * sqrt_m * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,i,:,ipsi-ipsiMin+1) 
+                         end do
 
-                      ! Build M13:
-                      scheme = 2
-                      call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
-                           potentialsToFInterpolationMatrix, scheme, L)
+                         KWithoutThetaPart = M11
 
-                      speciesFactor = -nu_r * 3/(2*pi)*nHats(iSpeciesA,ipsi) &
-                           * charges(iSpeciesA)*charges(iSpeciesA)*charges(iSpeciesB)*charges(iSpeciesB) &
-                           / (THats(iSpeciesA,ipsi) * sqrt(THats(iSpeciesA,ipsi))) &
-                           * THats(iSpeciesB,ipsi)*masses(iSpeciesA)/(THats(iSpeciesA,ipsi)*masses(iSpeciesB))
+                      else
+                         ! Old scheme for the Rosenbluth potential terms.
 
-                      tempMatrix = matmul(potentialsToFInterpolationMatrix, d2dx2Potentials)
-                      do i=1,Nx
-                         M13(i, :) = speciesFactor*expx2(i)*x2(i)*tempMatrix(i,:)
-                      end do
+                         speciesFactor2 = sqrt(THats(iSpeciesA,ipsi)*masses(iSpeciesB) &
+                              / (THats(iSpeciesB,ipsi) * masses(iSpeciesA)))
 
-                      ! Build M12:
-                      scheme = 1
-                      call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
-                           potentialsToFInterpolationMatrix, scheme, L)
-
-                      temp = 1-masses(iSpeciesA)/masses(iSpeciesB)
-                      do i=1,NxPotentials
-                         tempMatrix2(i,:) = temp*xPotentials(i)*ddxPotentials(i,:)
-                         tempMatrix2(i,i) = tempMatrix2(i,i) + one
-                      end do
-                      tempMatrix = matmul(potentialsToFInterpolationMatrix, tempMatrix2)
-                      do i=1,Nx
-                         M12(i,:) = -speciesFactor*expx2(i)*tempMatrix(i,:)
-                      end do
-
-                      ! Possibly add Dirichlet boundary condition for potentials at x=0:
-                      if (L /= 0) then
-                         M12(:,1) = 0
-                         M13(:,1) = 0
+                         ! Build M13:
+                         scheme = 2
+                         call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
+                              potentialsToFInterpolationMatrix, scheme, L)
+                         
+                         speciesFactor = -nu_r * 3/(2*pi)*nHats(iSpeciesA,ipsi) &
+                              * charges(iSpeciesA)*charges(iSpeciesA)*charges(iSpeciesB)*charges(iSpeciesB) &
+                              / (THats(iSpeciesA,ipsi) * sqrt(THats(iSpeciesA,ipsi))) &
+                              * THats(iSpeciesB,ipsi)*masses(iSpeciesA)/(THats(iSpeciesA,ipsi)*masses(iSpeciesB))
+                         
+                         tempMatrix = matmul(potentialsToFInterpolationMatrix, d2dx2Potentials)
+                         do i=1,Nx
+                            M13(i, :) = speciesFactor*expx2(i)*x2(i)*tempMatrix(i,:)
+                         end do
+                         
+                         ! Build M12:
+                         scheme = 1
+                         call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
+                              potentialsToFInterpolationMatrix, scheme, L)
+                         
+                         temp = 1-masses(iSpeciesA)/masses(iSpeciesB)
+                         do i=1,NxPotentials
+                            tempMatrix2(i,:) = temp*xPotentials(i)*ddxPotentials(i,:)
+                            tempMatrix2(i,i) = tempMatrix2(i,i) + one
+                         end do
+                         tempMatrix = matmul(potentialsToFInterpolationMatrix, tempMatrix2)
+                         do i=1,Nx
+                            M12(i,:) = -speciesFactor*expx2(i)*tempMatrix(i,:)
+                         end do
+                         
+                         ! Possibly add Dirichlet boundary condition for potentials at x=0:
+                         if (L /= 0) then
+                            M12(:,1) = 0
+                            M13(:,1) = 0
+                         end if
+                         
+                         !KWithoutThetaPart = M11 -  (M12 - M13 * (M33 \ M32)) * (M22 \ M21);
+                         KWithoutThetaPart = M11 - matmul(M12 - matmul(M13, M33BackslashM32s(L+1,:,:)),&
+                              M22BackslashM21s(L+1,:,:))
                       end if
-
-                      !KWithoutThetaPart = M11 -  (M12 - M13 * (M33 \ M32)) * (M22 \ M21);
-                      KWithoutThetaPart = M11 - matmul(M12 - matmul(M13, M33BackslashM32s(L+1,:,:)),&
-                           M22BackslashM21s(L+1,:,:))
-
                    else
                       KWithoutThetaPart = M11;
                    end if

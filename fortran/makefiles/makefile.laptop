@@ -1,3 +1,4 @@
+# -*- mode: makefile -*-
 # This makefile is used for a laptop or desktop computer,
 # with 1 to a few processors, and with no job management system.
 

@@ -4,8 +4,12 @@ module DKERhs
   use grids
   !use petscksp
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
-!#include <finclude/petscdmdadef.h>
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
 
 !#include "PETScVersions.F90"
 
