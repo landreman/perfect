@@ -150,9 +150,12 @@ contains
 
     integer, intent(in) :: runNum
     integer :: temp
+    if ((psiGridType == 1) .and. masterProcInSubComm) then
+       call convertToPsiNDerivatives()
+       print *,"Converted output derivatives to psiN"
+    end if
 
-    if (outputScheme > 0) then
-
+    if (outputScheme > 0) then      
       call writeVariable_1d_nonalloc(charges,numSpecies,"charges",runNum)
       call writeVariable_1d_nonalloc(masses,numSpecies,"masses",runNum)
       call writeVariable_1d_nonalloc(scalarTHats,numSpecies,"scalarTHats",runNum)
@@ -173,6 +176,8 @@ contains
       call writeVariable(Delta,"Delta",runNum)
       call writeVariable(omega,"omega",runNum)
       call writeVariable(psiAHat,"psiAHat",runNum)
+      call writeVariable(psiGridType,"psiGridType",runNum)
+      call writeVariable(psiAHatArray,"psiAHatArray",runNum)
       call writeVariable(nu_r,"nu_r",runNum)
       call writeVariable(Miller_q,"Miller_q",runNum)
       call writeVariable(epsil,"epsil",runNum)
@@ -193,6 +198,8 @@ contains
       call writeVariable(etaHats,"etaHat",runNum)
       call writeVariable(detaHatdpsis,"d(etaHat)d(psi)",runNum)
       call writeVariable(elapsedTime,"elapsed time (s)",runNum)
+      call writeVariable(NpsiSourcelessLeft,"NpsiSourcelessLeft",runNum)
+      call writeVariable(NpsiSourcelessRight,"NpsiSourcelessRight",runNum)
       call writeVariable(sourcePoloidalVariation,"sourcePoloidalVariation",runNum)
       call writeVariable(particleSourceProfile,"particleSourceProfile",runNum)
       call writeVariable(heatSourceProfile,"heatSourceProfile",runNum)
@@ -267,6 +274,12 @@ contains
          temp = integerToRepresentFalse
       end if
       call writeVariable(temp,"includeddpsiTerm",runNum)
+      if (includeCollisionOperator) then
+         temp = integerToRepresentTrue
+      else
+         temp = integerToRepresentFalse
+      end if
+      call writeVariable(temp,"includeCollisionOperator",runNum)
       call writeVariable(preconditioner_species,"preconditioner_species",runNum)
       call writeVariable(preconditioner_x,"preconditioner_x",runNum)
       call writeVariable(preconditioner_x_min_L,"preconditioner_x_min_L",runNum)
@@ -887,5 +900,35 @@ contains
     return
   end function rank_5d
 
+
+ 
+  ! -------------------------------------------------------------------------------------
+  
+  subroutine convertToPsiNDerivatives()
+    implicit none
+    integer :: ipsi,itheta,ispecies
+    PetscScalar :: scaleFactor
+    
+    do ipsi=1,Npsi
+       scaleFactor = psiAHat/psiAHatArray(ipsi)
+       !print *,"ipsi: ",ipsi
+       ! psi
+       dIHatdpsi(ipsi)=scaleFactor*dIHatdpsi(ipsi)
+       dPhiHatdpsi(ipsi)=scaleFactor*dPhiHatdpsi(ipsi)
+
+       !psi,theta
+       do itheta=1,Ntheta
+          dBHatdpsi(itheta,ipsi) = scaleFactor*dBHatdpsi(itheta,ipsi)
+       end do
+    
+       !psi,species
+       do ispecies=1,numSpecies
+          dTHatdpsis(ispecies,ipsi)=scaleFactor*dTHatdpsis(ispecies,ipsi)
+          dnHatdpsis(ispecies,ipsi)=scaleFactor*dnHatdpsis(ispecies,ipsi)
+          detaHatdpsis(ispecies,ipsi)=scaleFactor*detaHatdpsis(ispecies,ipsi)
+       end do
+    end do
+  end subroutine convertToPsiNDerivatives
+  
 end module writeHDF5Output
 

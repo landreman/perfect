@@ -27,7 +27,8 @@ contains
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
          detaHatdpsiScalar, sourcePoloidalVariation, &
          Delta, omega, psiAHat, psiMid,  &
-         exponent, setTPrimeToBalanceHeatFlux, includeddpsiTerm, &
+         exponent, setTPrimeToBalanceHeatFlux, &
+         includeCollisionOperator, includeddpsiTerm, &
          leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme
 
     namelist / resolutionParameters / forceOddNtheta, &
@@ -46,7 +47,8 @@ contains
     namelist / otherNumericalParameters / thresh, xScaleFactor, &
          useIterativeSolver, useIterativeBoundarySolver, &
          psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
-         whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy
+         whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy, &
+         psiGridType, psiAHatFilename, NpsiSourcelessRight, NpsiSourcelessLeft
 
     namelist / preconditionerOptions / preconditioner_species, &
          preconditioner_x, preconditioner_psi, &
@@ -93,6 +95,9 @@ contains
           print *,"Successfully read parameters from speciesParameters namelist in ", filename, "."
        end if
 
+       ! include collision operator by default
+       includeCollisionOperator= .true.
+       
        read(fileUnit, nml=physicsParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
@@ -113,16 +118,20 @@ contains
           print *,"Successfully read parameters from resolutionParameters namelist in ", filename, "."
        end if
 
+       NpsiSourcelessLeft = 0
+       NpsiSourcelessRight = 0
+       
        read(fileUnit, nml=otherNumericalParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
                " but not read data from the otherNumericalParameters namelist in it."
           stop
        end if
+       
        if (masterProc) then
           print *,"Successfully read parameters from otherNumericalParameters namelist in ", filename, "."
        end if
-
+       
        read(fileUnit, nml=preconditionerOptions, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
@@ -197,6 +206,15 @@ contains
     if (outputScheme < 0 .or. outputScheme > 2) then
        print *,"Error: outputScheme must be 0, 1, or 2."
        stop
+    end if
+
+    if (psiGridType .eq. 1) then
+       ! Check psiAHatFilename is set
+       if (.not. len(psiAHatFilename)>=0) then
+          print *,"If psiGridType==1 then psiAHatFilename must be set."
+          stop
+       end if
+       
     end if
 
   end subroutine readNamelistInput

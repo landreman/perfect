@@ -145,6 +145,7 @@
   ! If makeLocalApproximation is set to true, the conventional radially local
   ! kinetic equation is solved instead of the radially global kinetic equation.
 
+
   includeddpsiTerm = .true.
 !  includeddpsiTerm = .false.
 
@@ -273,6 +274,17 @@
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Other numerical parameters:
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  NpsiSourcelessLeft = 0
+  NpsiSourcelessRight = 0
+  ! N=0 : constraint and sources are solved for at the boundary points
+  ! N>0 : constraints and sources are not enforced N psi indices away from and including the boundary
+
+  psiGridType = 0
+  ! 0 = Homogenous grid in psi with spacing as specified above
+  ! 1 = inhomogenous grid in psi. Inhomogenous grid obtained by mapping from psi' to psi, where grid is homogenous in psi'. All other inputs quantities intepreted as being given in psi', dpsi/dpsi' specified in file below
+  psiAHatFilename = "psiAHat.h5"
+
 
   psiDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.

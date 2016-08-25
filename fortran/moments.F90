@@ -54,8 +54,8 @@ contains
     if (masterProcInSubComm) then
        ! All computation of moments of the distribution function is then done on the master process:
 
-       allocate(particleSourceProfile(numSpecies,Npsi))
-       allocate(heatSourceProfile(numSpecies,Npsi))
+       allocate(particleSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+       allocate(heatSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
 
        allocate(densityPerturbation(numSpecies,Ntheta,Npsi))
        allocate(flow(numSpecies,Ntheta,Npsi))
@@ -133,9 +133,12 @@ contains
           !       pPerpTermInKThetaFactors = THat ** (5/two)
 
           ! The final elements of the solution vector correspond to the source profiles:
-          do ipsi=1,Npsi
-             particleSourceProfile(ispecies,ipsi) = solnArray(localMatrixSize*Npsi + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 1)
-             heatSourceProfile(ispecies,ipsi) = solnArray(localMatrixSize*Npsi + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 2)
+
+          do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
+             particleSourceProfile(ispecies,ipsi - lowestEnforcedIpsi + 1) = solnArray(localMatrixSize*Npsi &
+                  + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 1)
+             heatSourceProfile(ispecies,ipsi - lowestEnforcedIpsi + 1) = solnArray(localMatrixSize*Npsi &
+                  + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 2)
           end do
 
           L = 0
@@ -215,7 +218,7 @@ contains
 
           do itheta=1,Ntheta
              kpar(ispecies,itheta,:) = FSABHat2/(BHat(itheta,:)*BHat(itheta,:)*dTHatdpsis(ispecies,:)) &
-                  * (2*charges(ispecies)*psiAHat*BHat(itheta,:)/IHat*flow(ispecies,itheta,:) + dTHatdpsis(ispecies,:) &
+                  * (2*charges(ispecies)*psiAHatArray(:)*BHat(itheta,:)/IHat*flow(ispecies,itheta,:) + dTHatdpsis(ispecies,:) &
                   + THats(ispecies,:)/nHats(ispecies,:)*dnHatdpsis(ispecies,:) + 2*charges(ispecies)*omega/Delta*dPhiHatdpsi)
           end do
 
@@ -522,7 +525,7 @@ contains
 
           do itheta=1,Ntheta
              this_kPar(ispecies,itheta) = FSABHat2(ipsi)/(BHat(itheta,ipsi)*BHat(itheta,ipsi)*dTHatdpsis(ispecies,ipsi)) &
-                  * (2*charges(ispecies)*psiAHat*BHat(itheta,ipsi)/IHat(ipsi)*this_flow(ispecies,itheta)&
+                  * (2*charges(ispecies)*psiAHatArray(ipsi)*BHat(itheta,ipsi)/IHat(ipsi)*this_flow(ispecies,itheta)&
                   + dTHatdpsis(ispecies,ipsi) &
                   + THats(ispecies,ipsi)/nHats(ispecies,ipsi)*dnHatdpsis(ispecies,ipsi)&
                   + 2*charges(ispecies)*omega/Delta*dPhiHatdpsi(ipsi))

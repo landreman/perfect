@@ -376,31 +376,31 @@ contains
             do itheta=1,Ntheta
                spatialPartOfStreamingTermDiagonal1(itheta,:) = &
                     sqrtMass * omega*JHat(itheta,ipsi)*IHat(ipsi)*dPhiHatdpsi(ipsi) &
-                    / (psiAHat*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
+                    / (psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * ddthetaToUse(itheta,:)
 
                spatialPartOfStreamingTermDiagonal2(itheta,:) = &
                     sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
-                    /(psiAHat*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
+                    /(psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * IHat(ipsi)*dBHatdpsi(itheta,ipsi)/BHat(itheta,ipsi) &
                     * ddthetaToUse(itheta,:)
 
                spatialPartOfStreamingTermDiagonal3(itheta,:) = &
                     sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
-                    /(psiAHat*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
+                    /(psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * dIHatdpsi(ipsi) &
                     * ddthetaToUse(itheta,:)
 
                spatialPartOfStreamingTermOffDiagonal(itheta,:) = &
                     sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
-                    / (BHat(itheta,ipsi)*BHat(itheta,ipsi)*psiAHat) &
+                    / (BHat(itheta,ipsi)*BHat(itheta,ipsi)*psiAHatArray(ipsi)) &
                     * (IHat(ipsi)/(two*BHat(itheta,ipsi))*dBHatdpsi(itheta,ipsi) - dIHatdpsi(ipsi)) &
                     * ddthetaToUse(itheta,:)
             end do
             do ix=1,Nx
                thetaPartOfMirrorTerm = sqrt(masses(ispecies))*(omega*dPhiHatdpsi(ipsi)*IHat(ipsi) &
                     + delta*x2(ix)*THats(ispecies,ipsi)/charges(ispecies)*dIHatdpsi(ipsi)) &
-                    * JHat(:,ipsi)*dBHatdtheta(:,ipsi) / (two*psiAHat*(BHat(:,ipsi) ** 3))
+                    * JHat(:,ipsi)*dBHatdtheta(:,ipsi) / (two*psiAHatArray(ipsi)*(BHat(:,ipsi) ** 3))
 
                do L=0,Nxi-1
                   rowIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
@@ -579,7 +579,7 @@ contains
                       ! so impose the kinetic equation here.
 
                       xDotFactor = JHat(itheta,ipsi) * IHat(ipsi) * dBHatdtheta(itheta,ipsi) &
-                           / (two*psiAHat*(BHat(itheta,ipsi) ** 3))
+                           / (two*psiAHatArray(ipsi)*(BHat(itheta,ipsi) ** 3))
                       rowIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
                            + [(ix-1,ix=1,Nx)]*Ntheta*Nxi + L*Ntheta + itheta - 1
 
@@ -682,7 +682,7 @@ contains
           do itheta = 1, Ntheta
              thetaPartOfPsiDot = -oneHalf * sqrt(masses(ispecies)) * delta * JHat(itheta,:) &
                   * IHat(:) * THats(ispecies,:) * dBHatdtheta(itheta,:) &
-                  / (charges(ispecies) * psiAHat * (BHat(itheta,:) ** 3))
+                  / (charges(ispecies) * psiAHatArray(:) * (BHat(itheta,:) ** 3))
              if (upwinding .and. (maxval(thetaPartOfPsiDot)>0) .and. (minval(thetaPartOfPsiDot)<0)) then
                 print *,"Warning: psiDot at itheta =",itheta,&
                      " changes sign with psi, so upwinding is not well-defined."
@@ -1012,8 +1012,8 @@ contains
           do iSpeciesA = 1,numSpecies
              sqrt_m = sqrt(masses(iSpeciesA))
              do iSpeciesB = 1,numSpecies
-                if ( .not.(iSpeciesA/=iSpeciesB .and. preconditioner_species==1) .or. whichMatrix==1 ) then
-
+                if (includeCollisionOperator .and. ((iSpeciesA == iSpeciesB .or. preconditioner_species==0) &
+                     .or. whichMatrix==1)) then
                    ! Build M11
                    M11 = -nu_r * CECD(iSpeciesA, iSpeciesB,:,:)
                    if (iSpeciesA == iSpeciesB) then
@@ -1284,6 +1284,35 @@ contains
     integer :: i, ix, itheta, ipsi, L
     integer :: ispecies
     integer :: rowIndex, colIndex
+    integer :: this_ipsiMin,this_ipsiMax
+
+    print *,ipsiMin
+    print *,ipsiMax
+
+    print *,lowestEnforcedIpsi
+    print *,highestEnforcedIpsi
+    
+    if (ipsiMax < lowestEnforcedIpsi) then
+       ! this processor do not own any indices with sources
+       ! UNTESTED
+       print *,"lol"
+       return
+    end if
+    
+    if (ipsiMin > highestEnforcedIpsi) then
+       ! this processor do not own any indices with sources
+       ! UNTESTED
+       print *,"lol"
+       return 
+    end if
+
+    this_ipsiMin = max(ipsiMin,lowestEnforcedIpsi)
+    this_ipsiMax = min(ipsiMax,highestEnforcedIpsi)
+
+    print *,"Lowest,highest in sources()"   
+    print *,this_ipsiMin
+    print *,this_ipsiMax
+    
 
     allocate(sourceThetaPart(Ntheta))
     select case (sourcePoloidalVariation)
@@ -1303,20 +1332,21 @@ contains
     L = 0
     do ix=1,Nx
        xPartOfSource = (x2(ix)-5/two)*exp(-x2(ix))
-       do ipsi=ipsiMin,ipsiMax
+       do ipsi=this_ipsiMin,this_ipsiMax
           do ispecies = 1,numSpecies
              do itheta=1,Ntheta
                 signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                      / (psiAHat*charges(ispecies))
                 if ((ipsi > 1 .and. ipsi < Npsi) &
                      .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
-                     .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
+                   .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then 
                    ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                    ! so impose the kinetic equation here.
 
                    rowIndex = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
                         + (ix-1)*Ntheta*Nxi + L*Ntheta + itheta - 1
-                   colIndex = Npsi*localMatrixSize + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 1 - 1
+                   colIndex = Npsi*localMatrixSize &
+                        + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 1 - 1
                    call MatSetValueSparse(matrix, rowIndex, colIndex, &
                         sourceThetaPart(itheta) * xPartOfSource, ADD_VALUES, ierr)
                 end if
@@ -1330,20 +1360,22 @@ contains
     L = 0
     do ix=1,Nx
        xPartOfSource = (x2(ix)-3/two)*exp(-x2(ix))
-       do ipsi=ipsiMin,ipsiMax
+       do ipsi=this_ipsiMin,this_ipsiMax
           do ispecies = 1,numSpecies
              do itheta=1,Ntheta
                 signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                      / (psiAHat*charges(ispecies))
                 if ((ipsi > 1 .and. ipsi < Npsi) &
                      .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
-                     .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
+                     .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
                    ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                    ! so impose the kinetic equation here.
 
                    rowIndex = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
                         + (ix-1)*Ntheta*Nxi + L*Ntheta + itheta - 1
-                   colIndex = Npsi*localMatrixSize + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 2 - 1
+                   colIndex = Npsi*localMatrixSize &
+                        + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 2 - 1
+                  
                    call MatSetValueSparse(matrix, rowIndex, colIndex, &
                         sourceThetaPart(itheta) * xPartOfSource, ADD_VALUES, ierr)
                 end if
@@ -1376,10 +1408,11 @@ contains
        allocate(colIndices(Ntheta))
        allocate(xAndThetaPartOfConstraint(Ntheta))
 
-       ! Enforce <n_1> = 0 at each psi
+       ! Enforce <n_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
        do ispecies = 1,numSpecies
-          do ipsi = 1, Npsi
-             rowIndexArray = Npsi*localMatrixSize + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 1 - 1
+          do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+             rowIndexArray = Npsi*localMatrixSize &
+                  + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 1 - 1
              do ix = 1, Nx
                 xAndThetaPartOfConstraint = xWeights(ix)*x2(ix) * thetaWeights / JHat(:,ipsi)
                 colIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
@@ -1390,10 +1423,11 @@ contains
           end do
        end do
 
-       ! Enforce <p_1> = 0 at each psi
+       ! Enforce <p_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
        do ispecies = 1,numSpecies
-          do ipsi = 1, Npsi
-             rowIndexArray = Npsi*localMatrixSize + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 2 - 1
+          do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+             rowIndexArray = Npsi*localMatrixSize &
+                  + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 2 - 1
              do ix = 1, Nx
                 xAndThetaPartOfConstraint = xWeights(ix)*x2(ix)*x2(ix) * thetaWeights / JHat(:,ipsi)
                 colIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &

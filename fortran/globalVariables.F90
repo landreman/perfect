@@ -82,6 +82,7 @@ module globalVariables
   PetscScalar :: delta = 0.0011d+0
   PetscScalar :: omega = 0.0014d+0
   PetscScalar :: psiAHat
+  PetscScalar, dimension(:), allocatable :: psiAHatArray
 
   PetscScalar :: psiMid, psiMin, psiMax
 
@@ -96,9 +97,13 @@ module globalVariables
 
   logical :: setTPrimeToBalanceHeatFlux
 
+  integer :: Nsources = 2
+  
   integer :: sourcePoloidalVariation
 
   logical :: makeLocalApproximation
+
+  logical :: includeCollisionOperator
 
   logical :: includeddpsiTerm
 
@@ -188,9 +193,20 @@ module globalVariables
   ! ********************************************************
   ! ********************************************************
 
+  ! for non-uniform grid
+  integer :: psiGridType
+  character(len=100) :: psiAHatFilename
+
   integer :: psiDerivativeScheme
   integer :: thetaDerivativeScheme
   integer :: xDerivativeScheme=2
+
+  ! control treatment of constraints and sources at boundary
+
+  integer :: NpsiSourcelessRight, NpsiSourcelessLeft
+
+  ! lowest/highest psi indices where constraint are enforced
+  integer :: lowestEnforcedIpsi, highestEnforcedIpsi
 
   PetscScalar :: thresh
 
@@ -298,6 +314,7 @@ contains
 
     deallocate(psi)
     deallocate(theta)
+    deallocate(psiAHatArray)
     deallocate(xUniform)
     deallocate(xiUniform)
     deallocate(JHat)

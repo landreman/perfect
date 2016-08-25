@@ -64,6 +64,10 @@ contains
     xMaxsForScan(1) = xMax
 
     Npsi = computeNpsi(NpsiPerDiameter, psiDiameter, widthExtender)
+    
+    ! Boundaries of region where sources are enforced
+    lowestEnforcedIpsi = 1 + NpsiSourcelessLeft
+    highestEnforcedIpsi = Npsi - NpsiSourcelessRight
 
     numRunsInScan = 1
 
