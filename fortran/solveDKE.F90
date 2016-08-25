@@ -180,7 +180,7 @@ contains
   subroutine solveDKEBoundariesLocal(time1)
 
     PetscErrorCode :: ierr
-    integer :: ix, itheta, ipsi, L, index
+    integer :: ix, itheta, ipsi, L, index, globalIndex
     integer :: ispecies
     KSP :: KSPBoundary
     PC :: PCBoundary
@@ -288,10 +288,10 @@ contains
                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                     / (psiAHat*charges(ispecies))
                if (signOfPsiDot > -thresh) then
-                  do L=0,(Nxi-1)
-                     do ix=1,Nx
-                        index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta
-                        call VecSetValue(rhs, index-1, solnArray(index), INSERT_VALUES, ierr)
+                  do ix=1,Nx
+                     do L=0,(Nxi_for_x(ix)-1)
+                        index = getIndex(ispecies,ix,L,itheta,1)
+                        call VecSetValue(rhs, index, solnArray(index+1), INSERT_VALUES, ierr)
                      end do
                   end do
                end if
@@ -403,10 +403,11 @@ contains
                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                     / (psiAHat*charges(ispecies))
                if (signOfPsiDot < thresh) then
-                  do L=0,(Nxi-1)
-                     do ix=1,Nx
-                        index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta
-                        call VecSetValue(rhs, (ipsi-1)*localMatrixSize + index-1, solnArray(index), INSERT_VALUES, ierr)
+                  do ix=1,Nx
+                     do L=0,(Nxi_for_x(ix)-1)
+                        index = getIndex(ispecies,ix,L,itheta,1)
+                        globalIndex = getIndex(ispecies,ix,L,itheta,ipsi)
+                        call VecSetValue(rhs, globalIndex, solnArray(index+1), INSERT_VALUES, ierr)
                      end do
                   end do
                end if
@@ -473,11 +474,10 @@ contains
     do ispecies=1,numSpecies
       ! Compute the density and 'second' moments (i.e. integrals of 1 and (x^2-3/2) times g) of the solution
       do itheta=1,Ntheta
-        indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+        indices = [(getIndex(ispecies,ix,L,itheta,1), ix=min_x_for_L(L),Nx)]
         ! Removed densityFactors and pressureFactors that are present in moments.F90 (pretty sure they are just normalizations that are not needed here).
-        localDensityPerturbation(itheta) = dot_product(xWeights, x2 * solnArray(indices))
-        localSecondMomentPerturbation(itheta) = dot_product(xWeights, x2*(x2-1.5d0) * solnArray(indices))
+        localDensityPerturbation(itheta) = dot_product(xWeights, x2 * solnArray(indices+1))
+        localSecondMomentPerturbation(itheta) = dot_product(xWeights, x2*(x2-1.5d0) * solnArray(indices+1))
       end do
       ! Take the flux surface averages
       FSALocalDensityPerturbation = dot_product(thetaWeights, localDensityPerturbation/JHat(:,ipsi)) / VPrimeHat(ipsi)
@@ -486,10 +486,9 @@ contains
       !!        "secondmoment=",FSALocalSecondMomentPerturbation
       ! Subtract out the moments to set the flux surface averages to zero
       do itheta=1,Ntheta
-        indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
-        solnArray(indices) = solnArray(indices) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2)
-        solnArray(indices) = solnArray(indices) - FSALocalSecondMomentPerturbation &
+        indices = [(getIndex(ispecies,ix,L,itheta,1), ix=min_x_for_L(L),Nx)]
+        solnArray(indices+1) = solnArray(indices+1) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2)
+        solnArray(indices+1) = solnArray(indices+1) - FSALocalSecondMomentPerturbation &
                                                   *8d0/3d0/sqrt(pi)*(x2-1.5d0)*exp(-x2)
       end do
     end do

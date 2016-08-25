@@ -144,6 +144,7 @@ module globalVariables
   integer :: Nxi
   PetscScalar :: NxiMinFactor, NxiMaxFactor
   integer :: NxiNumRuns
+  integer, dimension(:), allocatable :: Nxi_for_x, min_x_for_L
 
   integer :: NL
   PetscScalar :: NLMinFactor, NLMaxFactor
@@ -173,7 +174,7 @@ module globalVariables
   integer :: NxUniform = 25, NxiUniform = 31
   PetscScalar :: xUniformMax = 3d+0
 
-  integer :: matrixSize, localMatrixSize
+  integer :: matrixSize, localMatrixSize, localDKEMatrixSize
 
   ! ********************************************************
   ! ********************************************************
@@ -202,6 +203,7 @@ module globalVariables
   ! layout is not presently used.
 
   integer :: PETSCPreallocationStrategy = 1
+  integer :: Nxi_for_x_option = 1
 
   ! ********************************************************
   ! ********************************************************
