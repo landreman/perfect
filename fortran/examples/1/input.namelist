@@ -265,6 +265,13 @@
   ! Other numerical parameters:
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+
+  psiGridType = 0
+  ! 0 = Homogenous grid in psi with spacing as specified above
+  ! 1 = inhomogenous grid in psi. Inhomogenous grid obtained by mapping from psi' to psi, where grid is homogenous in psi'. All other inputs quantities intepreted as being given in psi', dpsi/dpsi' specified in file below
+  psiAHatFilename = "psiAHat.h5"
+
+
   psiDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.
   ! Options for psiDerivativeScheme:
@@ -278,11 +285,12 @@
   ! 1 = Uniform grid, centered finite differences, 3-point stencil
   ! 2 = Uniform grid, centered finite differences, 5-point stencil
 
-  xDerivativeScheme = 0
-  ! This parameter should almost always be 0.
+  xDerivativeScheme = 2
+  ! This parameter should almost always be 2.
   ! Options for xDerivativeScheme:
-  ! 0 = Gaussian grid, polynomial spectral collocation
+  ! 0 = Gaussian grid, polynomial spectral collocation, old method for Rosenbluth potentials
   ! 1 = Uniform grid, centered finite differences, 5-point stencil
+  ! 2 = Gaussian grid, polynomial spectral collocation, new better method for Rosenbluth potentials
 
   ! Amount by which to scale the polynomial speed (x) grid:
   ! (Use 1 unless you know what you are doing.)

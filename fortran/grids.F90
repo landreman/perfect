@@ -6,11 +6,14 @@ module grids
   use polynomialDiffMatrices
   use printToStdout
   use xGrid
+  use readHDF5Input
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
-!#include <finclude/petscdmdadef.h>
-
-!#include "PETScVersions.F90"
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
 
   implicit none
 
@@ -30,7 +33,7 @@ module grids
   PetscScalar, dimension(:), allocatable :: LegendresOnXiUniform_m1, LegendresOnXiUniform_m2
   PetscScalar, dimension(:,:), allocatable :: regridPolynomialToUniform
   PetscScalar, dimension(:,:), allocatable :: regridPolynomialToUniformForDiagnostics
-  integer :: ipsiMin, ipsiMax, NxPotentials
+  integer :: ipsiMin, ipsiMax, localNpsi, NxPotentials
   logical :: procThatHandlesLeftBoundary, procThatHandlesRightBoundary
   PetscScalar :: xMaxNotTooSmall
 
@@ -45,11 +48,12 @@ module grids
     logical, intent(in) :: upwinding
     PetscErrorCode :: ierr
     integer :: i, ix, j
-    integer :: localNpsi
     integer :: scheme, ipsiMinInterior, ipsiMaxInterior, localNpsiInterior
     PetscScalar :: temp, temp2
     DM :: myDM
+    character(len=100) :: HDF5Groupname
 
+    
         if (forceOddNtheta) then
        if (mod(Ntheta, 2) == 0) then
           Ntheta = Ntheta + 1
@@ -59,7 +63,7 @@ module grids
     call printInputs()
 
     localMatrixSize = Ntheta * Nxi * Nx * numSpecies
-    matrixSize = Npsi * (localMatrixSize + 2*numSpecies)
+    matrixSize = Npsi * localMatrixSize + (Npsi - NpsiSourcelessRight - NpsiSourcelessLeft) * Nsources * numSpecies
     if (masterProcInSubComm) then
        print *,"[",myCommunicatorIndex,"] The matrix is ",matrixSize,"x",matrixSize," elements."
     end if
@@ -135,6 +139,7 @@ module grids
     psiMax = psiMid + psiDiameter/two + widthExtender + rightBoundaryShift
 
     allocate(psi(Npsi))
+    allocate(psiAHatArray(Npsi))
 
     if (Npsi<5) then ! if Npsi<5 then we can do without psi-derivatives, but the simulation must be local
       
@@ -175,6 +180,30 @@ module grids
       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
       ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
 
+      select case (psiGridType)
+      case(0)
+         ! uniform grid
+         do i=1,Npsi
+            psiAHatArray(i) = psiAHat
+         end do
+      case(1)
+         ! Create groupname to be read
+         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+       
+         ! Open input file
+         call openInputFile(psiAHatFilename,HDF5Groupname)
+
+         call readVariable(psiAHatArray, "psiAHatArray")
+
+         call closeInputFile() 
+       
+      case default
+         print *,"Error! Invalid setting for psiGridType"
+         stop
+
+      end select
+         
+         
       select case (psiDerivativeScheme)
       case (1)
          ! centered finite differences, 3-point stencil
@@ -282,9 +311,9 @@ module grids
     allocate(d2dx2ToUse(Nx,Nx))
 
     select case (xDerivativeScheme)
-    case (0)
+    case (0,2)
        ! Polynomial spectral collocation
-       call makeXGrid(Nx, x, xWeights)
+       call makeXGrid(Nx, x, xWeights, .false.)
        xWeights = xWeights / exp(-x*x)
        x = x * xScaleFactor
        xWeights = xWeights * xScaleFactor
@@ -359,6 +388,7 @@ module grids
   !!$#endif
   !!$       erfs(i) = temp1
   !!$    end do
+
 
     ! For all preconditioner_x values except 5, we do not need to make
     ! d2dx2Preconditioner, because the xDot term only needs the first derivative.

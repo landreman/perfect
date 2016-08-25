@@ -4,8 +4,12 @@ module DKERhs
   use grids
   !use petscksp
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
-!#include <finclude/petscdmdadef.h>
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
 
 !#include "PETScVersions.F90"
 
@@ -31,14 +35,17 @@ contains
     PetscScalar :: stuffToAdd
 
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
+    call VecSet(rhs, zero)
     CHKERRQ(ierr)
     if (procThatHandlesLeftBoundary) then
        ! This process handles the left boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsLeft, ierr)
+       call VecSet(rhsLeft, zero)
     end if
     if (procThatHandlesRightBoundary) then
        ! This process handles the right boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsRight, ierr)
+       call VecSet(rhsRight, zero)
     end if
     CHKERRQ(ierr)
 
@@ -49,7 +56,7 @@ contains
 
                 stuffToAdd = masses(ispecies)*masses(ispecies) * nHats(ispecies,ipsi) * IHat(ipsi) &
                      * JHat(itheta,ipsi) * dBHatdtheta(itheta,ipsi) * x2(ix) * expx2(ix) &
-                     /(2*pi*sqrtpi*charges(ispecies)*sqrtTHats(ispecies,ipsi)*psiAHat &
+                     /(2*pi*sqrtpi*charges(ispecies)*sqrtTHats(ispecies,ipsi)*psiAHatArray(ipsi) &
                      * (BHat(itheta,ipsi) ** 3)) &
                      * (dnHatdpsis(ispecies,ipsi)/nHats(ispecies, ipsi) &
                      + 2*charges(ispecies)/THats(ispecies,ipsi)*omega/Delta*dPhiHatdpsi(ipsi) &
