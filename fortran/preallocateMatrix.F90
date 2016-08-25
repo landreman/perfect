@@ -10,11 +10,12 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   ! finalMatrix = 0 for preconditioner matrix, 1 for final matrix.
 
   use petscmat
-  use globalVariables, only: Nx, Nxi, Ntheta, Npsi, numSpecies, matrixSize, localMatrixSize, &
+  use globalVariables, only: Nx, Nxi, Ntheta, Npsi, numSpecies, Nsources,matrixSize, localMatrixSize, &
        MPIComm, masterProcInSubComm, numProcsInSubComm, PETSCPreallocationStrategy, &
        psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
        preconditioner_species, preconditioner_x, preconditioner_x_min_L, &
-       preconditioner_psi, preconditioner_theta, preconditioner_xi
+       preconditioner_psi, preconditioner_theta, preconditioner_xi, &
+       lowestEnforcedIpsi, highestEnforcedIpsi
 
   implicit none
 
@@ -24,8 +25,9 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   integer :: predictedNNZForEachRowOfTotalMatrix, tempInt
   integer, dimension(:), allocatable :: predictedNNZsForEachRow, predictedNNZsForEachRowDiagonal
   PetscErrorCode :: ierr
-  integer :: predictedNNZPerRow_DKE, i, itheta, ipsi, ispecies, ix, index
+  integer :: predictedNNZPerRow_DKE, i, itheta, ipsi, ispecies, ix, index, isource
   integer :: firstRowThisProcOwns, lastRowThisProcOwns, numLocalRows, thisMatrixSize
+
   MPI_Comm :: MPICommToUse
 
   if (masterProcInSubComm) then
@@ -188,11 +190,13 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
 
   ! The rows for the constraints have more nonzeros:
   if (whichMatrix==0) then
-     do ispecies = 1,numSpecies
-        do ipsi = 1, Npsi
-           index = Npsi*localMatrixSize + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 1
-           predictedNNZsForEachRow(index) = Ntheta*Nx + 1  !+1 for diagonal
-           predictedNNZsForEachRow(index+1) = Ntheta*Nx + 1  !+1 for diagonal
+     do isource = 1,Nsources
+        do ispecies = 1,numSpecies
+           do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+           
+              index = Npsi*localMatrixSize + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isource
+              predictedNNZsForEachRow(index) = Ntheta*Nx + 1  !+1 for diagonal
+           end do
         end do
      end do
   end if

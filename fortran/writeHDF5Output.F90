@@ -193,6 +193,8 @@ contains
       call writeVariable(etaHats,"etaHat",runNum)
       call writeVariable(detaHatdpsis,"d(etaHat)d(psi)",runNum)
       call writeVariable(elapsedTime,"elapsed time (s)",runNum)
+      call writeVariable(NpsiSourcelessLeft,"NpsiSourcelessLeft",runNum)
+      call writeVariable(NpsiSourcelessRight,"NpsiSourcelessRight",runNum)
       call writeVariable(sourcePoloidalVariation,"sourcePoloidalVariation",runNum)
       call writeVariable(particleSourceProfile,"particleSourceProfile",runNum)
       call writeVariable(heatSourceProfile,"heatSourceProfile",runNum)

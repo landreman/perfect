@@ -49,8 +49,8 @@ contains
     if (masterProcInSubComm) then
        ! All computation of moments of the distribution function is then done on the master process:
 
-       allocate(particleSourceProfile(numSpecies,Npsi))
-       allocate(heatSourceProfile(numSpecies,Npsi))
+       allocate(particleSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+       allocate(heatSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
 
        allocate(densityPerturbation(numSpecies,Ntheta,Npsi))
        allocate(flow(numSpecies,Ntheta,Npsi))
@@ -128,9 +128,12 @@ contains
           !       pPerpTermInKThetaFactors = THat ** (5/two)
 
           ! The final elements of the solution vector correspond to the source profiles:
-          do ipsi=1,Npsi
-             particleSourceProfile(ispecies,ipsi) = solnArray(localMatrixSize*Npsi + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 1)
-             heatSourceProfile(ispecies,ipsi) = solnArray(localMatrixSize*Npsi + (ipsi-1)*numSpecies*2 + (ispecies-1)*2 + 2)
+
+          do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
+             particleSourceProfile(ispecies,ipsi - lowestEnforcedIpsi + 1) = solnArray(localMatrixSize*Npsi &
+                  + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 1)
+             heatSourceProfile(ispecies,ipsi - lowestEnforcedIpsi + 1) = solnArray(localMatrixSize*Npsi &
+                  + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 2)
           end do
 
           L = 0

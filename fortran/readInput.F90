@@ -48,7 +48,7 @@ contains
          useIterativeSolver, useIterativeBoundarySolver, &
          psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
          whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy, &
-         psiGridType, psiAHatFilename
+         psiGridType, psiAHatFilename, NpsiSourcelessRight, NpsiSourcelessLeft
 
     namelist / preconditionerOptions / preconditioner_species, &
          preconditioner_x, preconditioner_psi, &
@@ -118,16 +118,20 @@ contains
           print *,"Successfully read parameters from resolutionParameters namelist in ", filename, "."
        end if
 
+       NpsiSourcelessLeft = 0
+       NpsiSourcelessRight = 0
+       
        read(fileUnit, nml=otherNumericalParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
                " but not read data from the otherNumericalParameters namelist in it."
           stop
        end if
+       
        if (masterProc) then
           print *,"Successfully read parameters from otherNumericalParameters namelist in ", filename, "."
        end if
-
+       
        read(fileUnit, nml=preconditionerOptions, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &

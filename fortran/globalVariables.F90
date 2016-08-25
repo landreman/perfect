@@ -92,6 +92,8 @@ module globalVariables
 
   logical :: setTPrimeToBalanceHeatFlux
 
+  integer :: Nsources = 2
+  
   integer :: sourcePoloidalVariation
 
   logical :: makeLocalApproximation
@@ -193,6 +195,13 @@ module globalVariables
   integer :: psiDerivativeScheme
   integer :: thetaDerivativeScheme
   integer :: xDerivativeScheme
+
+  ! control treatment of constraints and sources at boundary
+
+  integer :: NpsiSourcelessRight, NpsiSourcelessLeft
+
+  ! lowest/highest psi indices where constraint are enforced
+  integer :: lowestEnforcedIpsi, highestEnforcedIpsi
 
   PetscScalar :: thresh
 

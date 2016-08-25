@@ -63,7 +63,7 @@ module grids
     call printInputs()
 
     localMatrixSize = Ntheta * Nxi * Nx * numSpecies
-    matrixSize = Npsi * (localMatrixSize + 2*numSpecies)
+    matrixSize = Npsi * localMatrixSize + (Npsi - NpsiSourcelessRight - NpsiSourcelessLeft) * Nsources * numSpecies
     if (masterProcInSubComm) then
        print *,"[",myCommunicatorIndex,"] The matrix is ",matrixSize,"x",matrixSize," elements."
     end if

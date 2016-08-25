@@ -31,14 +31,17 @@ contains
     PetscScalar :: stuffToAdd
 
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
+    call VecSet(rhs, zero)
     CHKERRQ(ierr)
     if (procThatHandlesLeftBoundary) then
        ! This process handles the left boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsLeft, ierr)
+       call VecSet(rhsLeft, zero)
     end if
     if (procThatHandlesRightBoundary) then
        ! This process handles the right boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsRight, ierr)
+       call VecSet(rhsRight, zero)
     end if
     CHKERRQ(ierr)
 
