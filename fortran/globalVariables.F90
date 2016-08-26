@@ -248,8 +248,8 @@ module globalVariables
   ! ********************************************************
 
   PetscScalar, dimension(:), allocatable :: psi, theta
-  PetscScalar, dimension(:,:), allocatable :: BHat, JHat, dBHatdtheta, dBHatdpsi
-  PetscScalar, dimension(:), allocatable :: IHat, RHatArray, dIHatdpsi, dPhiHatdpsi, PhiHat
+  PetscScalar, dimension(:,:), allocatable :: BHat, BPHat, BTHat, JHat, RHat, dBHatdtheta, dBHatdpsi
+  PetscScalar, dimension(:), allocatable :: IHat, dIHatdpsi, dPhiHatdpsi, PhiHat
   PetscScalar, dimension(:,:), allocatable :: THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis
   PetscScalar, dimension(:,:), allocatable :: particleSourceProfile, heatSourceProfile
 !  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation
@@ -325,11 +325,11 @@ contains
     deallocate(xUniform)
     deallocate(xiUniform)
     deallocate(JHat)
+    deallocate(RHat)
     deallocate(BHat)
     deallocate(dBHatdpsi)
     deallocate(dBHatdtheta)
     deallocate(IHat)
-    deallocate(RHatArray)
     deallocate(dIHatdpsi)
     deallocate(PhiHat)
     deallocate(dPhiHatdpsi)
