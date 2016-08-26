@@ -11,8 +11,6 @@ module DKERhs
 #include <petsc/finclude/petsckspdef.h>
 #endif
 
-!#include "PETScVersions.F90"
-
   implicit none
 
   Vec :: rhs, rhsLeft, rhsRight
@@ -35,17 +33,20 @@ contains
     PetscScalar :: stuffToAdd
 
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
-    call VecSet(rhs, zero)
+    CHKERRQ(ierr)
+    call VecSet(rhs, zero,ierr)
     CHKERRQ(ierr)
     if (procThatHandlesLeftBoundary) then
        ! This process handles the left boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsLeft, ierr)
-       call VecSet(rhsLeft, zero)
+       CHKERRQ(ierr)
+       call VecSet(rhsLeft, zero,ierr)
     end if
     if (procThatHandlesRightBoundary) then
        ! This process handles the right boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsRight, ierr)
-       call VecSet(rhsRight, zero)
+       CHKERRQ(ierr)
+       call VecSet(rhsRight, zero, ierr)
     end if
     CHKERRQ(ierr)
 
