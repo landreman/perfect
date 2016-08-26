@@ -41,6 +41,7 @@ contains
     PetscScalar :: speciesFactor
     VecScatter :: VecScatterContext
     PetscScalar, pointer :: solnArray(:)
+    PetscScalar, dimension(:), allocatable :: solnAtL
     integer, dimension(:), allocatable :: indices
     integer :: ix, itheta, ipsi, L, index
     integer :: ispecies
@@ -161,20 +162,19 @@ contains
           L = 0
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
-                densityPerturbation(ispecies,itheta,ipsi) = dot_product(xWeights, densityIntegralWeights * solnArray(indices)) &
+                densityPerturbation(ispecies,itheta,ipsi) = dot_product(xWeights, densityIntegralWeights * solnArray(indices+1)) &
                      * densityFactors(ipsi)
 
-                pressurePerturbation(ispecies,itheta,ipsi) = dot_product(xWeights, pressureIntegralWeights * solnArray(indices)) &
+                pressurePerturbation(ispecies,itheta,ipsi) = dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1)) &
                      * pressureFactors(ipsi)
 
                 particleFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = (8/three) * particleFluxFactors(ipsi) &
-                     * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices))
+                     * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1))
 
                 heatFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = (8/three) * heatFluxFactors(ipsi) &
-                     * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+                     * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
 
                 magnetizationPerturbation(ispecies,itheta,ipsi) &
                      = pressurePerturbation(ispecies,itheta,ipsi) &
@@ -183,7 +183,7 @@ contains
                 
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
                 !                  (4/three) * pPerpTermInKThetaFactors(ipsi) &
-                !                  * dot_product(xWeights, pressureIntegralWeights * solnArray(indices))
+                !                  * dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1))
 
              end do
           end do
@@ -191,14 +191,13 @@ contains
           L = 1
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
-                flow(ispecies,itheta,ipsi) = dot_product(xWeights, flowIntegralWeights * solnArray(indices)) &
+                flow(ispecies,itheta,ipsi) = dot_product(xWeights, flowIntegralWeights * solnArray(indices+1)) &
                      * flowFactors(ipsi)
 
                 momentumFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = ((16d+0)/15) * momentumFluxFactors(ipsi) &
-                     * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                     * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
 
              end do
           end do
@@ -206,16 +205,15 @@ contains
           L = 2
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
                 particleFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = particleFluxBeforeThetaIntegral(ispecies,itheta,ipsi) &
                      + (four/15) * particleFluxFactors(ipsi) &
-                     * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices))
+                     * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1))
 
                 heatFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = heatFluxBeforeThetaIntegral(ispecies,itheta,ipsi) &
                      + (four/15) * heatFluxFactors(ipsi) &
-                     * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+                     * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
 
                 magnetizationPerturbation(ispecies,itheta,ipsi) &
                      = magnetizationPerturbation(ispecies,itheta,ipsi) &
@@ -226,7 +224,7 @@ contains
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
                 !                  pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) &
                 !                  - ((4d+0)/15) * pPerpTermInKThetaFactors(ipsi) &
-                !                  * dot_product(xWeights, pressureIntegralWeights * solnArray(indices))
+                !                  * dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1))
 
              end do
           end do
@@ -234,12 +232,11 @@ contains
           L = 3
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
                 momentumFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = momentumFluxBeforeThetaIntegral(ispecies,itheta,ipsi) &
                      + (four/35) * momentumFluxFactors(ipsi) &
-                     * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                     * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
 
              end do
           end do
@@ -369,6 +366,7 @@ contains
 
        LegendresOnXiUniform_m1 = 1
        deltaFOutboard = 0
+       allocate(solnAtL(Nx))
        do L = 0,(Nxi-1)
           ! Recursively evaluate Legendre polynomials on a uniform grid in xi.
           ! The results will be used to map the distribution function from the modal discretization
@@ -385,12 +383,13 @@ contains
          
          do ispecies=1,numSpecies
             do ipsi = 1,Npsi
-               indices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                    + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + thetaIndexForOutboard
+               indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
+               solnAtL(1:min_x_for_L(L)-1) = 0d0
+               solnAtL(min_x_for_L(L):Nx) = solnArray(indices+1)
 
                do ixi = 1,NxiUniform
                   deltaFOutboard(ispecies,ipsi,:,ixi) = deltaFOutboard(ispecies,ipsi,:,ixi) + &
-                       LegendresOnXiUniform(ixi) * matmul(regridPolynomialToUniformForDiagnostics, solnArray(indices))
+                       LegendresOnXiUniform(ixi) * matmul(regridPolynomialToUniformForDiagnostics, solnAtL)
                end do
             end do
          end do
@@ -409,6 +408,7 @@ contains
          end do
       end do
 
+      deallocate(solnAtL)
       deallocate(indices)
 
       call VecRestoreArrayF90(solnOnProc0, solnArray, ierr)
@@ -456,6 +456,7 @@ contains
     !! Vec :: solnOnProc0
     !! VecScatter :: VecScatterContext
     PetscScalar, pointer :: solnArray(:)
+    PetscScalar, dimension(:), allocatable :: solnAtL
     integer, dimension(:), allocatable :: indices
     integer :: ix, itheta, L, index
     integer :: ispecies
@@ -545,64 +546,60 @@ contains
 
           L = 0
           do itheta=1,Ntheta
-             indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+             indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
-             this_densityPerturbation(ispecies,itheta) = dot_product(xWeights, densityIntegralWeights * solnArray(indices)) &
+             this_densityPerturbation(ispecies,itheta) = dot_product(xWeights, densityIntegralWeights * solnArray(indices+1)) &
                   * densityFactors
 
-             this_pressurePerturbation(ispecies,itheta) = dot_product(xWeights, pressureIntegralWeights * solnArray(indices)) &
+             this_pressurePerturbation(ispecies,itheta) = dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1)) &
                   * pressureFactors
 
              this_particleFluxBeforeThetaIntegral(ispecies,itheta) = (8/three) * particleFluxFactors &
-                  * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices))
+                  * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1))
 
              this_heatFluxBeforeThetaIntegral(ispecies,itheta) = (8/three) * heatFluxFactors &
-                  * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+                  * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
 
              this_magnetizationPerturbation(ispecies,itheta) &
-		  = dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices)) &
+		  = dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1)) &
                   * 2*pi*(4/three)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
           L = 1
           do itheta=1,Ntheta
-             indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+             indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
-             this_flow(ispecies,itheta) = dot_product(xWeights, flowIntegralWeights * solnArray(indices)) &
+             this_flow(ispecies,itheta) = dot_product(xWeights, flowIntegralWeights * solnArray(indices+1)) &
                   * flowFactors
 
              this_momentumFluxBeforeThetaIntegral(ispecies,itheta) = ((16d+0)/15) * momentumFluxFactors &
-                  * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                  * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
           end do
 
           L = 2
           do itheta=1,Ntheta
-             indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+             indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
              this_particleFluxBeforeThetaIntegral(ispecies,itheta) = this_particleFluxBeforeThetaIntegral(ispecies,itheta) &
                   + (four/15) * particleFluxFactors &
-                  * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices))
+                  * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1))
 
              this_heatFluxBeforeThetaIntegral(ispecies,itheta) = this_heatFluxBeforeThetaIntegral(ispecies,itheta) &
                   + (four/15) * heatFluxFactors &
-                  * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+                  * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
 
              this_magnetizationPerturbation(ispecies,itheta) &
-                  = this_magnetizationPerturbation(ispecies,itheta) - dot_product(xWeights, x*x*x*x * solnArray(indices)) &
+                  = this_magnetizationPerturbation(ispecies,itheta) - dot_product(xWeights, x*x*x*x * solnArray(indices+1)) &
                   * 2*pi*(four/15)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
           L = 3
           do itheta=1,Ntheta
-             indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+             indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
              this_momentumFluxBeforeThetaIntegral(ispecies,itheta) = this_momentumFluxBeforeThetaIntegral(ispecies,itheta) &
                   + (four/35) * momentumFluxFactors &
-                  * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                  * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
           end do
 
           do itheta=1,Ntheta
@@ -687,6 +684,7 @@ contains
 
        LegendresOnXiUniform_m1 = 1
        this_deltaFOutboard = 0
+       allocate(solnAtL(Nx))
        do L = 0,(Nxi-1)
           ! Recursively evaluate Legendre polynomials on a uniform grid in xi.
           ! The results will be used to map the distribution function from the modal discretization
@@ -702,12 +700,13 @@ contains
          end if
          
          do ispecies=1,numSpecies
-            indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                 + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + thetaIndexForOutboard
+            indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
+            solnAtL(1:min_x_for_L(L)-1) = 0d0
+            solnAtL(min_x_for_L(L):Nx) = solnArray(indices+1)
 
             do ixi = 1,NxiUniform
                this_deltaFOutboard(ispecies,:,ixi) = this_deltaFOutboard(ispecies,:,ixi) + &
-                    LegendresOnXiUniform(ixi) * matmul(regridPolynomialToUniformForDiagnostics, solnArray(indices))
+                    LegendresOnXiUniform(ixi) * matmul(regridPolynomialToUniformForDiagnostics, solnAtL)
             end do
          end do
       end do
@@ -723,6 +722,7 @@ contains
          end do
       end do
 
+      deallocate(solnAtL)
       deallocate(indices)
 
       !! call VecRestoreArrayF90(solnOnProc0, solnArray, ierr)

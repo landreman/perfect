@@ -49,8 +49,8 @@ contains
     namelist / otherNumericalParameters / thresh, xScaleFactor, &
          useIterativeSolver, useIterativeBoundarySolver, &
          psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
-         whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy, &
-         psiGridType, psiAHatFilename, NpsiSourcelessRight, NpsiSourcelessLeft
+         psiGridType, psiAHatFilename, NpsiSourcelessRight, NpsiSourcelessLeft, &
+         whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy, Nxi_for_x_option
 
     namelist / preconditionerOptions / preconditioner_species, &
          preconditioner_x, preconditioner_psi, &

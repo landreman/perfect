@@ -11,6 +11,7 @@ module DKEMatrices
   
   use globalVariables
   use grids
+  use indices
   use petscksp
   use petscdmda
   use sparsify
@@ -206,7 +207,7 @@ contains
     PetscScalar, dimension(:), allocatable :: thetaPartOfMirrorTerm
     PetscScalar, dimension(:,:), allocatable :: thetaPartMatrix
     PetscScalar, dimension(:,:), allocatable :: thetaPartOfStreamingTerm
-    integer, dimension(:), allocatable :: rowIndices, colIndices
+    integer, dimension(:), allocatable :: localRowIndices, localColIndices, globalRowIndices, globalColIndices
     integer :: i, ix, itheta, ipsi, L
     integer :: ispecies
     integer :: rowIndexArray(1)
@@ -222,8 +223,10 @@ contains
     allocate(thetaPartMatrix(Ntheta,Ntheta))
     allocate(thetaPartOfStreamingTerm(Ntheta,Ntheta))
 
-    allocate(rowIndices(Ntheta))
-    allocate(colIndices(Ntheta))
+    allocate(localRowIndices(Ntheta))
+    allocate(localColIndices(Ntheta))
+    allocate(globalRowIndices(Ntheta))
+    allocate(globalColIndices(Ntheta))
     do ispecies = 1,numSpecies
        do ipsi = ipsiMin, ipsiMax
           thetaPartOfMirrorTerm = -oneHalf * sqrtTHats(ispecies,ipsi) &
@@ -234,11 +237,13 @@ contains
                   / BHat(itheta,ipsi)*ddthetaToUse(itheta,:)
           end do
           do ix=1,Nx
-             do L=0,Nxi-1
-                rowIndices = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + [(i, i=1,Ntheta)] - 1
-                if (L < Nxi-1) then
+             do L=0,Nxi_for_x(ix)-1
+                localRowIndices = [(getIndex(ispecies,ix,L,itheta,1), itheta=1,Ntheta)]
+                globalRowIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
+                if (L < Nxi_for_x(ix)-1) then
                    ! Super-diagonal in L:
-                   colIndices = rowIndices + Ntheta
+                   localColIndices = [(getIndex(ispecies,ix,L+1,itheta,1), itheta=1,Ntheta)]
+                   globalColIndices = [(getIndex(ispecies,ix,L+1,itheta,ipsi), itheta=1,Ntheta)]
 
                    ! Add streaming term:
                    thetaPartMatrix = x(ix)*(L+1)/(two*L+3)*thetaPartOfStreamingTerm
@@ -253,37 +258,38 @@ contains
                    thetaPartMatrix = transpose(thetaPartMatrix)
                    ! Put values in matrix, 
                    if (ipsi==1) then
-                      call MatSetValuesSparse(leftMatrix, Ntheta, rowIndices, Ntheta, colIndices, &
+                      call MatSetValuesSparse(leftMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
                          if (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2) then
-                            call MatSetValuesSparse(matrix, 1, rowIndices(itheta), Ntheta, colIndices, &
+                            call MatSetValuesSparse(matrix, 1, globalRowIndices(itheta), Ntheta, globalColIndices, &
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
                       end do
                    elseif (ipsi==Npsi) then
-                      call MatSetValuesSparse(rightMatrix, Ntheta, rowIndices, Ntheta, colIndices, &
+                      call MatSetValuesSparse(rightMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
                          if (signOfPsiDot > thresh .or. rightBoundaryScheme == 2) then
-                            rowIndexArray = (ipsi-1)*localMatrixSize+rowIndices(itheta)
+                            rowIndexArray = globalRowIndices(itheta)
                             call MatSetValuesSparse(matrix, 1, rowIndexArray, &
-                                 Ntheta, (ipsi-1)*localMatrixSize+colIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
+                                 Ntheta, globalColIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
                       end do
                    else
-                      call MatSetValuesSparse(matrix, Ntheta, (ipsi-1)*localMatrixSize+rowIndices, Ntheta, &
-                           (ipsi-1)*localMatrixSize+colIndices, &
+                      call MatSetValuesSparse(matrix, Ntheta, globalRowIndices, Ntheta, &
+                           globalColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                    end if
                 end if
                 if (L>0) then
                    ! Sub-diagonal in L:
-                   colIndices = rowIndices - Ntheta
+                   localColIndices = [(getIndex(ispecies,ix,L-1,itheta,1), itheta=1,Ntheta)]
+                   globalColIndices = [(getIndex(ispecies,ix,L-1,itheta,ipsi), itheta=1,Ntheta)]
 
                    ! Streaming term
                    thetaPartMatrix = x(ix)*L/(two*L-1)*thetaPartOfStreamingTerm
@@ -298,39 +304,41 @@ contains
 
                    ! Put values in matrix, noting that Petsc uses a transposed format relative to Fortran
                    if (ipsi==1) then
-                      call MatSetValuesSparse(leftMatrix, Ntheta, rowIndices, Ntheta, colIndices, &
+                      call MatSetValuesSparse(leftMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi)&
                               / (psiAHat*charges(ispecies))
                          if (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2) then
-                            call MatSetValuesSparse(matrix, 1, rowIndices(itheta), Ntheta, colIndices, &
+                            call MatSetValuesSparse(matrix, 1, globalRowIndices(itheta), Ntheta, globalColIndices, &
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
                       end do
                    elseif (ipsi==Npsi) then
-                      call MatSetValuesSparse(rightMatrix, Ntheta, rowIndices, Ntheta, colIndices, &
+                      call MatSetValuesSparse(rightMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
                          if (signOfPsiDot > thresh .or. rightBoundaryScheme == 2) then
-                            rowIndexArray = (ipsi-1)*localMatrixSize+rowIndices(itheta)
+                            rowIndexArray = globalRowIndices(itheta)
                             call MatSetValuesSparse(matrix, 1, rowIndexArray, &
-                                 Ntheta, (ipsi-1)*localMatrixSize+colIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
+                                 Ntheta, globalColIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
                       end do
                    else
-                      call MatSetValuesSparse(matrix, Ntheta,  (ipsi-1)*localMatrixSize+rowIndices, &
-                           Ntheta, (ipsi-1)*localMatrixSize+colIndices, thetaPartMatrix, ADD_VALUES, ierr)
+                      call MatSetValuesSparse(matrix, Ntheta, globalRowIndices, &
+                           Ntheta, globalColIndices, thetaPartMatrix, ADD_VALUES, ierr)
                    end if
                 end if
              end do
           end do
        end do
     end do
-    deallocate(rowIndices)
-    deallocate(colIndices)
+    deallocate(localRowIndices)
+    deallocate(localColIndices)
+    deallocate(globalRowIndices)
+    deallocate(globalColIndices)
     deallocate(thetaPartOfStreamingTerm)
     deallocate(thetaPartMatrix)
     deallocate(thetaPartOfMirrorTerm)
@@ -402,9 +410,8 @@ contains
                     + delta*x2(ix)*THats(ispecies,ipsi)/charges(ispecies)*dIHatdpsi(ipsi)) &
                     * JHat(:,ipsi)*dBHatdtheta(:,ipsi) / (two*psiAHatArray(ipsi)*(BHat(:,ipsi) ** 3))
 
-               do L=0,Nxi-1
-                  rowIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                       + (ix-1)*Nxi*Ntheta  + L*Ntheta + [(i, i=1,Ntheta)] - 1
+               do L=0,Nxi_for_x(ix)-1
+                  rowIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
 
                   ! Term that is diagonal in L:
                   colIndices = rowIndices
@@ -440,9 +447,11 @@ contains
 
                   ! End of term that is diagonal in L.
 
-                  if ((L < Nxi-2) .and. (whichMatrix==1 .or. preconditioner_xi==0)) then
+                  if ((L < Nxi_for_x(ix)-2) .and. (whichMatrix==1 .or. preconditioner_xi==0)) then
                      ! Super-super-diagonal in L:
-                     colIndices = rowIndices + Ntheta*2
+                     !colIndices = rowIndices + Ntheta*2
+                     colIndices = [(getIndex(ispecies,ix,L+2,itheta,ipsi), itheta=1,Ntheta)]
+
 
                      ! Add streaming term:
                      thetaPartMatrix = x2(ix)*(L+2)*(L+1)/((two*L+5)*(two*L+3)) &
@@ -478,7 +487,8 @@ contains
 
                   if ((L>1) .and. (whichMatrix==1 .or. preconditioner_xi==0)) then
                      ! Sub-sub-diagonal in L:
-                     colIndices = rowIndices - Ntheta*2
+                     !colIndices = rowIndices - Ntheta*2
+                     colIndices = [(getIndex(ispecies,ix,L-2,itheta,ipsi), itheta=1,Ntheta)]
 
                      ! Streaming term
                      thetaPartMatrix = x2(ix)*L*(L-1)/((two*L-3)*(two*L-1)) &
@@ -535,10 +545,10 @@ contains
 
     integer, intent(in) :: whichMatrix
     PetscErrorCode :: ierr
-    integer, dimension(:), allocatable :: rowIndices, colIndices
+    integer :: rowIndex, colIndex
     PetscScalar, dimension(:,:), allocatable :: xPartOfXDot
     PetscScalar, dimension(:), allocatable :: diagonalOfXDot
-    integer :: ix, itheta, ipsi, L
+    integer :: ix, itheta, ipsi, L, ell, ix_row, ix_col
     integer :: ispecies
     integer :: keepXCoupling
     PetscScalar :: xDotFactor, LFactor
@@ -553,8 +563,6 @@ contains
 
     if (.not. makeLocalApproximation) then
 
-       allocate(rowIndices(Nx))
-       allocate(colIndices(Nx))
        allocate(xPartOfXDot(Nx,Nx))
        allocate(diagonalOfXDot(Nx))
        do ipsi=ipsiMin,ipsiMax
@@ -569,7 +577,8 @@ contains
                    xPartOfXDot(ix,:) = x(ix)*(delta*dTHatdpsis(ispecies,ipsi)*x2(ix)/(two*charges(ispecies))&
                         + omega*dPhiHatdpsi(ipsi)) * sqrt(masses(ispecies)) * ddxToUse(ix,:)
                 end do
-                xPartOfXDot = transpose(xPartOfXDot)  ! PETSc uses the opposite convention of Fortran
+                ! This next line with the transpose was commented out since I switched from MatSetValuesSparse to MatSetValueSparse:
+                !xPartOfXDot = transpose(xPartOfXDot)  ! PETSc uses the opposite convention of Fortran
                 do itheta=1,Ntheta
                    signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                         / (psiAHat*charges(ispecies))
@@ -580,30 +589,46 @@ contains
 
                       xDotFactor = JHat(itheta,ipsi) * IHat(ipsi) * dBHatdtheta(itheta,ipsi) &
                            / (two*psiAHatArray(ipsi)*(BHat(itheta,ipsi) ** 3))
-                      rowIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                           + [(ix-1,ix=1,Nx)]*Ntheta*Nxi + L*Ntheta + itheta - 1
 
                       ! Term that is diagonal in L:
-                      colIndices = rowIndices
                       LFactor = two*(3*L*L+3*L-2)/((two*L+3)*(2*L-1))*xDotFactor
-                      call MatSetValuesSparse(matrix, Nx, rowIndices, Nx, colIndices, &
-                           LFactor*xPartOfXDot, ADD_VALUES, ierr)
+                      ell = L
+                      do ix_col=min_x_for_L(ell),Nx
+                         colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
+                         do ix_row=min_x_for_L(L),Nx
+                            rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
+                            call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                                 LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
+                         end do
+                      end do
 
                       if (whichMatrix==1 .or. preconditioner_xi==0) then
                          ! Term that is super-super-diagonal in L:
                          if (L<(Nxi-2)) then
-                            colIndices = rowIndices + 2*Ntheta
+                            ell = L+2
                             LFactor = (L+1)*(L+2)/((two*L+5)*(2*L+3))*xDotFactor
-                            call MatSetValuesSparse(matrix, Nx, rowIndices, Nx, colIndices, &
-                                 LFactor*xPartOfXDot, ADD_VALUES, ierr)
+                            do ix_col=min_x_for_L(ell),Nx
+                               colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
+                               do ix_row=min_x_for_L(L),Nx
+                                  rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
+                                  call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                                       LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
+                               end do
+                            end do
                          end if
 
                          ! Term that is sub-sub-diagonal in L:
                          if (L>1) then
-                            colIndices = rowIndices - 2*Ntheta
+                            ell = L-2
                             LFactor = L*(L-1)/((two*L-3)*(2*L-1))*xDotFactor
-                            call MatSetValuesSparse(matrix, Nx, rowIndices, Nx, colIndices, &
-                                 LFactor*xPartOfXDot, ADD_VALUES, ierr)
+                            do ix_col=min_x_for_L(ell),Nx
+                               colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
+                               do ix_row=min_x_for_L(L),Nx                            
+                                  rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
+                                  call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                                       LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
+                               end do
+                            end do
                          end if
                       end if
 
@@ -612,8 +637,6 @@ contains
              end do
           end do
        end do
-       deallocate(rowIndices)
-       deallocate(colIndices)
        deallocate(xPartOfXDot)
        deallocate(diagonalOfXDot)
     end if
@@ -716,25 +739,22 @@ contains
                    everythingButLInPsiDot(:,ipsi) = x2(ix) * thetaPartOfPsiDot(ipsi-1+ipsiMinForThisTheta) &
                         * localddpsiToUse(ipsi,:)
                 end do
-                do L=0,(Nxi-1)
+                do L=0,(Nxi_for_x(ix)-1)
                    !rowIndices = [(ipsi-1, ipsi=ipsiMinInterior,ipsiMaxInterior)]*localMatrixSize &
-                   rowIndices = [(ipsi-1, ipsi=ipsiMinForThisTheta,ipsiMaxForThisTheta)]*localMatrixSize &
-                        + (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Ntheta*Nxi + L*Ntheta + itheta - 1
+                   rowIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), ipsi=ipsiMinForThisTheta,ipsiMaxForThisTheta)]
 
                    ! Term that is diagonal in L:
                    ell = L
-                   colIndices = [(ipsi-1, ipsi=1,Npsi)]*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                        + (ix-1)*Ntheta*Nxi + ell*Ntheta + itheta - 1
+                   colIndices = [(getIndex(ispecies,ix,ell,itheta,ipsi), ipsi=1,Npsi)]
                    LFactor = two*(3*L*L+3*L-2)/((two*L+3)*(2*L-1))
                    call MatSetValuesSparse(matrix, NpsiToUse, rowIndices, Npsi, colIndices, &
                         LFactor*everythingButLInPsiDot, ADD_VALUES, ierr)
 
                    if (whichMatrix==1 .or. preconditioner_xi==0) then
                       ! Term that is super-super-diagonal in L:
-                      if (L<(Nxi-2)) then
+                      if (L<(Nxi_for_x(ix)-2)) then
                          ell = L+2
-                         colIndices = [(ipsi-1, ipsi=1,Npsi)]*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                              + (ix-1)*Ntheta*Nxi + ell*Ntheta + itheta - 1
+                         colIndices = [(getIndex(ispecies,ix,ell,itheta,ipsi), ipsi=1,Npsi)]
                          LFactor = (L+1)*(L+2)/((two*L+5)*(2*L+3))
                          call MatSetValuesSparse(matrix, NpsiToUse, rowIndices, Npsi, colIndices, &
                               LFactor*everythingButLInPsiDot, ADD_VALUES, ierr)
@@ -743,8 +763,7 @@ contains
                       ! Term that is sub-sub-diagonal in L:
                       if (L>1) then
                          ell = L-2
-                         colIndices = [(ipsi-1, ipsi=1,Npsi)]*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                              + (ix-1)*Ntheta*Nxi + ell*Ntheta + itheta - 1
+                         colIndices = [(getIndex(ispecies,ix,ell,itheta,ipsi), ipsi=1,Npsi)]
                          LFactor = L*(L-1)/((two*L-3)*(2*L-1))
                          call MatSetValuesSparse(matrix, NpsiToUse, rowIndices, Npsi, colIndices, &
                               LFactor*everythingButLInPsiDot, ADD_VALUES, ierr)
@@ -787,7 +806,8 @@ contains
     PetscScalar :: temp, temp1, temp2, speciesFactor, speciesFactor2
     PetscScalar :: signOfPsiDot
     PetscScalar :: T32, sqrt_m
-    integer :: i, j, ix, itheta, ipsi, L
+    integer :: i, j, ix, ix_row, ix_col, itheta, ipsi, L
+    integer :: rowIndex, colIndex
     integer :: iSpeciesA, iSpeciesB
     integer :: scheme
     integer :: LAPACKInfo
@@ -1132,8 +1152,9 @@ contains
 
                    end if
 
-                   ! PETSc and Fortran use row-major vs column-major:
-                   KWithoutThetaPart = transpose(KWithoutThetaPart)
+                   !! Don't need any more, now using MatSetValueSparse below
+                   !! ! PETSc and Fortran use row-major vs column-major:
+                   !! KWithoutThetaPart = transpose(KWithoutThetaPart)
 
                    do itheta=1,Ntheta
                       signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
@@ -1144,34 +1165,40 @@ contains
                          ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                          ! so impose the kinetic equation here.
 
-                         rowIndices = (ipsi-1)*localMatrixSize + (iSpeciesA-1)*Nx*Nxi*Ntheta &
-                              + [(i, i=0,Nx-1)]*Nxi*Ntheta + L*Ntheta + itheta - 1
-                         colIndices = (ipsi-1)*localMatrixSize + (iSpeciesB-1)*Nx*Nxi*Ntheta &
-                              + [(i, i=0,Nx-1)]*Nxi*Ntheta + L*Ntheta + itheta - 1
-                         call MatSetValuesSparse(matrix, Nx, rowIndices, Nx, colIndices, &
-                              KWithoutThetaPart, ADD_VALUES, ierr)
+                         do ix_row=min_x_for_L(L),Nx
+                           rowIndex = getIndex(iSpeciesA,ix_row,L,itheta,ipsi)
+                           do ix_col=min_x_for_L(L),Nx
+                             colIndex = getIndex(iSpeciesB,ix_col,L,itheta,ipsi)
+                             call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                                  KWithoutThetaPart(ix_row,ix_col), ADD_VALUES, ierr)
+                           end do
+                         end do
                       end if
                    end do
 
                    if (procThatHandlesLeftBoundary .and. ipsi==1) then
                       do itheta=1,Ntheta
-                         rowIndices = (iSpeciesA-1)*Nx*Nxi*Ntheta + [(i, i=0,Nx-1)]*Nxi*Ntheta &
-                              + L*Ntheta + itheta - 1
-                         colIndices = (iSpeciesB-1)*Nx*Nxi*Ntheta + [(i, i=0,Nx-1)]*Nxi*Ntheta &
-                              + L*Ntheta + itheta - 1
-                         call MatSetValuesSparse(leftMatrix, Nx, rowIndices, Nx, colIndices, &
-                              KWithoutThetaPart, ADD_VALUES, ierr)
+                         do ix_row=min_x_for_L(L),Nx
+                           rowIndex = getIndex(iSpeciesA,ix_row,L,itheta,1)
+                           do ix_col=min_x_for_L(L),Nx
+                             colIndex = getIndex(iSpeciesB,ix_col,L,itheta,1)
+                             call MatSetValueSparse(leftMatrix, rowIndex, colIndex, &
+                                  KWithoutThetaPart(ix_row,ix_col), ADD_VALUES, ierr)
+                           end do
+                         end do
                       end do
                    end if
 
                    if (procThatHandlesRightBoundary .and. ipsi==Npsi) then
                       do itheta=1,Ntheta
-                         rowIndices = (iSpeciesA-1)*Nx*Nxi*Ntheta + [(i, i=0,Nx-1)]*Nxi*Ntheta &
-                              + L*Ntheta + itheta - 1
-                         colIndices = (iSpeciesB-1)*Nx*Nxi*Ntheta + [(i, i=0,Nx-1)]*Nxi*Ntheta &
-                              + L*Ntheta + itheta - 1
-                         call MatSetValuesSparse(rightMatrix, Nx, rowIndices, Nx, colIndices, &
-                              KWithoutThetaPart, ADD_VALUES, ierr)
+                         do ix_row=min_x_for_L(L),Nx
+                           rowIndex = getIndex(iSpeciesA,ix_row,L,itheta,1)
+                           do ix_col=min_x_for_L(L),Nx
+                             colIndex = getIndex(iSpeciesB,ix_col,L,itheta,1)
+                             call MatSetValueSparse(rightMatrix, rowIndex, colIndex, &
+                                  KWithoutThetaPart(ix_row,ix_col), ADD_VALUES, ierr)
+                           end do
+                         end do
                       end do
                    end if
 
@@ -1242,8 +1269,8 @@ contains
                   /(psiAHat*charges(ispecies))
              if (signOfPsiDot > -thresh) then
                 do ix=1,Nx
-                   do L=0,(Nxi-1)
-                      index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta+L*Ntheta+itheta - 1
+                   do L=0,(Nxi_for_x(ix)-1)
+                      index = getIndex(ispecies,ix,L,itheta,1)
                       call MatSetValueSparse(matrix, index, index, one, ADD_VALUES, ierr)
                    end do
                 end do
@@ -1259,9 +1286,8 @@ contains
                   / (psiAHat*charges(ispecies))
              if (signOfPsiDot < thresh) then
                 do ix=1,Nx
-                   do L=0,(Nxi-1)
-                      index = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                           + (ix-1)*Nxi*Ntheta+L*Ntheta+itheta - 1
+                   do L=0,(Nxi_for_x(ix)-1)
+                      index = getIndex(ispecies,ix,L,itheta,ipsi)
                       call MatSetValueSparse(matrix, index, index, one, ADD_VALUES, ierr)
                    end do
                 end do
@@ -1331,8 +1357,7 @@ contains
                    ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                    ! so impose the kinetic equation here.
 
-                   rowIndex = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                        + (ix-1)*Ntheta*Nxi + L*Ntheta + itheta - 1
+                   rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
                    colIndex = Npsi*localMatrixSize &
                         + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 1 - 1
                    call MatSetValueSparse(matrix, rowIndex, colIndex, &
@@ -1359,11 +1384,9 @@ contains
                    ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                    ! so impose the kinetic equation here.
 
-                   rowIndex = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                        + (ix-1)*Ntheta*Nxi + L*Ntheta + itheta - 1
+                   rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
                    colIndex = Npsi*localMatrixSize &
                         + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 2 - 1
-                  
                    call MatSetValueSparse(matrix, rowIndex, colIndex, &
                         sourceThetaPart(itheta) * xPartOfSource, ADD_VALUES, ierr)
                 end if
@@ -1403,8 +1426,7 @@ contains
                   + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 1 - 1
              do ix = 1, Nx
                 xAndThetaPartOfConstraint = xWeights(ix)*x2(ix) * thetaWeights / JHat(:,ipsi)
-                colIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + (ix-1)*Nxi*Ntheta + L*Ntheta + [(itheta,itheta=1,Ntheta)]-1
+                colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
                 call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, xAndThetaPartOfConstraint,&
                      ADD_VALUES, ierr)
              end do
@@ -1418,8 +1440,7 @@ contains
                   + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 2 - 1
              do ix = 1, Nx
                 xAndThetaPartOfConstraint = xWeights(ix)*x2(ix)*x2(ix) * thetaWeights / JHat(:,ipsi)
-                colIndices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + (ix-1)*Nxi*Ntheta + L*Ntheta + [(itheta,itheta=1,Ntheta)]-1
+                colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
                 call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, xAndThetaPartOfConstraint,&
                      ADD_VALUES, ierr)
              end do
