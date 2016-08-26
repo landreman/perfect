@@ -199,7 +199,7 @@ contains
     PetscLogDouble, intent(inout) :: time1
     PetscLogDouble :: time2
 #if (PETSC_VERSION_MAJOR > 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR > 6))
-    PetscViewerAndFormat :: vf
+    PetscViewerAndFormat :: vf1, vf2
 #endif
 
     if (procThatHandlesLeftBoundary) then
@@ -234,8 +234,8 @@ contains
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
 #else
-             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf, ierr)
-             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf, PetscViewerAndFormatDestroy, ierr)
+             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf1, ierr)
+             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf1, PetscViewerAndFormatDestroy, ierr)
 #endif
           else
              ! Direct solver:
@@ -322,6 +322,7 @@ contains
        call VecDestroy(rhsLeft, ierr)
     end if
 
+
     if (procThatHandlesRightBoundary) then
        ! This process handles the right boundary, so solve the local kinetic equation there.
 
@@ -354,8 +355,8 @@ contains
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
 #else
-             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf, ierr)
-             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf, PetscViewerAndFormatDestroy, ierr)
+             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf2, ierr)
+             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf2, PetscViewerAndFormatDestroy, ierr)
 #endif
           else
              ! Direct solver:
@@ -495,7 +496,7 @@ contains
     do ispecies=1,numSpecies
       ! Compute the density and 'second' moments (i.e. integrals of 1 and (x^2-3/2) times g) of the solution
       do itheta=1,Ntheta
-        indices = [(getIndex(ispecies,ix,L,itheta,1), ix=min_x_for_L(L),Nx)]
+        indices = [(getIndex(ispecies,ix,L,itheta,1), ix=1,Nx)] ! This line assumes min_x_for_L(0)=1.
         ! Removed densityFactors and pressureFactors that are present in moments.F90 (pretty sure they are just normalizations that are not needed here).
         localDensityPerturbation(itheta) = dot_product(xWeights, x2 * solnArray(indices+1))
         localSecondMomentPerturbation(itheta) = dot_product(xWeights, x2*(x2-1.5d0) * solnArray(indices+1))
@@ -507,10 +508,10 @@ contains
       !!        "secondmoment=",FSALocalSecondMomentPerturbation
       ! Subtract out the moments to set the flux surface averages to zero
       do itheta=1,Ntheta
-        indices = [(getIndex(ispecies,ix,L,itheta,1), ix=min_x_for_L(L),Nx)]
-        solnArray(indices+1) = solnArray(indices+1) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2)
-        solnArray(indices+1) = solnArray(indices+1) - FSALocalSecondMomentPerturbation &
-                                                  *8d0/3d0/sqrt(pi)*(x2-1.5d0)*exp(-x2)
+         indices = [(getIndex(ispecies,ix,L,itheta,1), ix=1,Nx)]! This line assumes min_x_for_L(0)=1.
+         solnArray(indices+1) = solnArray(indices+1) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2(ix))
+         solnArray(indices+1) = solnArray(indices+1) - FSALocalSecondMomentPerturbation &
+              *8d0/3d0/sqrt(pi)*(x2-1.5d0)*exp(-x2)
       end do
     end do
 

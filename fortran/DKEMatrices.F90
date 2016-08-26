@@ -449,7 +449,9 @@ contains
 
                   if ((L < Nxi_for_x(ix)-2) .and. (whichMatrix==1 .or. preconditioner_xi==0)) then
                      ! Super-super-diagonal in L:
-                     colIndices = rowIndices + Ntheta*2
+                     !colIndices = rowIndices + Ntheta*2
+                     colIndices = [(getIndex(ispecies,ix,L+2,itheta,ipsi), itheta=1,Ntheta)]
+
 
                      ! Add streaming term:
                      thetaPartMatrix = x2(ix)*(L+2)*(L+1)/((two*L+5)*(two*L+3)) &
@@ -485,7 +487,8 @@ contains
 
                   if ((L>1) .and. (whichMatrix==1 .or. preconditioner_xi==0)) then
                      ! Sub-sub-diagonal in L:
-                     colIndices = rowIndices - Ntheta*2
+                     !colIndices = rowIndices - Ntheta*2
+                     colIndices = [(getIndex(ispecies,ix,L-2,itheta,ipsi), itheta=1,Ntheta)]
 
                      ! Streaming term
                      thetaPartMatrix = x2(ix)*L*(L-1)/((two*L-3)*(two*L-1)) &
@@ -542,10 +545,10 @@ contains
 
     integer, intent(in) :: whichMatrix
     PetscErrorCode :: ierr
-    integer, dimension(:), allocatable :: rowIndices, colIndices
+    integer :: rowIndex, colIndex
     PetscScalar, dimension(:,:), allocatable :: xPartOfXDot
     PetscScalar, dimension(:), allocatable :: diagonalOfXDot
-    integer :: ix, itheta, ipsi, L
+    integer :: ix, itheta, ipsi, L, ell, ix_row, ix_col
     integer :: ispecies
     integer :: keepXCoupling
     PetscScalar :: xDotFactor, LFactor
@@ -560,12 +563,10 @@ contains
 
     if (.not. makeLocalApproximation) then
 
-       allocate(rowIndices(Nx))
-       allocate(colIndices(Nx))
        allocate(xPartOfXDot(Nx,Nx))
        allocate(diagonalOfXDot(Nx))
        do ipsi=ipsiMin,ipsiMax
-          do L=0,(Nxi_for_x(ix)-1)
+          do L=0,(Nxi-1)
              if (whichMatrix==0 .and. L >= preconditioner_x_min_L) then
                 ddxToUse = ddxPreconditioner
              else
@@ -576,7 +577,8 @@ contains
                    xPartOfXDot(ix,:) = x(ix)*(delta*dTHatdpsis(ispecies,ipsi)*x2(ix)/(two*charges(ispecies))&
                         + omega*dPhiHatdpsi(ipsi)) * sqrt(masses(ispecies)) * ddxToUse(ix,:)
                 end do
-                xPartOfXDot = transpose(xPartOfXDot)  ! PETSc uses the opposite convention of Fortran
+                ! This next line with the transpose was commented out since I switched from MatSetValuesSparse to MatSetValueSparse:
+                !xPartOfXDot = transpose(xPartOfXDot)  ! PETSc uses the opposite convention of Fortran
                 do itheta=1,Ntheta
                    signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                         / (psiAHat*charges(ispecies))
@@ -587,29 +589,46 @@ contains
 
                       xDotFactor = JHat(itheta,ipsi) * IHat(ipsi) * dBHatdtheta(itheta,ipsi) &
                            / (two*psiAHat*(BHat(itheta,ipsi) ** 3))
-                      rowIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=1,Nx)]
 
                       ! Term that is diagonal in L:
-                      colIndices = rowIndices
                       LFactor = two*(3*L*L+3*L-2)/((two*L+3)*(2*L-1))*xDotFactor
-                      call MatSetValuesSparse(matrix, Nx, rowIndices, Nx, colIndices, &
-                           LFactor*xPartOfXDot, ADD_VALUES, ierr)
+                      ell = L
+                      do ix_col=min_x_for_L(ell),Nx
+                         colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
+                         do ix_row=min_x_for_L(L),Nx
+                            rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
+                            call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                                 LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
+                         end do
+                      end do
 
                       if (whichMatrix==1 .or. preconditioner_xi==0) then
                          ! Term that is super-super-diagonal in L:
-                         if (L<(Nxi_for_x(ix)-2)) then
-                            colIndices = rowIndices + 2*Ntheta
+                         if (L<(Nxi-2)) then
+                            ell = L+2
                             LFactor = (L+1)*(L+2)/((two*L+5)*(2*L+3))*xDotFactor
-                            call MatSetValuesSparse(matrix, Nx, rowIndices, Nx, colIndices, &
-                                 LFactor*xPartOfXDot, ADD_VALUES, ierr)
+                            do ix_col=min_x_for_L(ell),Nx
+                               colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
+                               do ix_row=min_x_for_L(L),Nx
+                                  rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
+                                  call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                                       LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
+                               end do
+                            end do
                          end if
 
                          ! Term that is sub-sub-diagonal in L:
                          if (L>1) then
-                            colIndices = rowIndices - 2*Ntheta
+                            ell = L-2
                             LFactor = L*(L-1)/((two*L-3)*(2*L-1))*xDotFactor
-                            call MatSetValuesSparse(matrix, Nx, rowIndices, Nx, colIndices, &
-                                 LFactor*xPartOfXDot, ADD_VALUES, ierr)
+                            do ix_col=min_x_for_L(ell),Nx
+                               colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
+                               do ix_row=min_x_for_L(L),Nx                            
+                                  rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
+                                  call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                                       LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
+                               end do
+                            end do
                          end if
                       end if
 
@@ -618,8 +637,6 @@ contains
              end do
           end do
        end do
-       deallocate(rowIndices)
-       deallocate(colIndices)
        deallocate(xPartOfXDot)
        deallocate(diagonalOfXDot)
     end if

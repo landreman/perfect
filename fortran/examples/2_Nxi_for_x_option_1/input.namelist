@@ -134,8 +134,8 @@
   ! 0 = Sources are constant in theta
   ! 1 = Sources vary as (1 + cos(theta))
 
-  makeLocalApproximation = .true.
-!  makeLocalApproximation = .false.
+!  makeLocalApproximation = .true.
+  makeLocalApproximation = .false.
   ! If makeLocalApproximation is set to true, the conventional radially local
   ! kinetic equation is solved instead of the radially global kinetic equation.
 
@@ -148,8 +148,8 @@
   !Options for leftBoundaryScheme and rightBoundaryScheme:
   ! 0: Impose f_1 = 0
   ! 1: Impose the local solution for f_1.
-  leftBoundaryScheme = 1
-  rightBoundaryScheme = 1
+  leftBoundaryScheme = 2
+  rightBoundaryScheme = 2
 /
 
 &resolutionParameters
@@ -243,7 +243,7 @@
   ! Tolerance used to define convergence of the Krylov solver.
   ! This parameter does not affect memory requirements but it does affect the
   ! time required for solution somewhat.
-  solverTolerance = 1d-5
+  solverTolerance = 1d-6
   solverToleranceMinFactor = 1d-1
   solverToleranceMaxFactor = 1
   solverToleranceNumRuns = 0
@@ -324,7 +324,7 @@
   ! Otherwise, matrices are not distributed across processors, so the PETSc built-in serial sparse
   ! direct solver is used to factor the preconditioner.
 
-  Nxi_for_x_option=0
+  Nxi_for_x_option=1
 /
 
 &preconditionerOptions

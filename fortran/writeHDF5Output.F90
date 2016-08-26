@@ -632,9 +632,9 @@ contains
     end if
     call MPI_Bcast(dimensions,2*size(dimensions),MPI_INTEGER,0,MPIComm,ierror) ! 2*size(dimensions) since there seems to be no MPI datatype for long integers in Fortran, while the HSIZE_T kind is a long integer
     call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
-    call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+    call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_INTEGER, dspaceID, dsetID, HDF5Error)
     if (masterProcInSubComm) then
-      call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+      call h5dwrite_f(dsetID, H5T_NATIVE_INTEGER, var, dimensions, HDF5Error)
     end if
     call h5dclose_f(dsetID, HDF5Error)
     call h5sclose_f(dspaceID, HDF5Error)
