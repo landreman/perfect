@@ -46,7 +46,7 @@ contains
     integer :: ispecies
     integer :: ixi
 
-    PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,BP,BT,signBP
+    PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,signBP
     
 
     ! First, send the entire solution vector to the master process:
@@ -63,8 +63,6 @@ contains
 
        allocate(particleSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
        allocate(heatSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
-
-       allocate(RHatArray(Ntheta))
        
        allocate(densityPerturbation(numSpecies,Ntheta,Npsi))
        allocate(flow(numSpecies,Ntheta,Npsi))
@@ -124,7 +122,7 @@ contains
        allocate(momentumFluxIntegralWeights(Nx))
        allocate(heatFluxIntegralWeights(Nx))
 
-       ! to calculate poloidal and toroidal flow differentials
+       ! to calculate poloidal and toroidal flow and flow differentials
        allocate(tempPTflow(Npsi))
        
        densityIntegralWeights = x*x
@@ -262,42 +260,34 @@ contains
                * dBHatdtheta / (BHat * BHat * BHat)
 
           do itheta=1,Ntheta
-             !NOTE: assumes magnetic geometry psi independent
-             ! Note: needs Miller geometry. New geometries need to implement BP
-             ! RHat could be obtained from IHat and BT, but is also a sensible output
-             ! from any geometry routine.
-             ! NOTE: BP from Miller appears to be always positive. Sign of JHat gives direction.
-             
-             BP = BPoloidal(theta(itheta))
-             if (JHat(itheta,0)*BP < 0) then
-                BP=-BP
-             end if
-             BT = sqrt(BHat(itheta,1)**2 - BP**2)
-             RHatArray(itheta)= RHat(theta(itheta))
              magnetizationFlowPerturbation(ispecies,itheta,:) = matmul(ddpsiLeft, magnetizationPerturbation(ispecies,itheta,:))
 	     toroidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:) 
              poloidalFlow(ispecies,itheta,:) = magnetizationFlowPerturbation(ispecies,itheta,:)
              
-   toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
-                  *(-1)*BP**2 * RHatArray(itheta) * toroidalFlow(ispecies,itheta,:)
-   poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
-                  *BP*IHat(:)* poloidalFlow(ispecies,itheta,:) 
+             toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
+                  *(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
+                  * (-BPHat(itheta,:)**2) * RHat(itheta,:) * toroidalFlow(ispecies,itheta,:)
+             poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
+                  *(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
+                  *BPHat(itheta,:)*IHat(:)* poloidalFlow(ispecies,itheta,:) 
 
-             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) + (BT/BHat(itheta,:))*flow(ispecies,itheta,:)
-             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) + (BP/BHat(itheta,:))*flow(ispecies,itheta,:)
+             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
+                  + (BTHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
+             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
+                  + (BPHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
 
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -omega/(Delta*psiAHat)*dPhiHatdpsi &
-                  *densityPerturbation(ispecies,itheta,:)*(BP**2*RHatArray(itheta))/(BHat(itheta,:)**2)
+                  *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)**2*RHat(itheta,:))/(BHat(itheta,:)**2)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +omega/(Delta*psiAHat)*dPhiHatdpsi &
-                  *densityPerturbation(ispecies,itheta,:)*(BP*IHat)/(BHat(itheta,:)**2)
+                  *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)*IHat)/(BHat(itheta,:)**2)
 
              !since we are not using that variable for anything else
              tempPTflow = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
                   + (2*omega*charges(ispecies)/(Delta*THats(ispecies,:)))*dPhiHatdpsi
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
-                  -THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BP**2*RHatArray(itheta)
+                  -THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BPHat(itheta,:)**2*RHat(itheta,:)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
-                  +THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BP*IHat(:)
+                  +THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BPHat(itheta,:)*IHat(:)
           end do
           
    !!$         if (psiDerivativeScheme == 0) then
@@ -471,7 +461,6 @@ contains
     integer :: ispecies
     integer :: ixi
     
-    PetscScalar :: BP,BT
     PetscScalar :: this_tempPTflow
     ! should only be called by one processor
     !! ! First, send the entire solution vector to the master process:
@@ -625,40 +614,35 @@ contains
           end do
 
           do itheta=1,Ntheta
-             !NOTE: assumes magnetic geometry psi independent
-             BP = BPoloidal(theta(itheta))
-             BT = sqrt(BHat(itheta,1)**2 - BP**2)
-             RHatArray(itheta)= RHat(theta(itheta))
-             !assume zero g-derivative due to local at the boundary
-             !could also use local derivative value somehow.
              this_magnetizationFlowPerturbation(ispecies,itheta) = 0
 	     this_toroidalFlow(ispecies,itheta) = this_magnetizationFlowPerturbation(ispecies,itheta) 
              this_poloidalFlow(ispecies,itheta) = this_magnetizationFlowPerturbation(ispecies,itheta)
              
              this_toroidalFlow(ispecies,itheta) &
                   = (Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,ipsi)**2*nHats(ispecies,ipsi)) &
-                  *BP**2 * RHatArray(itheta) * this_toroidalFlow(ispecies,itheta)
+                  *BPHat(itheta,ipsi)**2 * RHat(itheta,ipsi) * this_toroidalFlow(ispecies,itheta)
              this_poloidalFlow(ispecies,itheta) &
                   = (Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,ipsi)**2*nHats(ispecies,ipsi))&
-                  *(-1)*BP*IHat(ipsi)* this_poloidalFlow(ispecies,itheta) 
+                  *(-1)*BPHat(itheta,ipsi)*IHat(ipsi)* this_poloidalFlow(ispecies,itheta) 
 
              this_toroidalFlow(ispecies,itheta) = this_toroidalFlow(ispecies,itheta) &
-                  + (BT/BHat(itheta,ipsi))*this_flow(ispecies,itheta)
+                  + (BTHat(itheta,ipsi)/BHat(itheta,ipsi))*this_flow(ispecies,itheta)
              this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) &
-                  + (BP/BHat(itheta,ipsi))*this_flow(ispecies,itheta)
+                  + (BPHat(itheta,ipsi)/BHat(itheta,ipsi))*this_flow(ispecies,itheta)
 
              this_toroidalFlow(ispecies,itheta) = this_toroidalFlow(ispecies,itheta) -omega/(Delta*psiAHat)*dPhiHatdpsi(ipsi) &
-                  *this_densityPerturbation(ispecies,itheta)*(BP**2*RHatArray(itheta))/(BHat(itheta,ipsi)**2)
+                  *this_densityPerturbation(ispecies,itheta)*(BPHat(itheta,ipsi)**2*RHat(itheta,ipsi))/(BHat(itheta,ipsi)**2)
              this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) +omega/(Delta*psiAHat)*dPhiHatdpsi(ipsi) &
-                  *this_densityPerturbation(ispecies,itheta)*(BP*IHat(ipsi))/(BHat(itheta,ipsi)**2)
+                  *this_densityPerturbation(ispecies,itheta)*(BPHat(itheta,ipsi)*IHat(ipsi))/(BHat(itheta,ipsi)**2)
 
              !since we are not using that variable for anything else
              this_tempPTflow = dnHatdpsis(ispecies,ipsi)/nHats(ispecies,ipsi) +dTHatdpsis(ispecies,ipsi)/THats(ispecies,ipsi) &
                   + (2*omega*charges(ispecies)/(Delta*THats(ispecies,ipsi)))*dPhiHatdpsi(ipsi)
              this_toroidalFlow(ispecies,itheta) = this_toroidalFlow(ispecies,itheta) &
-                  -THats(ispecies,ipsi)/(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_tempPTflow*BP**2*RHatArray(itheta)
-             this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) &
-                  +THats(ispecies,ipsi)/(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_tempPTflow*BP*IHat(ipsi)
+                  -THats(ispecies,ipsi)/(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_tempPTflow*BPHat(itheta,ipsi)**2 &
+                  *RHat(itheta,ipsi)
+             this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) +THats(ispecies,ipsi)&
+                  /(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_tempPTflow*BPHat(itheta,ipsi)*IHat(ipsi)
           end do
 
           
