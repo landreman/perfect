@@ -345,6 +345,11 @@
   ! Otherwise, matrices are not distributed across processors, so the PETSc built-in serial sparse
   ! direct solver is used to factor the preconditioner.
 
+  Nxi_for_x_option = 1
+  ! Option to control truncation of xi-grid
+  ! 0 = use full grid
+  ! 1 = increase Nxi with x
+
 /
 
 &preconditionerOptions

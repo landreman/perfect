@@ -265,13 +265,6 @@
   ! Other numerical parameters:
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  
-  psiGridType = 0
-  ! 0 = Homogenous grid in psi with spacing as specified above
-  ! 1 = inhomogenous grid in psi. Inhomogenous grid obtained by mapping from psi' to psi, where grid is homogenous in psi'. All other inputs quantities intepreted as being given in psi', dpsi/dpsi' specified in file below
-  psiAHatFilename = "psiAHat.h5"
-
-
   psiDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.
   ! Options for psiDerivativeScheme:
@@ -331,7 +324,7 @@
   ! Otherwise, matrices are not distributed across processors, so the PETSc built-in serial sparse
   ! direct solver is used to factor the preconditioner.
 
-  Nxi_for_x_option=0
+  Nxi_for_x_option=1
 /
 
 &preconditionerOptions

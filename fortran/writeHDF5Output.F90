@@ -167,6 +167,8 @@ contains
       call writeVariable(numSpecies,"Nspecies",runNum)
       call writeVariable(Ntheta,"Ntheta",runNum)
       call writeVariable(Nxi,"Nxi",runNum)
+      call writeIntegerVariable_1d(Nxi_for_x,"Nxi_for_x",runNum)
+      call writeIntegerVariable_1d(min_x_for_L,"min_x_for_L",runNum)
       call writeVariable(NL,"NL",runNum)
       call writeVariable(Nx,"Nx",runNum)
       call writeVariable(NxPotentialsPerVth,"NxPotentialsPerVth",runNum)
@@ -623,6 +625,48 @@ contains
 #endif
 
   end subroutine writeVariable_5d
+
+  subroutine writeIntegerVariable_1d(var, varname, i)
+
+    integer, dimension(:), allocatable, intent(in) :: var
+    integer, intent(in) :: i
+    character(len=*), intent(in) :: varname
+    integer(HID_T) :: dspaceID, dsetID
+    integer(HSIZE_T), dimension(1) :: dimensions
+    integer :: ierror
+
+#ifdef HAVE_PARALLEL_HDF5
+    if (masterProcInSubComm) then
+      if (.not. allocated(var)) then
+        print *,"Tried to write unallocated variable:",varname
+        stop
+      end if
+      dimensions = shape(var)
+    end if
+    call MPI_Bcast(dimensions,2*size(dimensions),MPI_INTEGER,0,MPIComm,ierror) ! 2*size(dimensions) since there seems to be no MPI datatype for long integers in Fortran, while the HSIZE_T kind is a long integer
+    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_INTEGER, dspaceID, dsetID, HDF5Error)
+    if (masterProcInSubComm) then
+      call h5dwrite_f(dsetID, H5T_NATIVE_INTEGER, var, dimensions, HDF5Error)
+    end if
+    call h5dclose_f(dsetID, HDF5Error)
+    call h5sclose_f(dspaceID, HDF5Error)
+#else
+    if (masterProcInSubComm) then
+      if (.not. allocated(var)) then
+        print *,"Tried to write unallocated variable:",varname
+        stop
+      end if
+      dimensions = shape(var)
+      call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+      call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+      call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+      call h5dclose_f(dsetID, HDF5Error)
+      call h5sclose_f(dspaceID, HDF5Error)
+    end if
+#endif
+
+  end subroutine writeIntegerVariable_1d
 
   subroutine writeIntegerNoGroup(var,varname)
     ! Only writes on masterProc

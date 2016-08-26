@@ -1,6 +1,7 @@
 module grids
 
   use globalVariables
+  use indices
   use petscksp
   use petscdmda
   use polynomialDiffMatrices
@@ -54,19 +55,13 @@ module grids
     character(len=100) :: HDF5Groupname
 
     
-        if (forceOddNtheta) then
+    if (forceOddNtheta) then
        if (mod(Ntheta, 2) == 0) then
           Ntheta = Ntheta + 1
        end if
     end if
 
     call printInputs()
-
-    localMatrixSize = Ntheta * Nxi * Nx * numSpecies
-    matrixSize = Npsi * localMatrixSize + (Npsi - NpsiSourcelessRight - NpsiSourcelessLeft) * Nsources * numSpecies
-    if (masterProcInSubComm) then
-       print *,"[",myCommunicatorIndex,"] The matrix is ",matrixSize,"x",matrixSize," elements."
-    end if
 
     didItConverge = integerToRepresentTrue
 
@@ -423,6 +418,59 @@ module grids
        stop
     end select
 
+    ! *******************************************************************************
+    ! Set the number of Legendre modes used for each value of x
+    ! *******************************************************************************
+
+    allocate(Nxi_for_x(Nx))
+
+    if (masterProc) print *,"Nxi_for_x_option:",Nxi_for_x_option
+    select case (Nxi_for_x_option)
+    case (0)
+      Nxi_for_x = Nxi
+    case (1)
+      do j=1,Nx
+        ! Linear ramp from 0.1*Nxi to Nxi as x increases from 0 to 2:
+        temp = Nxi*(0.1 + 0.9*x(j)/2)
+        ! Always keep at least 3 Legendre modes, for the sake of diagnostics.
+        ! Always keep at least NL Legendre modes, to simplify the collision operator loops.
+        ! Above the threshold value of x, keep exactly Nxi Legendre modes.
+        Nxi_for_x(j) = max(3,NL,min(int(temp),Nxi))
+      end do
+    case (2)
+      do j=1,Nx
+        ! Quadratic ramp from 0.1*Nxi to Nxi as x increases from 0 to 2:
+        temp = Nxi*(0.1 + 0.9*( (x(j)/2)**2 ) )
+        ! Always keep at least 3 Legendre modes, for the sake of diagnostics.
+        ! Always keep at least NL Legendre modes, to simplify the collision operator loops.
+        ! Above the threshold value of x, keep exactly Nxi Legendre modes.
+        Nxi_for_x(j) = max(3,NL,min(int(temp),Nxi))
+      end do
+    case default
+      if (masterProc) print *,"Error! Invalid Nxi_for_x_option"
+      stop
+    end select
+
+    call calculate_first_index_for_x()
+
+    allocate(min_x_for_L(0:(Nxi-1)))
+    min_x_for_L=1
+    do j=1,Nx
+      min_x_for_L(Nxi_for_x(j):) = j+1
+    end do
+
+    if (masterProc) then
+      print *,"x:",x
+      print *,"Nxi for each x:",Nxi_for_x
+      print *,"min_x_for_L:",min_x_for_L
+    end if
+
+    localDKEMatrixSize = Ntheta * sum(Nxi_for_x) 
+    localMatrixSize = localDKEMatrixSize * numSpecies
+    matrixSize = Npsi * localMatrixSize + (Npsi - NpsiSourcelessRight - NpsiSourcelessLeft) * Nsources * numSpecies
+    if (masterProcInSubComm) then
+       print *,"[",myCommunicatorIndex,"] The matrix is ",matrixSize,"x",matrixSize," elements."
+    end if
 
     ! *******************************************************************************
     ! Create some uniform grids in x and xi used for diagnostics

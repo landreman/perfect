@@ -68,12 +68,10 @@ contains
 
                 L = 0
                 LFactor = 4/three
-                index = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta - 1
+                index = getIndex(ispecies,ix,L,itheta,ipsi)
                 !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
                 call VecSetValue(rhs, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta &
-                     + L*Ntheta + itheta - 1
+                index = getIndex(ispecies,ix,L,itheta,1)
                 if (ipsi==1) then
                    ! This is the left boundary
                    !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
@@ -86,12 +84,10 @@ contains
 
                 L = 2
                 LFactor = 2/three
-                index = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta - 1
+                index = getIndex(ispecies,ix,L,itheta,ipsi)
                 !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
                 call VecSetValue(rhs, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta &
-                     + L*Ntheta + itheta - 1
+                index = getIndex(ispecies,ix,L,itheta,1)
                 if (ipsi==1) then
                    ! This is the left boundary
                    !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
