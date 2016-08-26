@@ -222,8 +222,6 @@ contains
        do itheta=1,Ntheta
           BTHat(itheta,ipsi) = IHat(ipsi)/RHat(itheta,ipsi)
           BPHat(itheta,ipsi) = sqrt(BHat(itheta,ipsi)**2 - BTHat(itheta,ipsi)**2)
-          print *,"sqrt BP"
-          print *,BPHat(itheta,ipsi)
           if (JHat(itheta,ipsi)*BPHat(itheta,ipsi) < 0) then
              ! BPHat above and from Miller is always positive
              ! sign of JHat sets sign of BPHat if
@@ -262,8 +260,6 @@ contains
        ! Miller geometry
        do i=1,size(thetas)
           bs(i) = sqrt(Miller_BPoloidal(thetas(i))**2 + 1./((Miller_RHat(thetas(i)))**2))
-          print *,"Miller BP"
-          print *,Miller_BPoloidal(thetas(i))
        end do
     case (2)
        ! Circular concentric flux surfaces with Boozer poloidal angle
