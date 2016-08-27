@@ -23,4 +23,4 @@ module load petsc-real
 export PATH=${PATH}:${HDF5_HOME}/bin
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${HDF5_HOME}/lib
 
-srun ../../perfect -ksp_view
+srun ../../perfect -ksp_view -mat_mumps_icntl_4 2

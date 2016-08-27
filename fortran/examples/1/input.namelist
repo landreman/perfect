@@ -331,6 +331,7 @@
   ! Otherwise, matrices are not distributed across processors, so the PETSc built-in serial sparse
   ! direct solver is used to factor the preconditioner.
 
+  Nxi_for_x_option=0
 /
 
 &preconditionerOptions
