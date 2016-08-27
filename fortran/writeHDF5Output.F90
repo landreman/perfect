@@ -150,6 +150,10 @@ contains
 
     integer, intent(in) :: runNum
     integer :: temp
+    ! to make the writeVariable interface recognize slices of our source array
+    PetscScalar, dimension(:,:), allocatable :: genericSourceProfile
+    allocate(genericSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+    
     if ((psiGridType == 1) .and. masterProcInSubComm) then
        call convertToPsiNDerivatives()
        print *,"Converted output derivatives to psiN"
@@ -215,14 +219,23 @@ contains
          select case(temp)
          case(1)
             ! particle source
-            call writeVariable(sourceProfile(temp,:,:),"particleSourceProfile",runNum)
+            if (masterProcInSubComm) then
+               genericSourceProfile = sourceProfile(temp,:,:)
+            end if
+            call writeVariable(genericSourceProfile,"particleSourceProfile",runNum)
          case(2)
             ! heat source
-            call writeVariable(sourceProfile(temp,:,:),"heatSourceProfile",runNum)
+            if (masterProcInSubComm) then
+               genericSourceProfile = sourceProfile(temp,:,:)
+            end if
+            call writeVariable(genericSourceProfile,"heatSourceProfile",runNum)
          case default
             ! as of now unspecified source
-            print *,"Writing source with isource > 2. This should not happen!"
-            call writeVariable(sourceProfile(temp,:,:),"unknownSourceProfile",runNum)
+            if (masterProcInSubComm) then
+               print *,"Writing source with isource > 2. This should not happen!"
+               genericSourceProfile = sourceProfile(temp,:,:)
+            end if
+            call writeVariable(genericSourceProfile,"unknownSourceProfile",runNum)
          end select
       end do
       call writeVariable(VPrimeHat,"VPrimeHat",runNum)

@@ -1347,7 +1347,7 @@ contains
     L = 0
     do ix=1,Nx
        do isources = 1,Nsources             
-          select case(isource)
+          select case(isources)
           case(1)
              ! Add particle source:
              ! S = f_M * (x^2 - 5/2)  (Provides particles but no heat or momentum)
@@ -1400,7 +1400,7 @@ contains
     
     integer, dimension(:), allocatable :: rowIndices, colIndices
     integer :: ix, itheta, ipsi, L
-    integer :: ispecies
+    integer :: ispecies, isources
     integer :: rowIndexArray(1)
 
     if (procThatHandlesRightBoundary) then
@@ -1412,7 +1412,7 @@ contains
        allocate(constraintXPart(Nx))
 
        do isources = 1,Nsources
-          select case(isource)
+          select case(isources)
           case(1)
              ! Enforce <n_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
              constraintXPart = xWeights*x2
@@ -1422,6 +1422,7 @@ contains
           case default
              print *,"Error! Invalid source. Nsources > not implemented"
              stop
+          end select
              do ispecies = 1,numSpecies
                 do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
                    rowIndexArray = Npsi*localMatrixSize &
@@ -1434,7 +1435,8 @@ contains
                    end do
                 end do
              end do
-
+          end do
+             
        deallocate(colIndices)
        deallocate(constraintXAndThetaPart)
        deallocate(constraintXPart)
