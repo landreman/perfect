@@ -25,7 +25,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   integer :: predictedNNZForEachRowOfTotalMatrix, tempInt
   integer, dimension(:), allocatable :: predictedNNZsForEachRow, predictedNNZsForEachRowDiagonal
   PetscErrorCode :: ierr
-  integer :: predictedNNZPerRow_DKE, i, itheta, ipsi, ispecies, ix, index, isource
+  integer :: predictedNNZPerRow_DKE, i, itheta, ipsi, ispecies, ix, index, isources
   integer :: firstRowThisProcOwns, lastRowThisProcOwns, numLocalRows, thisMatrixSize
 
   MPI_Comm :: MPICommToUse
@@ -190,11 +190,11 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
 
   ! The rows for the constraints have more nonzeros:
   if (whichMatrix==0) then
-     do isource = 1,Nsources
+     do isources = 1,Nsources
         do ispecies = 1,numSpecies
            do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
            
-              index = Npsi*localMatrixSize + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isource
+              index = Npsi*localMatrixSize + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources
               predictedNNZsForEachRow(index) = Ntheta*Nx + 1  !+1 for diagonal
            end do
         end do

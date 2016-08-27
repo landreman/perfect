@@ -253,11 +253,11 @@ module globalVariables
   PetscScalar, dimension(:,:), allocatable :: BHat, BPHat, BTHat, JHat, RHat, dBHatdtheta, dBHatdpsi
   PetscScalar, dimension(:), allocatable :: IHat, dIHatdpsi, dPhiHatdpsi, PhiHat
   PetscScalar, dimension(:,:), allocatable :: THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis
-  PetscScalar, dimension(:,:), allocatable :: particleSourceProfile, heatSourceProfile
+  PetscScalar, dimension(:,:,:), allocatable :: sourceProfile
 !  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation
   PetscScalar, dimension(:), allocatable :: VPrimeHat, FSABHat2, typicalB
   PetscScalar, dimension(:,:,:), allocatable :: flow, kPar, densityPerturbation, pressurePerturbation
-  PetscScalar, dimension(:,:,:), allocatable :: magnetizationFlowPerturbation,magnetizationPerturbation
+  PetscScalar, dimension(:,:,:), allocatable :: pPerpTermInVp,pPerpTermInVpBeforePsiDerivative
   PetscScalar, dimension(:,:,:), allocatable :: toroidalFlow,poloidalFlow
   PetscScalar, dimension(:,:,:), allocatable :: particleFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:,:), allocatable :: momentumFluxBeforeThetaIntegral
@@ -356,9 +356,7 @@ contains
     deallocate(sqrtTHats)
 
     if (masterProcInSubComm) then
-       deallocate(particleSourceProfile)
-       deallocate(heatSourceProfile)
-
+       deallocate(sourceProfile)
        deallocate(densityPerturbation)
        deallocate(flow)
        deallocate(toroidalFlow)

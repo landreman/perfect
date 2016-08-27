@@ -40,7 +40,7 @@ contains
     ! *********************************************************
 
     ! PetscErrorCode :: ierr
-    PetscScalar, dimension(:), allocatable :: xAndThetaPartOfConstraint
+    ! PetscScalar, dimension(:), allocatable :: xAndThetaPartOfConstraint
     PetscScalar :: sqrtMass
     PetscScalar :: signOfPsiDot
     logical :: makeLocalApproximationOriginal
@@ -1307,9 +1307,11 @@ contains
 
     PetscErrorCode :: ierr
     PetscScalar, dimension(:), allocatable :: sourceThetaPart
+    PetscScalar, dimension(:), allocatable :: sourceXPart
+  
     PetscScalar :: signOfPsiDot, xPartOfSource
     integer :: i, ix, itheta, ipsi, L
-    integer :: ispecies
+    integer :: ispecies, isources
     integer :: rowIndex, colIndex
     integer :: this_ipsiMin,this_ipsiMax
 
@@ -1341,61 +1343,48 @@ contains
        stop
     end select
 
-    ! Add particle source:
-    ! S = f_M * (x^2 - 5/2)  (Provides particles but no heat or momentum)
+    allocate(sourceXPart(Nx))
     L = 0
     do ix=1,Nx
-       xPartOfSource = (x2(ix)-5/two)*exp(-x2(ix))
-       do ipsi=this_ipsiMin,this_ipsiMax
-          do ispecies = 1,numSpecies
-             do itheta=1,Ntheta
-                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                     / (psiAHat*charges(ispecies))
-                if ((ipsi > 1 .and. ipsi < Npsi) &
-                     .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
-                   .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then 
-                   ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
+       do isources = 1,Nsources             
+          select case(isource)
+          case(1)
+             ! Add particle source:
+             ! S = f_M * (x^2 - 5/2)  (Provides particles but no heat or momentum)
+             sourceXPart(ix) = (x2(ix)-5/two)*exp(-x2(ix))
+          case(2)
+             ! Add heat source:
+             ! S = f_M * (x^2 - 3/2)  (Provides heat but no particle or momentum)
+             sourceXPart(ix) = (x2(ix)-3/two)*exp(-x2(ix))
+          case default
+             print *,"Error! Invalid source. Nsources > not implemented"
+             stop
+          end select
+
+          do ipsi=this_ipsiMin,this_ipsiMax
+             do ispecies = 1,numSpecies
+                do itheta=1,Ntheta
+                   signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
+                        / (psiAHat*charges(ispecies))
+                   if ((ipsi > 1 .and. ipsi < Npsi) &
+                        .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
+                        .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then 
+                      ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                    ! so impose the kinetic equation here.
-
-                   rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
-                   colIndex = Npsi*localMatrixSize &
-                        + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 1 - 1
-                   call MatSetValueSparse(matrix, rowIndex, colIndex, &
-                        sourceThetaPart(itheta) * xPartOfSource, ADD_VALUES, ierr)
-                end if
-             end do
-          end do
-       end do
-    end do
-
-    ! Add heat source:
-    ! S = f_M * (x^2 - 3/2)  (Provides heat but no particles or momentum)
-    L = 0
-    do ix=1,Nx
-       xPartOfSource = (x2(ix)-3/two)*exp(-x2(ix))
-       do ipsi=this_ipsiMin,this_ipsiMax
-          do ispecies = 1,numSpecies
-             do itheta=1,Ntheta
-                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
-                     / (psiAHat*charges(ispecies))
-                if ((ipsi > 1 .and. ipsi < Npsi) &
-                     .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
-                     .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
-                   ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
-                   ! so impose the kinetic equation here.
-
-                   rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
-                   colIndex = Npsi*localMatrixSize &
-                        + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 2 - 1
-                   call MatSetValueSparse(matrix, rowIndex, colIndex, &
-                        sourceThetaPart(itheta) * xPartOfSource, ADD_VALUES, ierr)
-                end if
+                      rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
+                      colIndex = Npsi*localMatrixSize &
+                           + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
+                      call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                           sourceThetaPart(itheta) * sourceXPart(ix), ADD_VALUES, ierr)
+                   end if
+                end do
              end do
           end do
        end do
     end do
 
     deallocate(sourceThetaPart)
+    deallocate(sourceXPart)
 
   end subroutine sources
 
@@ -1406,7 +1395,9 @@ contains
     ! *******************************************************************************
 
     PetscErrorCode :: ierr
-    PetscScalar, dimension(:), allocatable :: xAndThetaPartOfConstraint
+    PetscScalar, dimension(:), allocatable :: constraintXAndThetaPart
+    PetscScalar, dimension(:), allocatable :: constraintXPart
+    
     integer, dimension(:), allocatable :: rowIndices, colIndices
     integer :: ix, itheta, ipsi, L
     integer :: ispecies
@@ -1417,38 +1408,36 @@ contains
 
        L=0
        allocate(colIndices(Ntheta))
-       allocate(xAndThetaPartOfConstraint(Ntheta))
+       allocate(constraintXAndThetaPart(Ntheta))
+       allocate(constraintXPart(Nx))
 
-       ! Enforce <n_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
-       do ispecies = 1,numSpecies
-          do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-             rowIndexArray = Npsi*localMatrixSize &
-                  + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 1 - 1
-             do ix = 1, Nx
-                xAndThetaPartOfConstraint = xWeights(ix)*x2(ix) * thetaWeights / JHat(:,ipsi)
-                colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
-                call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, xAndThetaPartOfConstraint,&
-                     ADD_VALUES, ierr)
+       do isources = 1,Nsources
+          select case(isource)
+          case(1)
+             ! Enforce <n_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
+             constraintXPart = xWeights*x2
+          case(2)
+             ! Enforce <p_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
+             constraintXPart = xWeights*x2*x2
+          case default
+             print *,"Error! Invalid source. Nsources > not implemented"
+             stop
+             do ispecies = 1,numSpecies
+                do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+                   rowIndexArray = Npsi*localMatrixSize &
+                        + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
+                   do ix = 1, Nx
+                      constraintXAndThetaPart = constraintXPart(ix) * thetaWeights / JHat(:,ipsi)
+                      colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
+                      call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, constraintXAndThetaPart,&
+                           ADD_VALUES, ierr)
+                   end do
+                end do
              end do
-          end do
-       end do
-
-       ! Enforce <p_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
-       do ispecies = 1,numSpecies
-          do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-             rowIndexArray = Npsi*localMatrixSize &
-                  + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + 2 - 1
-             do ix = 1, Nx
-                xAndThetaPartOfConstraint = xWeights(ix)*x2(ix)*x2(ix) * thetaWeights / JHat(:,ipsi)
-                colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
-                call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, xAndThetaPartOfConstraint,&
-                     ADD_VALUES, ierr)
-             end do
-          end do
-       end do
 
        deallocate(colIndices)
-       deallocate(xAndThetaPartOfConstraint)
+       deallocate(constraintXAndThetaPart)
+       deallocate(constraintXPart)
     end if
 
   end subroutine constraints

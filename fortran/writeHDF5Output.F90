@@ -208,9 +208,23 @@ contains
       call writeVariable(NpsiSourcelessRight,"NpsiSourcelessRight",runNum)
       call writeVariable(sourcePoloidalVariation,"sourcePoloidalVariation",runNum)
       call writeVariable(sourcePoloidalVariationStrength,"sourcePoloidalVariationStrength",runNum)
-      call writeVariable(sourcePoloidalVariationPhase,"sourcePoloidalVariationPhase",runNum)    
-      call writeVariable(particleSourceProfile,"particleSourceProfile",runNum)
-      call writeVariable(heatSourceProfile,"heatSourceProfile",runNum)
+      call writeVariable(sourcePoloidalVariationPhase,"sourcePoloidalVariationPhase",runNum)
+      ! todo: implement an array of strings with source names
+      ! in parts of code specifying velocity space structure of sources
+      do temp = 1,Nsources
+         select case(temp)
+         case(1)
+            ! particle source
+            call writeVariable(sourceProfile(temp,:,:),"particleSourceProfile",runNum)
+         case(2)
+            ! heat source
+            call writeVariable(sourceProfile(temp,:,:),"heatSourceProfile",runNum)
+         case default
+            ! as of now unspecified source
+            print *,"Writing source with isource > 2. This should not happen!"
+            call writeVariable(sourceProfile(temp,:,:),"unknownSourceProfile",runNum)
+         end select
+      end do
       call writeVariable(VPrimeHat,"VPrimeHat",runNum)
       call writeVariable(FSABHat2,"FSABHat2",runNum)
       call writeVariable(U,"U",runNum)
@@ -218,8 +232,8 @@ contains
       call writeVariable(densityPerturbation,"densityPerturbation",runNum)
       call writeVariable(flow,"flow",runNum)
       call writeVariable(kPar,"kPar",runNum)
-      call writeVariable(magnetizationFlowPerturbation,"magnetizationFlowPerturbation",runNum)
-      call writeVariable(magnetizationPerturbation,"magnetizationPerturbation",runNum)
+      call writeVariable(pPerpTermInVp,"pPerpTermInVp",runNum)
+      call writeVariable(pPerpTermInVpBeforePsiDerivative,"pPerpTermInVpBeforePsiDerivative",runNum)
       call writeVariable(toroidalFlow,"toroidalFlow",runNum)
       call writeVariable(poloidalFlow,"poloidalFlow",runNum)
       call writeVariable(pressurePerturbation,"pressurePerturbation",runNum)
