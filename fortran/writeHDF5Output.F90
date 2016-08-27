@@ -953,6 +953,13 @@ contains
     return
   end function rank_1d
 
+  integer function rank_integer_1d(A)
+    integer, dimension(:), allocatable, intent(in) :: A
+    rank_integer_1d=size(shape(A))
+    return
+  end function rank_integer_1d
+
+  
   ! conflicts with rank_1d
   !integer function rank_1d_nonalloc(A)
   !  PetscScalar, dimension(:), intent(in) :: A
