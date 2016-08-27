@@ -217,8 +217,8 @@ contains
 
                 magnetizationPerturbation(ispecies,itheta,ipsi) &
                      = magnetizationPerturbation(ispecies,itheta,ipsi) &
-                     -(one/five)*dot_product(xWeights, pressureIntegralWeights * solnArray(indices))&
-                     *pressureFactors(ipsi)*THats(ispecies,ipsi)*nHats(ispecies,ipsi)/(Delta*masses(ispecies))
+                     -(one/five)*dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1))*pressureFactors(ipsi) &
+                     *THats(ispecies,ipsi)*  nHats(ispecies,ipsi)/(Delta*masses(ispecies))
                   
 
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
@@ -427,7 +427,6 @@ contains
   !**************************************************************************
   !**************************************************************************
   subroutine calculateLocalMoments(soln,ipsi,filename)
-
     Vec, intent(in) :: soln
     integer, intent(in) :: ipsi
     character(len=*), intent(in) :: filename
@@ -527,7 +526,6 @@ contains
        !! call VecGetArrayF90(solnOnProc0, solnArray, ierr)
        call VecGetArrayF90(soln, solnArray, ierr)
        CHKERRQ(ierr)
-
        do ispecies = 1,numSpecies
           densityFactors = Delta*4*pi*THats(ispecies,ipsi)*sqrtTHats(ispecies,ipsi) &
                / (nHats(ispecies,ipsi)*masses(ispecies)*sqrt(masses(ispecies)))
