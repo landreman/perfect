@@ -509,7 +509,7 @@ contains
       ! Subtract out the moments to set the flux surface averages to zero
       do itheta=1,Ntheta
          indices = [(getIndex(ispecies,ix,L,itheta,1), ix=1,Nx)]! This line assumes min_x_for_L(0)=1.
-         solnArray(indices+1) = solnArray(indices+1) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2(ix))
+         solnArray(indices+1) = solnArray(indices+1) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2)
          solnArray(indices+1) = solnArray(indices+1) - FSALocalSecondMomentPerturbation &
               *8d0/3d0/sqrt(pi)*(x2-1.5d0)*exp(-x2)
       end do
