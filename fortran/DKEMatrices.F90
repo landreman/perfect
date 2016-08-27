@@ -1334,7 +1334,7 @@ contains
        sourceThetaPart = 1
     case (1)
        do i=1,Ntheta
-          sourceThetaPart(i) = 1 + cos(theta(i))
+          sourceThetaPart(i) = 1 + sourcePoloidalVariationStrength * cos(theta(i) + sourcePoloidalVariationPhase)
        end do
     case default
        print *,"Error! Invalid sourcePoloidalVariation."
