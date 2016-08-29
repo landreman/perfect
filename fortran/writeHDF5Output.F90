@@ -35,6 +35,7 @@ interface rank
    module procedure rank_character
    module procedure rank_scalar
    module procedure rank_1d
+   module procedure rank_1d_integer
    !module procedure rank_1d_nonalloc
    module procedure rank_2d
    module procedure rank_3d
@@ -953,11 +954,11 @@ contains
     return
   end function rank_1d
 
-  integer function rank_integer_1d(A)
+  integer function rank_1d_integer(A)
     integer, dimension(:), allocatable, intent(in) :: A
-    rank_integer_1d=size(shape(A))
+    rank_1d_integer=size(shape(A))
     return
-  end function rank_integer_1d
+  end function rank_1d_integer
 
   
   ! conflicts with rank_1d
