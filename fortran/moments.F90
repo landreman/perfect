@@ -34,7 +34,7 @@ contains
     PetscScalar, dimension(:), allocatable :: particleFluxFactors, particleFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: momentumFluxFactors, momentumFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: heatFluxFactors, heatFluxIntegralWeights
-    PetscScalar, dimension(:), allocatable :: tempPTflow
+    PetscScalar, dimension(:), allocatable :: tempPTflow, pPerpTermInVpFactors
     
     
     Vec :: solnOnProc0
@@ -112,7 +112,7 @@ contains
        allocate(particleFluxFactors(Npsi))
        allocate(momentumFluxFactors(Npsi))
        allocate(heatFluxFactors(Npsi))
-       !       allocate(pPerpTermInKThetaFactors(Npsi))
+       allocate(pPerpTermInVpFactors(Npsi))
 
        allocate(flowIntegralWeights(Nx))
        allocate(densityIntegralWeights(Nx))
@@ -146,6 +146,7 @@ contains
           momentumFluxFactors = -masses(ispecies) / charges(ispecies) * IHat*IHat * ((THats(ispecies,:)/masses(ispecies)) ** 3)
           heatFluxFactors = -masses(ispecies) / charges(ispecies) * THats(ispecies,:) &
                * IHat * ((THats(ispecies,:)/masses(ispecies)) ** (5/two))
+          pPerpTermInVpFactors = (8*pi/3)*(THats(ispecies,:)/masses(ispecies))**(5/two)
           !       pPerpTermInKThetaFactors = THat ** (5/two)
 
           ! The final elements of the solution vector correspond to the source profiles:
@@ -173,9 +174,8 @@ contains
                 heatFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = (8/three) * heatFluxFactors(ipsi) &
                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
 
-                pPerpTermInVpBeforePsiDerivative(ispecies,itheta,ipsi) &
-                     = pressurePerturbation(ispecies,itheta,ipsi) &
-                     *THats(ispecies,ipsi) * nHats(ispecies,ipsi)/(Delta*masses(ispecies))
+                pPerpTermInVpBeforePsiDerivative(ispecies,itheta,ipsi) = pPerpTermInVpFactors(ipsi) &
+                     * dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1)) 
 
                 
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
@@ -212,11 +212,9 @@ contains
                      + (four/15) * heatFluxFactors(ipsi) &
                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
 
-                pPerpTermInVpBeforePsiDerivative(ispecies,itheta,ipsi) &
-                     = pPerpTermInVpBeforePsiDerivative(ispecies,itheta,ipsi) &
-                     -(one/five)*dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1))*pressureFactors(ipsi) &
-                     *THats(ispecies,ipsi)*  nHats(ispecies,ipsi)/(Delta*masses(ispecies))
-                  
+                pPerpTermInVpBeforePsiDerivative(ispecies,itheta,ipsi) = pPerpTermInVpBeforePsiDerivative(ispecies,itheta,ipsi) &
+                     - (one/five) * pPerpTermInVpFactors(ipsi) &
+                     * dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1))
 
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
                 !                  pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) &
