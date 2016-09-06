@@ -149,7 +149,7 @@ contains
                * IHat * ((THats(ispecies,:)/masses(ispecies)) ** (5/two))
           !       pPerpTermInKThetaFactors = THat ** (5/two)
 
-          tauXHat = 1d0/nHats(1,:)/sqrt(THats(1,:)/masses(1))/CXCrossSectionHat
+          tauXHat = 1d0/2d0/nHats(1,:)/sqrt(THats(1,:)/masses(1))/CXCrossSectionHat
           if (includeNeutrals) then
             do itheta=1,Ntheta
               neutralMomentumFluxFactors1(itheta,:) = nHatNeutral(itheta,:)/nHats(1,:)*momentumFluxFactors
