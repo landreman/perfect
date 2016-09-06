@@ -131,6 +131,7 @@ class perfectInput(object):
     dTHatdpsiScalar =  property(groupGetter('physicsParameters','dTHatdpsiScalar'), groupSetter('physicsParameters','dTHatdpsiScalar'))
     detaHatdpsiScalar =  property(groupGetter('physicsParameters','detaHatdpsiScalar'), groupSetter('physicsParameters','detaHatdpsiScalar'))
     makeLocalApproximation =  property(groupGetter('physicsParameters','makeLocalApproximation'), groupSetter('physicsParameters','makeLocalApproximation'))
+    includeddpsiTerm =  property(groupGetter('physicsParameters','includeddpsiTerm'), groupSetter('physicsParameters','includeddpsiTerm'))
     
     NpsiPerDiameter =  property(groupGetter('resolutionParameters','NpsiPerDiameter'), groupSetter('resolutionParameters','NpsiPerDiameter'))
     psiDiameter =  property(groupGetter('resolutionParameters','psiDiameter'), groupSetter('resolutionParameters','psiDiameter'))
