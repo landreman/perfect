@@ -5,7 +5,12 @@ module geometry
   use grids
   use readHDF5Input
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsysdef.h>
+#endif
 
 
   implicit none
@@ -33,7 +38,7 @@ contains
     select case (geometryToUse)
     case (0)
        ! Circular concentric flux surfaces
-
+       
     case (1)
        ! Miller geometry
        Miller_x = asin(Miller_delta)
@@ -41,12 +46,13 @@ contains
        Miller_QQ = 0
        ! Integrate QQIntegrand from 0 to 2*pi.
        do i=1,NThetaIntegral
-          Miller_QQ = Miller_QQ + QQIntegrand(2*pi*i/NThetaIntegral)
+          Miller_QQ = Miller_QQ + Miller_QQIntegrand(2*pi*i/NThetaIntegral)
        end do
        Miller_QQ = Miller_kappa / (2*pi*Miller_A) * (Miller_QQ * 2*pi/NThetaIntegral)
 
     case (2)
        ! Circular concentric flux surfaces with Boozer poloidal angle
+       print *,"Warning! Poloidal and toroidal flows cannot be calculated with Boozer angle"
 
     case (3)
        ! EFIT interface
@@ -86,7 +92,7 @@ contains
 
     implicit none
 
-    PetscScalar, allocatable, dimension(:) :: bs_1D, dbdthetas_1D, oneOverqRbDotGradThetas_1D
+    PetscScalar, allocatable, dimension(:) :: bs_1D, dbdthetas_1D, oneOverqRbDotGradThetas_1D, R_1D
     PetscScalar :: input_psiMin, input_psiMax, psiRangeTolerance
     integer :: ipsi, itheta, psiRangeErrorFlags
 
@@ -94,31 +100,28 @@ contains
     allocate(dBHatdpsi(Ntheta,Npsi))
     allocate(dBHatdtheta(Ntheta,Npsi))
     allocate(JHat(Ntheta,Npsi))
+    allocate(RHat(Ntheta,Npsi))
     allocate(IHat(Npsi))
     allocate(dIHatdpsi(Npsi))
-    allocate(RHat(Ntheta,Npsi))
 
     select case (geometryToUse)
     case (0,1,2)
        ! Simplistic profiles in which magnetic quantities have no radial variation
 
-       allocate(bs_1D(Ntheta))  
+       allocate(bs_1D(Ntheta))
+       allocate(R_1D(Ntheta)) 
        allocate(dbdthetas_1D(Ntheta))
        allocate(oneOverqRbDotGradThetas_1D(Ntheta))
        call computeBs_1D(theta, bs_1D)
        call computedBdthetas_1D(theta, dbdthetas_1D)
        call computeOneOverqRbDotGradThetas_1D(theta, oneOverqRbDotGradThetas_1D)
-
+       call computeR_1D(theta, R_1D)
+       
        do ipsi=1,Npsi
           BHat(:,ipsi) = bs_1D
+          RHat(:,ipsi) = R_1D
           dBHatdtheta(:,ipsi) = dbdthetas_1D
           JHat(:,ipsi) = bs_1D / oneOverqRbDotGradThetas_1D / Miller_q
-          if (geometryToUse==1) then
-            ! Miller geometry
-            do itheta=1,Ntheta
-              RHat(itheta,ipsi) = RHatMiller(theta(itheta))
-            end do
-          end if
        end do
        dBHatdpsi = 0
        IHat = 1
@@ -183,6 +186,7 @@ contains
 
        ! Read variables
        call readVariable(BHat, "BHat")
+       call readVariable(RHat, "RHat")
        call readVariable(dBHatdpsi, "dBHatdpsi")
        call readVariable(dBHatdtheta, "dBHatdtheta")
        call readVariable(JHat, "JHat")
@@ -202,16 +206,30 @@ contains
 
   ! Fill arrays that can be calculated from the magnetic geometry.
   subroutine computeDerivedMagneticQuantities()
-    integer :: i
+    integer :: ipsi, itheta
 
     allocate(VPrimeHat(Npsi))
     allocate(FSABHat2(Npsi))
     allocate(typicalB(Npsi))
+    allocate(BTHat(Ntheta,Npsi))
+    allocate(BPHat(Ntheta,Npsi))
 
-    do i=1,Npsi
-       VPrimeHat(i) = dot_product(thetaWeights, 1/JHat(:,i))
-       FSABHat2(i) = dot_product(thetaWeights, BHat(:,i) * BHat(:,i) / JHat(:,i)) / VPrimeHat(i)
-       typicalB(i) = sqrt(FSABHat2(i))
+    do ipsi=1,Npsi
+       VPrimeHat(ipsi) = dot_product(thetaWeights, 1/JHat(:,ipsi))
+       FSABHat2(ipsi) = dot_product(thetaWeights, BHat(:,ipsi) * BHat(:,ipsi) / JHat(:,ipsi)) / VPrimeHat(ipsi)
+       typicalB(ipsi) = sqrt(FSABHat2(ipsi))
+    end do
+    do ipsi=1,Npsi
+       do itheta=1,Ntheta
+          BTHat(itheta,ipsi) = IHat(ipsi)/RHat(itheta,ipsi)
+          BPHat(itheta,ipsi) = sqrt(BHat(itheta,ipsi)**2 - BTHat(itheta,ipsi)**2)
+          if (JHat(itheta,ipsi)*BPHat(itheta,ipsi) < 0) then
+             ! BPHat above and from Miller is always positive
+             ! sign of JHat sets sign of BPHat if
+             ! (nabla theta) is taken to be in the theta direction
+             BPHat(itheta,ipsi) = -BPHat(itheta,ipsi)
+          end if
+       end do
     end do
 
   end subroutine
@@ -242,7 +260,7 @@ contains
     case (1)
        ! Miller geometry
        do i=1,size(thetas)
-          bs(i) = sqrt(BPoloidal(thetas(i))**2 + 1./((RHatMiller(thetas(i)))**2))
+          bs(i) = sqrt(Miller_BPoloidal(thetas(i))**2 + 1./((Miller_RHat(thetas(i)))**2))
        end do
     case (2)
        ! Circular concentric flux surfaces with Boozer poloidal angle
@@ -252,6 +270,45 @@ contains
        stop
     end select
   end subroutine computeBs_1D
+
+  !-----------------------------------------------------------------------------------------
+
+   subroutine computeR_1D(thetas, R)
+    ! For simplistic profiles, compute RHat on the theta grids, 
+    ! assuming there is no interesting radial variation.
+
+    implicit none
+
+    PetscScalar, intent(in) :: thetas(:)
+    PetscScalar, intent(out) :: R(:)
+    integer :: i
+
+    if (.not. initializedYet) then
+       print *,"Error!  No geometry has been initialized yet."
+       stop
+    end if
+
+    select case (geometryToUse)
+    case (0)
+       ! Circular concentric flux surfaces
+       ! Assumes RBar is the major radius
+       R = 1 + epsil * cos(thetas)
+    case (1)
+       ! Miller geometry
+       do i=1,size(thetas)
+          R(i) = Miller_RHat(thetas(i))
+       end do
+    case (2)
+       ! Circular concentric flux surfaces with Boozer poloidal angle
+       print *,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+       print *,"WARNING: RHat implemeneted for Boozer angle may not be correct"
+       print *,"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+       R = 1/(1 + epsil * cos(thetas))
+    case default
+       print *,"Error! Invalid geometry."
+       stop
+    end select
+  end subroutine computeR_1D
 
   !-----------------------------------------------------------------------------------------
 
@@ -295,7 +352,8 @@ contains
        allocate(weights(N))
        allocate(bs(N))
        allocate(dBdthetaFine(N))
-       call uniformDiffMatrices(N, zero, two*pi, 20, thetaFine, weights, spectralDerivative, d2dtheta2)
+       call uniformDiffMatrices(N, scaledThetaGridShift, two*pi + scaledThetaGridShift, 20, thetaFine, &
+            weights, spectralDerivative, d2dtheta2)
 
        call computeBs_1D(thetaFine, bs)
        dBdthetaFine = matmul(spectralDerivative, bs)
@@ -350,7 +408,7 @@ contains
        allocate(bs(size(thetas)))
        call computeBs_1D(thetas,bs)
        do i=1,size(thetas)
-          oneOverqRbDotGradThetas(i) = bs(i) / (Miller_q*BDotGradTheta(thetas(i)));
+          oneOverqRbDotGradThetas(i) = bs(i) / (Miller_q*Miller_BDotGradTheta(thetas(i)));
        end do
        deallocate(bs)
     case (2)
@@ -366,70 +424,70 @@ contains
   ! Below are a set of functions needed only for Miller geometry
   !-----------------------------------------------------------------------------------------
 
-  function RHatMiller(theta)
+  function Miller_RHat(theta)
 
     implicit none
 
-    PetscScalar :: theta, RHatMiller
+    PetscScalar :: theta, Miller_RHat
 
-    RHatMiller = 1 + (1/Miller_A)*cos(theta + Miller_x*sin(theta))
+    Miller_RHat = 1 + (1/Miller_A)*cos(theta + Miller_x*sin(theta))
 
-  end function RHatMiller
+  end function Miller_RHat
 
   !-----------------------------------------------------------------------------------------
 
-  function ZHat(theta)
+  function Miller_ZHat(theta)
 
     implicit none
 
-    PetscScalar :: theta, ZHat
+    PetscScalar :: theta, Miller_ZHat
 
-    ZHat = (Miller_kappa/Miller_A)*sin(theta)
+    Miller_ZHat = (Miller_kappa/Miller_A)*sin(theta)
 
-  end function ZHat
+  end function Miller_ZHat
 
   !-----------------------------------------------------------------------------------------
 
-  function QQIntegrand(theta)
+  function Miller_QQIntegrand(theta)
 
     implicit none
 
-    PetscScalar :: theta, QQIntegrand
+    PetscScalar :: theta, Miller_QQIntegrand
 
-    QQIntegrand = ((1+Miller_s_kappa)*sin(theta + Miller_x*sin(theta)) * (1+Miller_x*cos(theta)) * sin(theta) &
+    Miller_QQIntegrand = ((1+Miller_s_kappa)*sin(theta + Miller_x*sin(theta)) * (1+Miller_x*cos(theta)) * sin(theta) &
          + cos(theta) * (Miller_dRdr + cos(theta + Miller_x *sin(theta)) &
-         - Miller_s_delta*sin(theta + Miller_x*sin(theta)) * sin(theta))) / RHatMiller(theta)
+         - Miller_s_delta*sin(theta + Miller_x*sin(theta)) * sin(theta))) / Miller_RHat(theta)
 
-  end function QQIntegrand
+  end function Miller_QQIntegrand
 
   !-----------------------------------------------------------------------------------------
 
-  function BPoloidal(theta)
+  function Miller_BPoloidal(theta)
 
     implicit none
 
-    PetscScalar :: theta, BPoloidal
+    PetscScalar :: theta, Miller_BPoloidal
 
-    BPoloidal = Miller_QQ/(Miller_kappa*Miller_q)*sqrt((sin(theta+Miller_x*sin(theta)) &
+    Miller_BPoloidal = Miller_QQ/(Miller_kappa*Miller_q)*sqrt((sin(theta+Miller_x*sin(theta)) &
          * (1+Miller_x*cos(theta)))**2 + (Miller_kappa*cos(theta))**2) &
-         / (RHatMiller(theta) * ( cos(Miller_x*sin(theta)) + Miller_dRdr*cos(theta) + (Miller_s_kappa-Miller_s_delta*cos(theta) &
+         / (Miller_RHat(theta) * ( cos(Miller_x*sin(theta)) + Miller_dRdr*cos(theta) + (Miller_s_kappa-Miller_s_delta*cos(theta) &
          + (1+Miller_s_kappa)*Miller_x*cos(theta)) * sin(theta) * sin(theta + Miller_x*sin(theta))))
 
-  end function BPoloidal
+  end function Miller_BPoloidal
 
   !-----------------------------------------------------------------------------------------
 
-  function BDotGradTheta(theta)
+  function Miller_BDotGradTheta(theta)
 
     implicit none
 
-    PetscScalar :: theta, BDotGradTheta
+    PetscScalar :: theta, Miller_BDotGradTheta
 
-    BDotGradTheta = - Miller_A*Miller_QQ/(Miller_kappa*Miller_q*RHatMiller(theta) * &
+    Miller_BDotGradTheta = - Miller_A*Miller_QQ/(Miller_kappa*Miller_q*Miller_RHat(theta) * &
          ((1+Miller_s_kappa)*sin(theta + Miller_x*sin(theta)) * (1+Miller_x*cos(theta)) * sin(theta) &
          + cos(theta) * (Miller_dRdr + cos(theta + Miller_x *sin(theta)) &
          - Miller_s_delta*sin(theta + Miller_x*sin(theta)) * sin(theta))))
 
-  end function BDotGradTheta
+  end function Miller_BDotGradTheta
 
 end module geometry

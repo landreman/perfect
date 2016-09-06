@@ -4,7 +4,12 @@ module matlabOutput
   use DKERhs
   use globalVariables
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
 
   implicit none
 

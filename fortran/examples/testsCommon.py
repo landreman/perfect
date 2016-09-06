@@ -44,9 +44,11 @@ def shouldBe(variableName, trueValue, relativeTolerance):
     relativeDifference = abs((latestValue - trueValue) / trueValue)
     if relativeDifference > relativeTolerance:
         print "*** TEST FAILED!!  Variable "+variableName+" should be close to "+str(trueValue)+", but it is instead "+str(latestValue)
+        print "Actual / correct = ",latestValue/trueValue
         return 1
     else:
         print "    Test passed:   Variable "+variableName+" should be close to "+str(trueValue)+", and it came out to be "+str(latestValue)+", which is within tolerance."
+        print "Actual / correct = ",latestValue/trueValue
         return 0
 
 def diffAll(absoluteTolerance):
@@ -59,7 +61,7 @@ def diffAll(absoluteTolerance):
 
     failureCount = 0
 
-    for varname in newFile["run  1"]:
+    for varname in origFile["run  1"]:
         if varname == "elapsed time (s)" or varname == "gitCommit":
             # Differences in runtime and commit do not matter
             continue

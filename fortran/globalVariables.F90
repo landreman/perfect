@@ -2,7 +2,12 @@ module globalVariables
 
   implicit none
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsysdef.h>
+#endif
 
   integer, parameter :: integerToRepresentTrue  =  1
   integer, parameter :: integerToRepresentFalse = -1
@@ -77,6 +82,7 @@ module globalVariables
   PetscScalar :: delta = 0.0011d+0
   PetscScalar :: omega = 0.0014d+0
   PetscScalar :: psiAHat
+  PetscScalar, dimension(:), allocatable :: psiAHatArray
 
   PetscScalar :: psiMid, psiMin, psiMax
 
@@ -91,9 +97,16 @@ module globalVariables
 
   logical :: setTPrimeToBalanceHeatFlux
 
+  integer :: Nsources = 2
+  
   integer :: sourcePoloidalVariation
+  PetscScalar :: sourcePoloidalVariationStrength
+  PetscScalar :: sourcePoloidalVariationPhase
+
 
   logical :: makeLocalApproximation
+
+  logical :: includeCollisionOperator
 
   logical :: includeddpsiTerm
 
@@ -140,10 +153,12 @@ module globalVariables
   integer :: Ntheta
   PetscScalar :: NthetaMinFactor, NthetaMaxFactor
   integer :: NthetaNumRuns
+  PetscScalar :: thetaGridShift, scaledThetaGridShift
 
   integer :: Nxi
   PetscScalar :: NxiMinFactor, NxiMaxFactor
   integer :: NxiNumRuns
+  integer, dimension(:), allocatable :: Nxi_for_x, min_x_for_L
 
   integer :: NL
   PetscScalar :: NLMinFactor, NLMaxFactor
@@ -173,7 +188,7 @@ module globalVariables
   integer :: NxUniform = 25, NxiUniform = 31
   PetscScalar :: xUniformMax = 3d+0
 
-  integer :: matrixSize, localMatrixSize
+  integer :: matrixSize, localMatrixSize, localDKEMatrixSize
 
   ! ********************************************************
   ! ********************************************************
@@ -183,9 +198,20 @@ module globalVariables
   ! ********************************************************
   ! ********************************************************
 
+  ! for non-uniform grid
+  integer :: psiGridType
+  character(len=100) :: psiAHatFilename
+
   integer :: psiDerivativeScheme
   integer :: thetaDerivativeScheme
-  integer :: xDerivativeScheme
+  integer :: xDerivativeScheme=2
+
+  ! control treatment of constraints and sources at boundary
+
+  integer :: NpsiSourcelessRight, NpsiSourcelessLeft
+
+  ! lowest/highest psi indices where constraint are enforced
+  integer :: lowestEnforcedIpsi, highestEnforcedIpsi
 
   PetscScalar :: thresh
 
@@ -202,6 +228,7 @@ module globalVariables
   ! layout is not presently used.
 
   integer :: PETSCPreallocationStrategy = 1
+  integer :: Nxi_for_x_option = 1
 
   ! ********************************************************
   ! ********************************************************
@@ -223,18 +250,21 @@ module globalVariables
   ! ********************************************************
 
   PetscScalar, dimension(:), allocatable :: psi, theta
-  PetscScalar, dimension(:,:), allocatable :: BHat, JHat, dBHatdtheta, dBHatdpsi, RHat
+  PetscScalar, dimension(:,:), allocatable :: BHat, BPHat, BTHat, JHat, RHat, dBHatdtheta, dBHatdpsi
   PetscScalar, dimension(:), allocatable :: IHat, dIHatdpsi, dPhiHatdpsi, PhiHat
   PetscScalar, dimension(:,:), allocatable :: THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis
-  PetscScalar, dimension(:,:), allocatable :: particleSourceProfile, heatSourceProfile
+  PetscScalar, dimension(:,:,:), allocatable :: sourceProfile
 !  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation
   PetscScalar, dimension(:), allocatable :: VPrimeHat, FSABHat2, typicalB
   PetscScalar, dimension(:,:,:), allocatable :: flow, kPar, densityPerturbation, pressurePerturbation
+  PetscScalar, dimension(:,:,:), allocatable :: pPerpTermInVp,pPerpTermInVpBeforePsiDerivative
+  PetscScalar, dimension(:,:,:), allocatable :: toroidalFlow,poloidalFlow
   PetscScalar, dimension(:,:,:), allocatable :: particleFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:,:), allocatable :: momentumFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:,:), allocatable :: heatFluxBeforeThetaIntegral
   PetscScalar, dimension(:,:), allocatable :: kParOutboard, kParInboard, FSAKPar
-  PetscScalar, dimension(:,:), allocatable :: flowOutboard, flowInboard, FSABFlow
+  PetscScalar, dimension(:,:), allocatable :: flowOutboard, flowInboard, FSAFlow, FSABFlow
+  PetscScalar, dimension(:,:), allocatable :: FSAToroidalFlow,FSAPoloidalFlow
   PetscScalar, dimension(:,:), allocatable :: FSADensityPerturbation, FSAPressurePerturbation
 !  PetscScalar, dimension(:), allocatable :: kThetaOutboardWith3PointStencil, kThetaInboardWith3PointStencil
 !  PetscScalar, dimension(:), allocatable :: kThetaOutboardWith5PointStencil, kThetaInboardWith5PointStencil
@@ -248,7 +278,7 @@ module globalVariables
   PetscScalar, dimension(:,:), allocatable :: nuPrimeProfile, nuStarProfile
   PetscScalar, dimension(:,:), allocatable :: deltaN, deltaT, deltaEta, U, r
   PetscScalar, dimension(:), allocatable :: xUniform, xiUniform
-  integer :: thetaIndexForOutboard
+  integer :: thetaIndexForOutboard, thetaIndexForInboard
   PetscScalar, dimension(:,:,:,:), allocatable :: deltaFOutboard, fullFOutboard
 
   PetscLogDouble :: elapsedTime
@@ -279,6 +309,7 @@ module globalVariables
   ! ********************************************************
 
   PetscScalar, dimension(:,:), allocatable :: sqrtTHats
+  PetscScalar, dimension(:,:,:,:,:,:), allocatable :: RosenbluthPotentialTerms
 
   ! ********************************************************
   !
@@ -310,9 +341,11 @@ contains
 
     deallocate(psi)
     deallocate(theta)
+    deallocate(psiAHatArray)
     deallocate(xUniform)
     deallocate(xiUniform)
     deallocate(JHat)
+    deallocate(RHat)
     deallocate(BHat)
     deallocate(dBHatdpsi)
     deallocate(dBHatdtheta)
@@ -341,11 +374,11 @@ contains
     deallocate(sqrtTHats)
 
     if (masterProcInSubComm) then
-       deallocate(particleSourceProfile)
-       deallocate(heatSourceProfile)
-
+       deallocate(sourceProfile)
        deallocate(densityPerturbation)
        deallocate(flow)
+       deallocate(toroidalFlow)
+       deallocate(poloidalFlow)
        deallocate(kPar)
        deallocate(pressurePerturbation)
        deallocate(particleFluxBeforeThetaIntegral)
@@ -358,7 +391,10 @@ contains
        deallocate(FSAKPar)
        deallocate(flowOutboard)
        deallocate(flowInboard)
+       deallocate(FSAFlow)
        deallocate(FSABFlow)
+       deallocate(FSAToroidalFlow)
+       deallocate(FSAPoloidalFlow)
        deallocate(FSAPressurePerturbation)
 !       deallocate(LHSOfKParEquation)
        deallocate(particleFlux)

@@ -4,10 +4,12 @@ module DKERhs
   use grids
   !use petscksp
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
-!#include <finclude/petscdmdadef.h>
-
-!#include "PETScVersions.F90"
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
 
   implicit none
 
@@ -32,13 +34,19 @@ contains
 
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
     CHKERRQ(ierr)
+    call VecSet(rhs, zero,ierr)
+    CHKERRQ(ierr)
     if (procThatHandlesLeftBoundary) then
        ! This process handles the left boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsLeft, ierr)
+       CHKERRQ(ierr)
+       call VecSet(rhsLeft, zero,ierr)
     end if
     if (procThatHandlesRightBoundary) then
        ! This process handles the right boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsRight, ierr)
+       CHKERRQ(ierr)
+       call VecSet(rhsRight, zero, ierr)
     end if
     CHKERRQ(ierr)
 
@@ -49,7 +57,7 @@ contains
 
                 stuffToAdd = masses(ispecies)*masses(ispecies) * nHats(ispecies,ipsi) * IHat(ipsi) &
                      * JHat(itheta,ipsi) * dBHatdtheta(itheta,ipsi) * x2(ix) * expx2(ix) &
-                     /(2*pi*sqrtpi*charges(ispecies)*sqrtTHats(ispecies,ipsi)*psiAHat &
+                     /(2*pi*sqrtpi*charges(ispecies)*sqrtTHats(ispecies,ipsi)*psiAHatArray(ipsi) &
                      * (BHat(itheta,ipsi) ** 3)) &
                      * (dnHatdpsis(ispecies,ipsi)/nHats(ispecies, ipsi) &
                      + 2*charges(ispecies)/THats(ispecies,ipsi)*omega/Delta*dPhiHatdpsi(ipsi) &
@@ -60,12 +68,10 @@ contains
 
                 L = 0
                 LFactor = 4/three
-                index = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta - 1
+                index = getIndex(ispecies,ix,L,itheta,ipsi)
                 !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
                 call VecSetValue(rhs, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta &
-                     + L*Ntheta + itheta - 1
+                index = getIndex(ispecies,ix,L,itheta,1)
                 if (ipsi==1) then
                    ! This is the left boundary
                    !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
@@ -78,12 +84,10 @@ contains
 
                 L = 2
                 LFactor = 2/three
-                index = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta - 1
+                index = getIndex(ispecies,ix,L,itheta,ipsi)
                 !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
                 call VecSetValue(rhs, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta &
-                     + L*Ntheta + itheta - 1
+                index = getIndex(ispecies,ix,L,itheta,1)
                 if (ipsi==1) then
                    ! This is the left boundary
                    !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)

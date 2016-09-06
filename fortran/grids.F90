@@ -1,16 +1,20 @@
 module grids
 
   use globalVariables
+  use indices
   use petscksp
   use petscdmda
   use polynomialDiffMatrices
   use printToStdout
   use xGrid
+  use readHDF5Input
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
-!#include <finclude/petscdmdadef.h>
-
-!#include "PETScVersions.F90"
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
 
   implicit none
 
@@ -30,7 +34,7 @@ module grids
   PetscScalar, dimension(:), allocatable :: LegendresOnXiUniform_m1, LegendresOnXiUniform_m2
   PetscScalar, dimension(:,:), allocatable :: regridPolynomialToUniform
   PetscScalar, dimension(:,:), allocatable :: regridPolynomialToUniformForDiagnostics
-  integer :: ipsiMin, ipsiMax, NxPotentials
+  integer :: ipsiMin, ipsiMax, localNpsi, NxPotentials
   logical :: procThatHandlesLeftBoundary, procThatHandlesRightBoundary
   PetscScalar :: xMaxNotTooSmall
 
@@ -45,24 +49,19 @@ module grids
     logical, intent(in) :: upwinding
     PetscErrorCode :: ierr
     integer :: i, ix, j
-    integer :: localNpsi
     integer :: scheme, ipsiMinInterior, ipsiMaxInterior, localNpsiInterior
     PetscScalar :: temp, temp2
     DM :: myDM
+    character(len=100) :: HDF5Groupname
 
-        if (forceOddNtheta) then
+    
+    if (forceOddNtheta) then
        if (mod(Ntheta, 2) == 0) then
           Ntheta = Ntheta + 1
        end if
     end if
 
     call printInputs()
-
-    localMatrixSize = Ntheta * Nxi * Nx * numSpecies
-    matrixSize = Npsi * (localMatrixSize + 2*numSpecies)
-    if (masterProcInSubComm) then
-       print *,"[",myCommunicatorIndex,"] The matrix is ",matrixSize,"x",matrixSize," elements."
-    end if
 
     didItConverge = integerToRepresentTrue
 
@@ -135,6 +134,7 @@ module grids
     psiMax = psiMid + psiDiameter/two + widthExtender + rightBoundaryShift
 
     allocate(psi(Npsi))
+    allocate(psiAHatArray(Npsi))
 
     if (Npsi<5) then ! if Npsi<5 then we can do without psi-derivatives, but the simulation must be local
       
@@ -175,6 +175,30 @@ module grids
       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
       ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
 
+      select case (psiGridType)
+      case(0)
+         ! uniform grid
+         do i=1,Npsi
+            psiAHatArray(i) = psiAHat
+         end do
+      case(1)
+         ! Create groupname to be read
+         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+       
+         ! Open input file
+         call openInputFile(psiAHatFilename,HDF5Groupname)
+
+         call readVariable(psiAHatArray, "psiAHatArray")
+
+         call closeInputFile() 
+       
+      case default
+         print *,"Error! Invalid setting for psiGridType"
+         stop
+
+      end select
+         
+         
       select case (psiDerivativeScheme)
       case (1)
          ! centered finite differences, 3-point stencil
@@ -210,18 +234,22 @@ module grids
     ! Build theta grid, integration weights, and differentiation matrices:
     ! *******************************************************************************
 
-    select case (thetaDerivativeScheme)
+    select case (thetaDerivativeScheme)       
     case (0)
        scheme = 20
+       scaledThetaGridShift =  thetaGridShift*two*pi/(Ntheta)
     case (1)
        scheme = 0
+       scaledThetaGridShift =  thetaGridShift*two*pi/(Ntheta)
     case (2)
        scheme = 10
+       scaledThetaGridShift =  thetaGridShift*two*pi/(Ntheta)
     case default
        if (masterProcInSubComm) then
           print *,"[",myCommunicatorIndex,"] Error! Invalid setting for thetaDerivativeScheme"
        end if
        stop
+
     end select
 
     allocate(theta(Ntheta))
@@ -229,7 +257,9 @@ module grids
     allocate(ddtheta(Ntheta,Ntheta))
     allocate(ddthetaToUse(Ntheta,Ntheta))
     allocate(d2dtheta2(Ntheta,Ntheta))
-    call uniformDiffMatrices(Ntheta, 0d0, two*pi, scheme, theta, thetaWeights, ddtheta, d2dtheta2)
+    
+    call uniformDiffMatrices(Ntheta, scaledThetaGridShift, two*pi + scaledThetaGridShift, scheme, theta, &
+         thetaWeights, ddtheta, d2dtheta2)
 
     ! Also make a sparser differentiation matrix for the preconditioner:
     allocate(theta_preconditioner(Ntheta))
@@ -237,7 +267,7 @@ module grids
     allocate(ddtheta_preconditioner(Ntheta,Ntheta))
     allocate(d2dtheta2_preconditioner(Ntheta,Ntheta))
     scheme = 0
-    call uniformDiffMatrices(Ntheta, 0d0, two*pi, scheme, theta_preconditioner, &
+    call uniformDiffMatrices(Ntheta, scaledThetaGridShift, two*pi + scaledThetaGridShift, scheme, theta_preconditioner, &
          thetaWeights_preconditioner, ddtheta_preconditioner, d2dtheta2_preconditioner)
 
     ! Find the theta grid point closest to 0 or 2*pi. We will call it the outboard side.
@@ -246,6 +276,16 @@ module grids
        temp2 = min(abs(theta(i)), abs(theta(i)-2*pi))
        if (temp2 < temp) then
           thetaIndexForOutboard = i
+          temp = temp2
+       end if
+    end do
+
+    ! Find the theta grid point closest to pi. We will call it the inboard side.
+    temp = 9999
+    do i=1,Ntheta
+       temp2 = abs(theta(i)-pi)
+       if (temp2 < temp) then
+          thetaIndexForInboard = i
           temp = temp2
        end if
     end do
@@ -266,9 +306,9 @@ module grids
     allocate(d2dx2ToUse(Nx,Nx))
 
     select case (xDerivativeScheme)
-    case (0)
+    case (0,2)
        ! Polynomial spectral collocation
-       call makeXGrid(Nx, x, xWeights)
+       call makeXGrid(Nx, x, xWeights, .false.)
        xWeights = xWeights / exp(-x*x)
        x = x * xScaleFactor
        xWeights = xWeights * xScaleFactor
@@ -344,6 +384,7 @@ module grids
   !!$       erfs(i) = temp1
   !!$    end do
 
+
     ! For all preconditioner_x values except 5, we do not need to make
     ! d2dx2Preconditioner, because the xDot term only needs the first derivative.
     ! However, due to the way the collision operator is implemented later,
@@ -393,6 +434,59 @@ module grids
        stop
     end select
 
+    ! *******************************************************************************
+    ! Set the number of Legendre modes used for each value of x
+    ! *******************************************************************************
+
+    allocate(Nxi_for_x(Nx))
+
+    if (masterProc) print *,"Nxi_for_x_option:",Nxi_for_x_option
+    select case (Nxi_for_x_option)
+    case (0)
+      Nxi_for_x = Nxi
+    case (1)
+      do j=1,Nx
+        ! Linear ramp from 0.1*Nxi to Nxi as x increases from 0 to 2:
+        temp = Nxi*(0.1 + 0.9*x(j)/2)
+        ! Always keep at least 3 Legendre modes, for the sake of diagnostics.
+        ! Always keep at least NL Legendre modes, to simplify the collision operator loops.
+        ! Above the threshold value of x, keep exactly Nxi Legendre modes.
+        Nxi_for_x(j) = max(3,NL,min(int(temp),Nxi))
+      end do
+    case (2)
+      do j=1,Nx
+        ! Quadratic ramp from 0.1*Nxi to Nxi as x increases from 0 to 2:
+        temp = Nxi*(0.1 + 0.9*( (x(j)/2)**2 ) )
+        ! Always keep at least 3 Legendre modes, for the sake of diagnostics.
+        ! Always keep at least NL Legendre modes, to simplify the collision operator loops.
+        ! Above the threshold value of x, keep exactly Nxi Legendre modes.
+        Nxi_for_x(j) = max(3,NL,min(int(temp),Nxi))
+      end do
+    case default
+      if (masterProc) print *,"Error! Invalid Nxi_for_x_option"
+      stop
+    end select
+
+    call calculate_first_index_for_x()
+
+    allocate(min_x_for_L(0:(Nxi-1)))
+    min_x_for_L=1
+    do j=1,Nx
+      min_x_for_L(Nxi_for_x(j):) = j+1
+    end do
+
+    if (masterProc) then
+      print *,"x:",x
+      print *,"Nxi for each x:",Nxi_for_x
+      print *,"min_x_for_L:",min_x_for_L
+    end if
+
+    localDKEMatrixSize = Ntheta * sum(Nxi_for_x) 
+    localMatrixSize = localDKEMatrixSize * numSpecies
+    matrixSize = Npsi * localMatrixSize + (Npsi - NpsiSourcelessRight - NpsiSourcelessLeft) * Nsources * numSpecies
+    if (masterProcInSubComm) then
+       print *,"[",myCommunicatorIndex,"] The matrix is ",matrixSize,"x",matrixSize," elements."
+    end if
 
     ! *******************************************************************************
     ! Create some uniform grids in x and xi used for diagnostics

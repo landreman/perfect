@@ -14,10 +14,13 @@ module solveDKE
   use profiles
   use sparsify
 
-#include <finclude/petsckspdef.h>
-#include <finclude/petscdmdadef.h>
-
 #include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
+#include <finclude/petsckspdef.h>
+#else
+#include <petsc/finclude/petsckspdef.h>
+#endif
+
   
   implicit none
 
@@ -100,6 +103,17 @@ contains
     ! Fill some arrays that can be computed from the radial physics profiles.
     call computeDerivedProfileQuantities()
 
+
+    if (xDerivativeScheme==2 .and. localNpsi>0) then
+       ! The localNpsi>0 test is included above to avoid problems with array dimensions of size 0
+       ! in case the # of procs exceeds Npsi.
+       allocate(RosenbluthPotentialTerms(numSpecies,numSpecies,NL,Nx,Nx,localNpsi))
+       call computeRosenbluthPotentialResponse(Nx, x, xWeights, numSpecies, masses, &
+            THats(:,ipsiMin:ipsiMax), nHats(:,ipsiMin:ipsiMax), charges, NL, localNpsi, &
+            RosenbluthPotentialTerms,.false.)
+    end if
+    
+
     ! *********************************************************
     ! *********************************************************
     !
@@ -118,9 +132,7 @@ contains
     ! *******************************************************************************
     ! *******************************************************************************
     call DKECreateRhsVector()
-
     call deallocateInitializationGridArrays()
-
     ! *********************************************************************************************
     ! If this process handles the left or right boundary, solve the local kinetic equation there:
     ! *********************************************************************************************
@@ -130,13 +142,9 @@ contains
     call VecAssemblyEnd(rhs, ierr)
 
     ! ***********************************************************************
+    ! Clean up
     ! ***********************************************************************
-    ! 
-    !  Permute the rows and columns of the linear system, if desired:
-    !
-    ! ***********************************************************************
-    ! ***********************************************************************
-    ! call permuteRowsAndColumns()
+    if (allocated(RosenbluthPotentialTerms)) deallocate(RosenbluthPotentialTerms)
 
     ! ***********************************************************************
     ! ***********************************************************************
@@ -180,7 +188,7 @@ contains
   subroutine solveDKEBoundariesLocal(time1)
 
     PetscErrorCode :: ierr
-    integer :: ix, itheta, ipsi, L, index
+    integer :: ix, itheta, ipsi, L, index, globalIndex
     integer :: ispecies
     KSP :: KSPBoundary
     PC :: PCBoundary
@@ -190,6 +198,9 @@ contains
     PetscScalar, pointer :: solnArray(:)
     PetscLogDouble, intent(inout) :: time1
     PetscLogDouble :: time2
+#if (PETSC_VERSION_MAJOR > 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR > 6))
+    PetscViewerAndFormat :: vf1, vf2
+#endif
 
     if (procThatHandlesLeftBoundary) then
        ! This process handles the left boundary, so solve the local kinetic equation there.
@@ -220,7 +231,12 @@ contains
              call KSPSetTolerances(KSPBoundary, solverTolerance, 1.d-50, &
                   1.d10, PETSC_DEFAULT_INTEGER, ierr)
              call KSPSetFromOptions(KSPBoundary, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
+#else
+             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf1, ierr)
+             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf1, PetscViewerAndFormatDestroy, ierr)
+#endif
           else
              ! Direct solver:
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
@@ -282,16 +298,16 @@ contains
        ! Where trajectories enter the domain, copy solnLeft to the global rhs:
        if (leftBoundaryScheme /= 2) then
          call VecGetArrayF90(solnLeft, solnArray, ierr)
-         ipsi = 1
+         ipsi=1
          do ispecies=1,numSpecies
             do itheta=1,Ntheta
                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                     / (psiAHat*charges(ispecies))
                if (signOfPsiDot > -thresh) then
-                  do L=0,(Nxi-1)
-                     do ix=1,Nx
-                        index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta
-                        call VecSetValue(rhs, index-1, solnArray(index), INSERT_VALUES, ierr)
+                  do ix=1,Nx
+                     do L=0,(Nxi_for_x(ix)-1)
+                        index = getIndex(ispecies,ix,L,itheta,1)
+                        call VecSetValue(rhs, index, solnArray(index+1), INSERT_VALUES, ierr)
                      end do
                   end do
                end if
@@ -305,6 +321,7 @@ contains
        call VecDestroy(solnLeft, ierr)
        call VecDestroy(rhsLeft, ierr)
     end if
+
 
     if (procThatHandlesRightBoundary) then
        ! This process handles the right boundary, so solve the local kinetic equation there.
@@ -335,7 +352,12 @@ contains
              call KSPSetTolerances(KSPBoundary, solverTolerance, 1.d-50, &
                   1.d10, PETSC_DEFAULT_INTEGER, ierr)
              call KSPSetFromOptions(KSPBoundary, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
+#else
+             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf2, ierr)
+             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf2, PetscViewerAndFormatDestroy, ierr)
+#endif
           else
              ! Direct solver:
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
@@ -403,10 +425,11 @@ contains
                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                     / (psiAHat*charges(ispecies))
                if (signOfPsiDot < thresh) then
-                  do L=0,(Nxi-1)
-                     do ix=1,Nx
-                        index = (ispecies-1)*Nx*Nxi*Ntheta + (ix-1)*Nxi*Ntheta + L*Ntheta + itheta
-                        call VecSetValue(rhs, (ipsi-1)*localMatrixSize + index-1, solnArray(index), INSERT_VALUES, ierr)
+                  do ix=1,Nx
+                     do L=0,(Nxi_for_x(ix)-1)
+                        index = getIndex(ispecies,ix,L,itheta,1)
+                        globalIndex = getIndex(ispecies,ix,L,itheta,ipsi)
+                        call VecSetValue(rhs, globalIndex, solnArray(index+1), INSERT_VALUES, ierr)
                      end do
                   end do
                end if
@@ -473,11 +496,10 @@ contains
     do ispecies=1,numSpecies
       ! Compute the density and 'second' moments (i.e. integrals of 1 and (x^2-3/2) times g) of the solution
       do itheta=1,Ntheta
-        indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
+        indices = [(getIndex(ispecies,ix,L,itheta,1), ix=1,Nx)] ! This line assumes min_x_for_L(0)=1.
         ! Removed densityFactors and pressureFactors that are present in moments.F90 (pretty sure they are just normalizations that are not needed here).
-        localDensityPerturbation(itheta) = dot_product(xWeights, x2 * solnArray(indices))
-        localSecondMomentPerturbation(itheta) = dot_product(xWeights, x2*(x2-1.5d0) * solnArray(indices))
+        localDensityPerturbation(itheta) = dot_product(xWeights, x2 * solnArray(indices+1))
+        localSecondMomentPerturbation(itheta) = dot_product(xWeights, x2*(x2-1.5d0) * solnArray(indices+1))
       end do
       ! Take the flux surface averages
       FSALocalDensityPerturbation = dot_product(thetaWeights, localDensityPerturbation/JHat(:,ipsi)) / VPrimeHat(ipsi)
@@ -486,11 +508,10 @@ contains
       !!        "secondmoment=",FSALocalSecondMomentPerturbation
       ! Subtract out the moments to set the flux surface averages to zero
       do itheta=1,Ntheta
-        indices = (ispecies-1)*Nx*Nxi*Ntheta &
-                  + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
-        solnArray(indices) = solnArray(indices) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2)
-        solnArray(indices) = solnArray(indices) - FSALocalSecondMomentPerturbation &
-                                                  *8d0/3d0/sqrt(pi)*(x2-1.5d0)*exp(-x2)
+         indices = [(getIndex(ispecies,ix,L,itheta,1), ix=1,Nx)]! This line assumes min_x_for_L(0)=1.
+         solnArray(indices+1) = solnArray(indices+1) - FSALocalDensityPerturbation*4d0/sqrt(pi)*exp(-x2)
+         solnArray(indices+1) = solnArray(indices+1) - FSALocalSecondMomentPerturbation &
+              *8d0/3d0/sqrt(pi)*(x2-1.5d0)*exp(-x2)
       end do
     end do
 
@@ -535,6 +556,9 @@ contains
     double precision :: myMatInfo(MAT_INFO_SIZE)
     PetscLogDouble, intent(inout) :: time1
     PetscLogDouble :: time2
+#if (PETSC_VERSION_MAJOR > 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR > 6))
+    PetscViewerAndFormat :: vf
+#endif
 
     call KSPCreate(MPIComm, KSPInstance, ierr)
     CHKERRQ(ierr)
@@ -547,6 +571,7 @@ contains
        ! Syntax for PETSc version 3.5 and later
        call KSPSetOperators(KSPInstance, matrix, preconditionerMatrix, ierr)
 #endif
+
        CHKERRQ(ierr)
        call KSPGetPC(KSPInstance, preconditionerContext, ierr)
        CHKERRQ(ierr)
@@ -559,7 +584,12 @@ contains
        CHKERRQ(ierr)
        call KSPSetFromOptions(KSPInstance, ierr)
        CHKERRQ(ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
        call KSPMonitorSet(KSPInstance, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
+#else
+       call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf, ierr)
+       call KSPMonitorSet(KSPInstance, KSPMonitorDefault, vf, PetscViewerAndFormatDestroy, ierr)
+#endif
     else
        ! Direct solver:
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))

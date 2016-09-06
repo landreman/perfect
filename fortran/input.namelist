@@ -145,6 +145,7 @@
   ! If makeLocalApproximation is set to true, the conventional radially local
   ! kinetic equation is solved instead of the radially global kinetic equation.
 
+
   includeddpsiTerm = .true.
 !  includeddpsiTerm = .false.
 
@@ -271,12 +272,25 @@
   NxUniform = 25
   NxiUniform = 31
   xUniformMax = 3d+0
+
+  thetaGridShift = 0.0
 /
 
 &otherNumericalParameters
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Other numerical parameters:
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  NpsiSourcelessLeft = 0
+  NpsiSourcelessRight = 0
+  ! N=0 : constraint and sources are solved for at the boundary points
+  ! N>0 : constraints and sources are not enforced N psi indices away from and including the boundary
+
+  psiGridType = 0
+  ! 0 = Homogenous grid in psi with spacing as specified above
+  ! 1 = inhomogenous grid in psi. Inhomogenous grid obtained by mapping from psi' to psi, where grid is homogenous in psi'. All other inputs quantities intepreted as being given in psi', dpsi/dpsi' specified in file below
+  psiAHatFilename = "psiAHat.h5"
+
 
   psiDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.
@@ -291,11 +305,12 @@
   ! 1 = Uniform grid, centered finite differences, 3-point stencil
   ! 2 = Uniform grid, centered finite differences, 5-point stencil
 
-  xDerivativeScheme = 0
-  ! This parameter should almost always be 0.
+  xDerivativeScheme = 2
+  ! This parameter should almost always be 2.
   ! Options for xDerivativeScheme:
-  ! 0 = Gaussian grid, polynomial spectral collocation
+  ! 0 = Gaussian grid, polynomial spectral collocation, old method for Rosenbluth potentials
   ! 1 = Uniform grid, centered finite differences, 5-point stencil
+  ! 2 = Gaussian grid, polynomial spectral collocation, new better method for Rosenbluth potentials
 
   ! Amount by which to scale the polynomial speed (x) grid:
   ! (Use 1 unless you know what you are doing.)
@@ -335,6 +350,11 @@
   ! more MPI processors than runs desired (1 if a single run, or more if a convergence scan.)
   ! Otherwise, matrices are not distributed across processors, so the PETSc built-in serial sparse
   ! direct solver is used to factor the preconditioner.
+
+  Nxi_for_x_option = 1
+  ! Option to control truncation of xi-grid
+  ! 0 = use full grid
+  ! 1 = increase Nxi with x
 
 /
 

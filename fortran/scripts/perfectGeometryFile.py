@@ -26,17 +26,18 @@ class perfectGeometry:
     def close(self):
         self.geometryFile.close()
 
-    def create_geometry_for_Npsi_Ntheta(self, Npsi, Ntheta, psiMin, psiMax, BHat, dBHatdpsi, dBHatdtheta, JHat, IHat, dIHatdpsi,replace=False):
+    def create_geometry_for_Npsi_Ntheta(self, Npsi, Ntheta, psiMin, psiMax, BHat, dBHatdpsi, dBHatdtheta, RHat, JHat, IHat, dIHatdpsi,replace=False):
         # Make sure inputs are numpy arrays
         BHat = numpy.array(BHat)
         dBHatdpsi = numpy.array(dBHatdpsi)
         dBHatdtheta = numpy.array(dBHatdtheta)
+        RHat = numpy.array(RHat)
         JHat = numpy.array(JHat)
         IHat = numpy.array(IHat)
         dIHatdpsi = numpy.array(dIHatdpsi)
 
         # Check arrays are the right size
-        for var,name in [[BHat,"BHat"], [dBHatdpsi,"dBHatdpsi"], [dBHatdtheta,"dBHatdtheta"], [JHat,"JHat"]]:
+        for var,name in [[BHat,"BHat"], [dBHatdpsi,"dBHatdpsi"], [dBHatdtheta,"dBHatdtheta"], [RHat,"RHat"],[JHat,"JHat"]]:
             if var.shape != (Npsi,Ntheta):
                 print "Error: "+name+" has dimensions "+str(var.shape)+" instead of (Npsi,Ntheta) =",str((Npsi,Ntheta))
                 exit(1)
@@ -60,6 +61,7 @@ class perfectGeometry:
         geometrygroup.create_dataset("BHat",data=BHat)
         geometrygroup.create_dataset("dBHatdpsi",data=dBHatdpsi)
         geometrygroup.create_dataset("dBHatdtheta",data=dBHatdtheta)
+        geometrygroup.create_dataset("RHat",data=JHat)
         geometrygroup.create_dataset("JHat",data=JHat)
         geometrygroup.create_dataset("IHat",data=IHat)
         geometrygroup.create_dataset("dIHatdpsi",data=dIHatdpsi)
