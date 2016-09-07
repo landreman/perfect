@@ -295,6 +295,15 @@ module globalVariables
   logical :: includeNeutrals
   PetscScalar :: CXCrossSectionHat
   PetscScalar, dimension(:,:), allocatable :: nHatNeutral, dnHatNeutraldpsi
+  PetscScalar, dimension(:,:), allocatable :: fullNeutralMomentumFluxBeforeThetaIntegralNC, &
+                                              fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic, &
+                                              fullNeutralMomentumFluxFactorNC, &
+                                              fullNeutralMomentumFluxFactorDiamagnetic
+  PetscScalar, dimension(:), allocatable :: fullNeutralMomentumFluxNC, fullNeutralMomentumFluxDiamagnetic, &
+                                            fullNeutralMomentumFlux
+  PetscScalar, dimension(:,:), allocatable :: nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral, &
+                                              nonIntrinsicNeutralMomentumFluxFactor
+  PetscScalar, dimension(:), allocatable :: nonIntrinsicNeutralMomentumFlux
   PetscScalar, dimension(:,:), allocatable :: neutralMomentumFluxBeforeThetaIntegral1, &
                                               neutralMomentumFluxBeforeThetaIntegral2, &
                                               neutralMomentumFluxBeforeThetaIntegral3, &

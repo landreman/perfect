@@ -355,6 +355,19 @@ contains
       call writeVariable(neutralMomentumFluxBeforeThetaIntegral3,"neutralMomentumFluxBeforeThetaIntegral3",runNum)
       call writeVariable(neutralMomentumFluxBeforeThetaIntegralDiamagnetic,&
         "neutralMomentumFluxBeforeThetaIntegralDiamagnetic",runNum)
+      call writeVariable(fullNeutralMomentumFluxFactorDiamagnetic,"fullNeutralMomentumFluxFactorDiamagnetic",runNum)
+      call writeVariable(fullNeutralMomentumFluxFactorNC,"fullNeutralMomentumFluxFactorNC",runNum)
+      call writeVariable(fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic, &
+          "fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic",runNum)
+      call writeVariable(fullNeutralMomentumFluxBeforeThetaIntegralNC,&
+          "fullNeutralMomentumFluxBeforeThetaIntegralNC",runNum)
+      call writeVariable(fullNeutralMomentumFluxDiamagnetic,"fullNeutralMomentumFluxDiamagnetic",runNum)
+      call writeVariable(fullNeutralMomentumFluxNC,"fullNeutralMomentumFluxNC",runNum)
+      call writeVariable(fullNeutralMomentumFlux,"fullNeutralMomentumFlux",runNum)
+      call writeVariable(nonIntrinsicNeutralMomentumFluxFactor,"nonIntrinsicNeutralMomentumFluxFactor",runNum)
+      call writeVariable(nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral, &
+          "nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral",runNum)
+      call writeVariable(nonIntrinsicNeutralMomentumFlux,"nonIntrinsicNeutralMomentumFlux",runNum)
     end if
 
   end subroutine writeRunToOutputFile

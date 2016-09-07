@@ -51,7 +51,8 @@ contains
     PetscScalar, dimension(:,:), allocatable :: neutralMomentumFluxFactors1, &
                                                 neutralMomentumFluxFactors2, &
                                                 neutralMomentumFluxFactors3, &
-                                                neutralMomentumFluxFactors4
+                                                neutralMomentumFluxFactors4, &
+                                                fullNeutralMomentumFluxCoeff
 
     PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,signBP
     
@@ -151,6 +152,7 @@ contains
          allocate(neutralMomentumFluxFactors2(Ntheta,Npsi))
          allocate(neutralMomentumFluxFactors3(Ntheta,Npsi))
          allocate(neutralMomentumFluxFactors4(Ntheta,Npsi))
+         allocate(fullNeutralMomentumFluxCoeff(Ntheta,Npsi))
        end if
 
        allocate(indices(Nx))
@@ -171,8 +173,8 @@ contains
           pPerpTermInVpFactors = (8*pi/3)*(THats(ispecies,:)/masses(ispecies))**(5/two)
           !       pPerpTermInKThetaFactors = THat ** (5/two)
 
-          tauXHat = 1d0/2d0/nHats(1,:)/sqrt(THats(1,:)/masses(1))/CXCrossSectionHat
-          if (includeNeutrals) then
+          if (includeNeutrals .and. ispecies==1) then
+            tauXHat = 1d0/2d0/nHats(1,:)/sqrt(THats(1,:)/masses(1))/CXCrossSectionHat
             do itheta=1,Ntheta
               neutralMomentumFluxFactors1(itheta,:) = nHatNeutral(itheta,:)/nHats(1,:)*momentumFluxFactors
               neutralMomentumFluxFactors2(itheta,:) = 2d0*pi*Delta*tauXHat*RHat(itheta,:)&
@@ -189,11 +191,21 @@ contains
                   *dnHatNeutraldpsi(itheta,:)&
                   *Delta/psiAHat*RHat(itheta,:)/2d0/charges(1)/BHat(itheta,:)*sqrt(THats(1,:)*masses(1))&
                   *(IHat**2/RHat(itheta,:)**2/BHat(itheta,:)**2-1d0)*dBHatdpsi(itheta,:)
+              fullNeutralMomentumFluxCoeff(itheta,:) = -Delta*pi/psiAHat*tauXHat &
+                  *(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2) &
+                  *IHat*THats(1,:)**3/BHat(itheta,:)/masses(1)**2/nHats(1,:)
               ! The diamagnetic flux does not actually depend on the solution, so can be computed directly
               neutralMomentumFluxBeforeThetaIntegralDiamagnetic(itheta,:) = &
                   Delta/2d0/psiAHat**2*tauXHat*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)**2&
                   *THats(1,:)**2/BHat(itheta,:)**2*dnHatNeutraldpsi(itheta,:)*(dnHatdpsis(1,:)/nHats(1,:)&
                   +2d0*omega/Delta*charges(1)/THats(1,:)*dPhiHatdpsi+2d0*dTHatdpsis(1,:)/THats(1,:))
+              fullNeutralMomentumFluxFactorDiamagnetic(itheta,:) = &
+                  Delta/4d0/psiAHat**2*tauXHat*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)**2*THats(1,:)**2 &
+                  /BHat(itheta,:)**2 &
+                  * (dnHatdpsis(1,:)/nHats(1,:) + 2d0*omega/Delta*charges(1)/THats(1,:)*dPhiHatdpsi &
+                     + 2d0*dTHatdpsis(1,:)/THats(1,:))
+              fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic = &
+                  fullNeutralMomentumFluxFactorDiamagnetic*nHatNeutral
             end do
           end if
 
@@ -229,9 +241,9 @@ contains
                 if (includeNeutrals .and. ispecies==1) then
                   neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) = &
                       -4d0/3d0*neutralMomentumFluxFactors3(itheta,ipsi) &
-                      * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices))&
+                      * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1))&
                       -8d0/5d0*neutralMomentumFluxFactors4(itheta,ipsi) &
-                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
                 end if
 
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
@@ -254,10 +266,13 @@ contains
                 if (includeNeutrals .and. ispecies==1) then
                   neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) = &
                       16d0/15d0*neutralMomentumFluxFactors1(itheta,ipsi) &
-                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
                   neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) = &
                       -4d0/15d0*neutralMomentumFluxFactors2(itheta,ipsi) &
-                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
+                  fullNeutralMomentumFluxFactorNC(itheta,ipsi) = &
+                      4d0/15d0*fullNeutralMomentumFluxCoeff(itheta,ipsi) &
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
                 end if
 
              end do
@@ -284,9 +299,9 @@ contains
                   neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) = &
                       neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) &
                       + 4d0/15d0*neutralMomentumFluxFactors3(itheta,ipsi) &
-                      * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices))&
+                      * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1))&
                       + 8d0/35d0*neutralMomentumFluxFactors4(itheta,ipsi) &
-                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
                 end if
 
                 !             pPerpTermInKThetaBeforePsiDerivative(itheta,ipsi) = &
@@ -309,11 +324,15 @@ contains
                   neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) = &
                       neutralMomentumFluxBeforeThetaIntegral1(itheta,ipsi) &
                       + 4d0/35d0*neutralMomentumFluxFactors1(itheta,ipsi) &
-                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
                   neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) = &
                       neutralMomentumFluxBeforeThetaIntegral2(itheta,ipsi) &
                       + 4d0/35d0*neutralMomentumFluxFactors2(itheta,ipsi) &
-                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices))
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
+                  fullNeutralMomentumFluxFactorNC(itheta,ipsi) = &
+                      fullNeutralMomentumFluxFactorNC(itheta,ipsi) &
+                      - 4d0/35d0*fullNeutralMomentumFluxCoeff(itheta,ipsi) &
+                      * dot_product(xWeights, momentumFluxIntegralWeights * solnArray(indices+1))
                 end if
 
              end do
@@ -329,7 +348,7 @@ contains
                   neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) = &
                       neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) &
                       + 16d0/315d0*neutralMomentumFluxFactors4(itheta,ipsi) &
-                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices))
+                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
                 end if
 
              end do
@@ -354,28 +373,37 @@ contains
             neutralMomentumFluxBeforeThetaIntegral1 = neutralMomentumFluxBeforeThetaIntegral1 &
                 * dBHatdtheta / (BHat * BHat * BHat * BHat) 
             ! Already included factors of BHat in neutralMomentumFluxFactors2 and neutralMomentumFluxFactors3
+            fullNeutralMomentumFluxBeforeThetaIntegralNC = nHatNeutral*fullNeutralMomentumFluxFactorNC
           end if
           do itheta=1,Ntheta
-             pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
-             toroidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:) 
-             poloidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:)
-             
-             toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
-                  *(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
-                  * (-BPHat(itheta,:)**2) * RHat(itheta,:) * toroidalFlow(ispecies,itheta,:)
-             poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
-                  *(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
-                  *BPHat(itheta,:)*IHat(:)* poloidalFlow(ispecies,itheta,:) 
+             if (.not. makeLocalApproximation) then
+               ! Only add pressure perturbation and density perturbation terms if we include global effects
+               ! In the local limit they are O(delta^2) so cannot be consistently included
+               pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
+               toroidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:) 
+               poloidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:)
 
+               toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
+                    *(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
+                    * (-BPHat(itheta,:)**2) * RHat(itheta,:) * toroidalFlow(ispecies,itheta,:)
+               poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
+                    *(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
+                    *BPHat(itheta,:)*IHat(:)* poloidalFlow(ispecies,itheta,:) 
+
+               toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -omega/(Delta*psiAHat)*dPhiHatdpsi &
+                    *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)**2*RHat(itheta,:))/(BHat(itheta,:)**2)
+               poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +omega/(Delta*psiAHat)*dPhiHatdpsi &
+                    *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)*IHat)/(BHat(itheta,:)**2)
+
+             else
+               toroidalFlow(ispecies,itheta,:) = 0d0
+               poloidalFlow(ispecies,itheta,:) = 0d0
+             end if
+             
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
                   + (BTHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
                   + (BPHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
-
-             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -omega/(Delta*psiAHat)*dPhiHatdpsi &
-                  *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)**2*RHat(itheta,:))/(BHat(itheta,:)**2)
-             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +omega/(Delta*psiAHat)*dPhiHatdpsi &
-                  *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)*IHat)/(BHat(itheta,:)**2)
 
              !since we are not using that variable for anything else
              tempPTflow = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
@@ -411,7 +439,7 @@ contains
              momentumFlux(ispecies,ipsi) = dot_product(thetaWeights, momentumFluxBeforeThetaIntegral(ispecies,:,ipsi))
              heatFlux(ispecies,ipsi) = dot_product(thetaWeights, heatFluxBeforeThetaIntegral(ispecies,:,ipsi))
 
-             if (includeNeutrals) then
+             if (includeNeutrals .and. ispecies==1) then
                ! neutralMomentumFlux1 is proportional to momentumFlux and does not need a JHat factor in the integral
                neutralMomentumFlux1(ipsi) = &
                    dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral1(:,ipsi))
@@ -421,6 +449,12 @@ contains
                    dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegral3(:,ipsi)/JHat(:,ipsi))
                neutralMomentumFluxDiamagnetic(ipsi) = &
                    dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegralDiamagnetic(:,ipsi)/JHat(:,ipsi))
+               ! Still need to take psi derivative and multiply by tau*mi for fullNeutralMomentumFlux*, will do below
+               fullNeutralMomentumFluxNC = &
+                   dot_product(thetaWeights, fullNeutralMomentumFluxBeforeThetaIntegralNC(:,ipsi)/JHat(:,ipsi))
+               fullNeutralMomentumFluxDiamagnetic = &
+                   dot_product(thetaWeights, fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic(:,ipsi) &
+                                             /JHat(:,ipsi))
              end if
 
              !          pPerpTermInKThetaWith3PointStencil(:,ipsi) = pPerpTermInKThetaWith3PointStencil(:,ipsi) &
@@ -474,6 +508,23 @@ contains
           end if
 
        end do
+
+       if (includeNeutrals) then
+         fullNeutralMomentumFluxDiamagnetic = matmul(ddpsiLeft,fullNeutralMomentumFluxDiamagnetic)
+         fullNeutralMomentumFluxNC = matmul(ddpsiLeft,fullNeutralMomentumFluxNC)
+         fullNeutralMomentumFlux = fullNeutralMomentumFluxDiamagnetic + fullNeutralMomentumFluxNC
+
+         do itheta = 1,Ntheta
+           nonIntrinsicNeutralMomentumFluxFactor(itheta,:) = Delta/2d0/psiAHat*tauXHat*RHat(itheta,:) &
+               *(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)*THats(1,:)*toroidalFlow(1,itheta,:)
+         end do
+         nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral = nonIntrinsicNeutralMomentumFluxFactor*nHatNeutral
+         do ipsi = 1,Npsi
+           nonIntrinsicNeutralMomentumFlux = dot_product(thetaWeights, &
+               nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral(:,ipsi)/JHat(:,ipsi))
+         end do
+         nonIntrinsicNeutralMomentumFlux = matmul(ddpsiLeft,nonIntrinsicNeutralMomentumFlux)
+       end if
 
        LegendresOnXiUniform_m1 = 1
        deltaFOutboard = 0
