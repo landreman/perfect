@@ -61,9 +61,15 @@ def diffAll(absoluteTolerance):
 
     failureCount = 0
 
+    # Differences in runtime and commit do not matter
+    ignoredVariables = ["elapsed time (s)","gitCommit"]
+    # these are intermediate variables used to calculate poloidal and toroidal flows
+    # they will be practically zero and noisy in the local limit,
+    # so we ignore them and only report errors if they actually affect
+    # the resulting flows
+    ignoredVariables += ["pPerpTermInVp", "pPerpTermInVpBeforePsiDerivative"]
     for varname in origFile["run  1"]:
-        if varname == "elapsed time (s)" or varname == "gitCommit":
-            # Differences in runtime and commit do not matter
+        if varname in ignoredVariables:
             continue
         newData = newFile["run  1"][varname][...]
         origData = origFile["run  1"][varname][...]

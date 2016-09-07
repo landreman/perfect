@@ -357,7 +357,7 @@ contains
           end if
           do itheta=1,Ntheta
              pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
-	     toroidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:) 
+             toroidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:) 
              poloidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:)
              
              toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
@@ -662,7 +662,7 @@ contains
                   * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
 
              this_pPerpTermInVpBeforePsiDerivative(ispecies,itheta) &
-		  = dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1)) &
+                 = dot_product(xWeights, pressureIntegralWeights * solnArray(indices+1)) &
                   * 2*pi*(4/three)*THats(ispecies,ipsi)**(5.0/2.0)/(masses(ispecies)**(5.0/2.0))
           end do
 
@@ -714,7 +714,7 @@ contains
 
           do itheta=1,Ntheta
              this_pPerpTermInVp(ispecies,itheta) = 0
-	     this_toroidalFlow(ispecies,itheta) = this_pPerpTermInVp(ispecies,itheta) 
+             this_toroidalFlow(ispecies,itheta) = this_pPerpTermInVp(ispecies,itheta) 
              this_poloidalFlow(ispecies,itheta) = this_pPerpTermInVp(ispecies,itheta)
              
              this_toroidalFlow(ispecies,itheta) &
