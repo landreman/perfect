@@ -361,8 +361,8 @@
                         
                         ! --------------------------------------
                         integrationPower = 1-L
-                        partition = max(10.0,2*xb)
-                        
+                        partition = max(10d0,2d0*xb)
+
                         ! [xb, partition)
                         call integrate(integrandWithPower,xb,partition,epsabs,epsrel,key,limit,I_1mL,abserr, &
                              neval,ier,alist,blist,rlist,elist,iord,last)
