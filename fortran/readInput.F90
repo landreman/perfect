@@ -210,6 +210,16 @@ contains
     end if
 
     numSpecies = numCharges
+    if (noChargeSource == 1) then
+       select case(noChargeSourceOption)
+       case(0)
+          allocate(momentumSourceSpeciesDependence(numSpecies))
+          momentumSourceSpeciesDependence = masses
+       case default
+          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0."
+          stop
+       end select
+    end if
 
     if (.not. useIterativeSolver) then
       useIterativeBoundarySolver = .false.
@@ -236,7 +246,6 @@ contains
           stop
        end if       
     end if
-
   end subroutine readNamelistInput
 
 end module readInput

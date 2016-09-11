@@ -123,6 +123,14 @@ contains
 
        ! to calculate poloidal and toroidal flow and flow differentials
        allocate(tempPTflow(Npsi))
+
+       !
+       select case(noChargeSourceOption)
+       case(0)
+          allocate(noChargeSourceMomentumSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+       case default
+          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0. Cannot read from solnArray."
+       end select
        
        densityIntegralWeights = x*x
        flowIntegralWeights = x*x*x
@@ -161,7 +169,6 @@ contains
              ! we will have some extra field to read out
              select case(noChargeSourceOption)
              case(0)
-                allocate(noChargeSourceMomentumSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
                 do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
                    noChargeSourceMomentumSourceProfile(ispecies,ipsi) = &
                         momentumSourceSpeciesDependence(ispecies)*solnArray(Npsi * localMatrixSize &

@@ -1383,16 +1383,7 @@ contains
        end do
     end do
 
-    if (noChargeSource == 1) then
-       allocate(momentumSourceSpeciesDependence(numSpecies))
-       select case(noChargeSourceOption)
-          case(0)
-             momentumSourceSpeciesDependence = masses
-          case default
-             print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0."
-             stop
-          end select
-       
+    if (noChargeSource == 1) then 
        L = 1
        do ix=1,Nx
           sourceXPart(ix) = x(ix)*(x2(ix)-7/two)*exp(-x2(ix))
