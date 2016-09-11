@@ -140,6 +140,14 @@
   ! 0 = Sources are constant in theta
   ! 1 = Sources vary as (1 + cos(theta))
 
+  noChargeSource = 0
+  ! 0: sum_a Z_a S_a = 0 is not enforced. (Default)
+  ! 1: sum_a Z_a S_a = 0 is enforced. A new unknown is introduced to make the system solvable, see option below.
+
+  noChargeSourceOption = 0
+  ! This option is used if noChargeSource = 1.
+  ! 0: one momentum source field S_m is solved for. Species momentum field assumed to scale as S_{ma} = \hat{m}_a S_m.
+
   makeLocalApproximation = .true.
 !  makeLocalApproximation = .false.
   ! If makeLocalApproximation is set to true, the conventional radially local

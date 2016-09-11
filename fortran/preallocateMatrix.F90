@@ -15,7 +15,8 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
        psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
        preconditioner_species, preconditioner_x, preconditioner_x_min_L, &
        preconditioner_psi, preconditioner_theta, preconditioner_xi, &
-       lowestEnforcedIpsi, highestEnforcedIpsi
+       lowestEnforcedIpsi, highestEnforcedIpsi, NEnforcedPsi, &
+       noChargeSource
 
   implicit none
 
@@ -119,12 +120,13 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
 
   ! Set predictedNNZPerRow_DKE to the expected number of nonzeros in a row of the kinetic equation block:
 
+  ! We probably only add sources here since L=0 i sorted here?
   if (finalMatrix==0 .and. preconditioner_xi==1) then
     predictedNNZPerRow_DKE = 3 & ! d/dxi term is tridiagonal for the preconditioner
-                            + 2  ! particle and heat sources
+                            + Nsources  ! particle and heat sources
   else
     predictedNNZPerRow_DKE = 5 & ! d/dxi term is pentadiagonal
-                            + 2  ! particle and heat sources
+                            + Nsources  ! particle and heat sources
   end if
 
   select case (thisThetaDerivativeScheme)
@@ -181,6 +183,12 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
      stop "Invalid xDerivativeScheme"
   end select
 
+  if (whichMatrix==0 .and. noChargeSource==1) then
+     ! We add an extra source on each row
+     ! but we should really add one just for each L=1 row.
+     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 1
+  end if
+  
   ! PETSc gets angry if you request more nonzeros than the matrix size:
   if (predictedNNZPerRow_DKE > thisMatrixSize) then
      predictedNNZPerRow_DKE = thisMatrixSize
@@ -199,7 +207,16 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
            end do
         end do
      end do
+
+     if (noChargeSource==1) then
+        do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+           index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi-lowestEnforcedIpsi)
+           predictedNNZsForEachRow(index) = Npsi * numSpecies
+        end do
+     end if
   end if
+
+  
 
   predictedNNZsForEachRowDiagonal = predictedNNZsForEachRow
   

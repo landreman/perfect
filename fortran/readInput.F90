@@ -27,6 +27,7 @@ contains
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
          detaHatdpsiScalar, sourcePoloidalVariation, &
          sourcePoloidalVariationStrength, sourcePoloidalVariationPhase, &
+         noChargeSource, noChargeSourceOption, &
          Delta, omega, psiAHat, psiMid,  &
          exponent, setTPrimeToBalanceHeatFlux, &
          includeCollisionOperator, includeddpsiTerm, &
@@ -100,6 +101,10 @@ contains
        ! Default phase and poloidal variation
        sourcePoloidalVariationStrength = 1.0
        sourcePoloidalVariationPhase = 0.0
+
+       ! Default option for enforcing no charge sources
+       noChargeSource = 0
+       noChargeSourceOption = 0
 
        ! include collision operator by default
        includeCollisionOperator= .true.

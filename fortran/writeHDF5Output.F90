@@ -239,6 +239,18 @@ contains
             call writeVariable(genericSourceProfile,"unknownSourceProfile",runNum)
          end select
       end do
+      call writeVariable(noChargeSource,"noChargeSource",runNum)
+      call writeVariable(noChargeSourceOption,"noChargeSourceOption",runNum)
+      
+      if (noChargeSource == 1) then
+         select case(noChargeSourceOption)
+         case(0)
+            call writeVariable(momentumSourceSpeciesDependence,"momentumSourceSpeciesDependence",runNum)
+            call writeVariable(noChargeSourceMomentumSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
+         case default
+            print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0. Will not write extra to output."
+         end select
+      end if
       call writeVariable(VPrimeHat,"VPrimeHat",runNum)
       call writeVariable(FSABHat2,"FSABHat2",runNum)
       call writeVariable(U,"U",runNum)

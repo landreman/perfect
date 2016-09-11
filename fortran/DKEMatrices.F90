@@ -1383,6 +1383,40 @@ contains
        end do
     end do
 
+    if (noChargeSource == 1) then
+       allocate(momentumSourceSpeciesDependence(numSpecies))
+       select case(noChargeSourceOption)
+          case(0)
+             momentumSourceSpeciesDependence = masses
+          case default
+             print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0."
+             stop
+          end select
+       
+       L = 1
+       do ix=1,Nx
+          sourceXPart(ix) = x(ix)*(x2(ix)-7/two)*exp(-x2(ix))
+          do ipsi=this_ipsiMin,this_ipsiMax
+             do ispecies = 1,numSpecies
+                do itheta=1,Ntheta
+                   signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
+                        / (psiAHat*charges(ispecies))
+                   if ((ipsi > 1 .and. ipsi < Npsi) &
+                        .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
+                        .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then 
+                      ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
+                      ! so impose the kinetic equation here.
+                      rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
+                      colIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+                      call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                           momentumSourceSpeciesDependence(ispecies)*sourceThetaPart(itheta) * sourceXPart(ix), ADD_VALUES, ierr)
+                   end if
+                end do
+             end do
+          end do
+       end do
+    end if
+
     deallocate(sourceThetaPart)
     deallocate(sourceXPart)
 
@@ -1397,6 +1431,9 @@ contains
     PetscErrorCode :: ierr
     PetscScalar, dimension(:), allocatable :: constraintXAndThetaPart
     PetscScalar, dimension(:), allocatable :: constraintXPart
+    ! the following constraint is only use to enforce noChargeSources
+    PetscScalar, dimension(:), allocatable :: constraintSpeciesPart
+    PetscScalar, dimension(:), allocatable :: constraintPsiAndSpeciesPart
     
     integer, dimension(:), allocatable :: rowIndices, colIndices
     integer :: ix, itheta, ipsi, L
@@ -1423,19 +1460,36 @@ contains
              print *,"Error! Invalid source. Nsources > not implemented"
              stop
           end select
-             do ispecies = 1,numSpecies
-                do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-                   rowIndexArray = Npsi*localMatrixSize &
-                        + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
-                   do ix = 1, Nx
-                      constraintXAndThetaPart = constraintXPart(ix) * thetaWeights / JHat(:,ipsi)
-                      colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
-                      call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, constraintXAndThetaPart,&
-                           ADD_VALUES, ierr)
-                   end do
+          do ispecies = 1,numSpecies
+             do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+                rowIndexArray = Npsi*localMatrixSize &
+                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
+                do ix = 1, Nx
+                   constraintXAndThetaPart = constraintXPart(ix) * thetaWeights / JHat(:,ipsi)
+                   colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
+                   call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, constraintXAndThetaPart,&
+                        ADD_VALUES, ierr)
                 end do
              end do
           end do
+       end do
+
+       if (noChargeSource == 1) then
+          isources = 1 ! particle sources only enters into this constraint
+          allocate(constraintSpeciesPart(Npsi))
+          allocate(constraintPsiAndSpeciesPart(Npsi))
+          do ispecies = 1,numSpecies
+             constraintSpeciesPart = charges(ispecies)/(masses(ispecies)**2)
+             do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+                constraintPsiAndSpeciesPart = constraintSpeciesPart*THats(ispecies,ipsi)**(3.0/2.0)
+                rowIndexArray = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+                colIndices = Npsi*localMatrixSize &
+                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
+                call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, constraintPsiAndSpeciesPart,&
+                     ADD_VALUES, ierr)
+             end do
+          end do     
+       end if
              
        deallocate(colIndices)
        deallocate(constraintXAndThetaPart)

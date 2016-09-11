@@ -68,6 +68,7 @@ contains
     ! Boundaries of region where sources are enforced
     lowestEnforcedIpsi = 1 + NpsiSourcelessLeft
     highestEnforcedIpsi = Npsi - NpsiSourcelessRight
+    NEnforcedPsi = Npsi - NpsiSourcelessRight - NpsiSourcelessLeft
 
     numRunsInScan = 1
 

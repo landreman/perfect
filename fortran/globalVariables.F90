@@ -103,6 +103,12 @@ module globalVariables
   PetscScalar :: sourcePoloidalVariationStrength
   PetscScalar :: sourcePoloidalVariationPhase
 
+  integer :: noChargeSource
+  ! the following 2 variables are used for noChargeSource = 1
+  integer :: noChargeSourceOption
+  PetscScalar, dimension(:), allocatable :: momentumSourceSpeciesDependence
+  ! this is used to write the out the momentum source
+  PetscScalar, dimension(:,:), allocatable :: noChargeSourceMomentumSourceProfile
 
   logical :: makeLocalApproximation
 
@@ -212,6 +218,8 @@ module globalVariables
 
   ! lowest/highest psi indices where constraint are enforced
   integer :: lowestEnforcedIpsi, highestEnforcedIpsi
+  ! number of indices with enforced constraints
+  integer ::  NEnforcedPsi
 
   PetscScalar :: thresh
 

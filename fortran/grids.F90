@@ -483,7 +483,11 @@ module grids
 
     localDKEMatrixSize = Ntheta * sum(Nxi_for_x) 
     localMatrixSize = localDKEMatrixSize * numSpecies
-    matrixSize = Npsi * localMatrixSize + (Npsi - NpsiSourcelessRight - NpsiSourcelessLeft) * Nsources * numSpecies
+    matrixSize = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies
+    if (noChargeSource == 1) then
+       ! add an extra set of psi rows and cols for constraint on sources
+       matrixSize = matrixSize + NEnforcedPsi
+    end if
     if (masterProcInSubComm) then
        print *,"[",myCommunicatorIndex,"] The matrix is ",matrixSize,"x",matrixSize," elements."
     end if
