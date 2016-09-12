@@ -215,8 +215,12 @@ contains
        case(0)
           allocate(momentumSourceSpeciesDependence(numSpecies))
           momentumSourceSpeciesDependence = masses
+       case(1)
+          allocate(momentumSourceSpeciesDependence(numSpecies))
+          momentumSourceSpeciesDependence = zero
+          momentumSourceSpeciesDependence(1) = one
        case default
-          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0."
+          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1."
           stop
        end select
     end if

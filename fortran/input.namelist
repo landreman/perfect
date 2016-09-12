@@ -147,6 +147,7 @@
   noChargeSourceOption = 0
   ! This option is used if noChargeSource = 1.
   ! 0: one momentum source field S_m is solved for. Species momentum field assumed to scale as S_{ma} = \hat{m}_a S_m.
+  ! 1: one momentum source field S_m is solved for. Only first species has a momentum source. TODO: make it select species based on charge and density (to identify main ion).
 
   makeLocalApproximation = .true.
 !  makeLocalApproximation = .false.
