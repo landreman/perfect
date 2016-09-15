@@ -153,6 +153,16 @@ contains
          allocate(neutralMomentumFluxFactors3(Ntheta,Npsi))
          allocate(neutralMomentumFluxFactors4(Ntheta,Npsi))
          allocate(fullNeutralMomentumFluxCoeff(Ntheta,Npsi))
+         allocate(fullNeutralMomentumFluxFactorDiamagnetic(Ntheta,Npsi))
+         allocate(fullNeutralMomentumFluxFactorNC(Ntheta,Npsi))
+         allocate(fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic(Ntheta,Npsi))
+         allocate(fullNeutralMomentumFluxBeforeThetaIntegralNC(Ntheta,Npsi))
+         allocate(fullNeutralMomentumFluxDiamagnetic(Npsi))
+         allocate(fullNeutralMomentumFluxNC(Npsi))
+         allocate(fullNeutralMomentumFlux(Npsi))
+         allocate(nonIntrinsicNeutralMomentumFluxFactor(Ntheta,Npsi))
+         allocate(nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral(Ntheta,Npsi))
+         allocate(nonIntrinsicNeutralMomentumFlux(Npsi))
        end if
 
        allocate(indices(Nx))
@@ -191,7 +201,7 @@ contains
                   *dnHatNeutraldpsi(itheta,:)&
                   *Delta/psiAHat*RHat(itheta,:)/2d0/charges(1)/BHat(itheta,:)*sqrt(THats(1,:)*masses(1))&
                   *(IHat**2/RHat(itheta,:)**2/BHat(itheta,:)**2-1d0)*dBHatdpsi(itheta,:)
-              fullNeutralMomentumFluxCoeff(itheta,:) = -Delta*pi/psiAHat*tauXHat &
+              fullNeutralMomentumFluxCoeff(itheta,:) = -Delta*pi/psiAHat &
                   *(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2) &
                   *IHat*THats(1,:)**3/BHat(itheta,:)/masses(1)**2/nHats(1,:)
               ! The diamagnetic flux does not actually depend on the solution, so can be computed directly
@@ -200,7 +210,7 @@ contains
                   *THats(1,:)**2/BHat(itheta,:)**2*dnHatNeutraldpsi(itheta,:)*(dnHatdpsis(1,:)/nHats(1,:)&
                   +2d0*omega/Delta*charges(1)/THats(1,:)*dPhiHatdpsi+2d0*dTHatdpsis(1,:)/THats(1,:))
               fullNeutralMomentumFluxFactorDiamagnetic(itheta,:) = &
-                  Delta/4d0/psiAHat**2*tauXHat*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)**2*THats(1,:)**2 &
+                  Delta/4d0/psiAHat**2*(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)**2*THats(1,:)**2 &
                   /BHat(itheta,:)**2 &
                   * (dnHatdpsis(1,:)/nHats(1,:) + 2d0*omega/Delta*charges(1)/THats(1,:)*dPhiHatdpsi &
                      + 2d0*dTHatdpsis(1,:)/THats(1,:))
@@ -407,11 +417,11 @@ contains
 
              !since we are not using that variable for anything else
              tempPTflow = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
-                  + (2*omega*charges(ispecies)/(Delta*THats(ispecies,:)))*dPhiHatdpsi
+                  + (2d0*omega*charges(ispecies)/(Delta*THats(ispecies,:)))*dPhiHatdpsi
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
-                  -THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BPHat(itheta,:)**2*RHat(itheta,:)
+                  -THats(ispecies,:)/(2d0*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BPHat(itheta,:)**2*RHat(itheta,:)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
-                  +THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BPHat(itheta,:)*IHat(:)
+                  +THats(ispecies,:)/(2d0*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BPHat(itheta,:)*IHat(:)
           end do
           
    !!$         if (psiDerivativeScheme == 0) then
@@ -450,9 +460,9 @@ contains
                neutralMomentumFluxDiamagnetic(ipsi) = &
                    dot_product(thetaWeights, neutralMomentumFluxBeforeThetaIntegralDiamagnetic(:,ipsi)/JHat(:,ipsi))
                ! Still need to take psi derivative and multiply by tau*mi for fullNeutralMomentumFlux*, will do below
-               fullNeutralMomentumFluxNC = &
+               fullNeutralMomentumFluxNC(ipsi) = &
                    dot_product(thetaWeights, fullNeutralMomentumFluxBeforeThetaIntegralNC(:,ipsi)/JHat(:,ipsi))
-               fullNeutralMomentumFluxDiamagnetic = &
+               fullNeutralMomentumFluxDiamagnetic(ipsi) = &
                    dot_product(thetaWeights, fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic(:,ipsi) &
                                              /JHat(:,ipsi))
              end if
@@ -510,20 +520,30 @@ contains
        end do
 
        if (includeNeutrals) then
-         fullNeutralMomentumFluxDiamagnetic = matmul(ddpsiLeft,fullNeutralMomentumFluxDiamagnetic)
-         fullNeutralMomentumFluxNC = matmul(ddpsiLeft,fullNeutralMomentumFluxNC)
+         if (Npsi < 5) then
+           fullNeutralMomentumFluxDiamagnetic = 0d0
+
+           fullNeutralMomentumFluxNC = 0d0
+         else
+           fullNeutralMomentumFluxDiamagnetic = tauXHat*matmul(ddpsiLeft,fullNeutralMomentumFluxDiamagnetic)
+           fullNeutralMomentumFluxNC = tauXHat*matmul(ddpsiLeft,fullNeutralMomentumFluxNC)
+         end if
          fullNeutralMomentumFlux = fullNeutralMomentumFluxDiamagnetic + fullNeutralMomentumFluxNC
 
          do itheta = 1,Ntheta
-           nonIntrinsicNeutralMomentumFluxFactor(itheta,:) = Delta/2d0/psiAHat*tauXHat*RHat(itheta,:) &
+           nonIntrinsicNeutralMomentumFluxFactor(itheta,:) = -Delta/2d0/psiAHat*RHat(itheta,:) &
                *(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)*THats(1,:)*toroidalFlow(1,itheta,:)
          end do
          nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral = nonIntrinsicNeutralMomentumFluxFactor*nHatNeutral
          do ipsi = 1,Npsi
-           nonIntrinsicNeutralMomentumFlux = dot_product(thetaWeights, &
+           nonIntrinsicNeutralMomentumFlux(ipsi) = dot_product(thetaWeights, &
                nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral(:,ipsi)/JHat(:,ipsi))
          end do
-         nonIntrinsicNeutralMomentumFlux = matmul(ddpsiLeft,nonIntrinsicNeutralMomentumFlux)
+         if (Npsi < 5) then
+           nonIntrinsicNeutralMomentumFlux = 0d0
+         else
+           nonIntrinsicNeutralMomentumFlux = tauXHat*matmul(ddpsiLeft,nonIntrinsicNeutralMomentumFlux)
+         end if
        end if
 
        LegendresOnXiUniform_m1 = 1

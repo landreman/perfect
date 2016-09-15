@@ -61,7 +61,7 @@ class perfectGeometry:
         geometrygroup.create_dataset("BHat",data=BHat)
         geometrygroup.create_dataset("dBHatdpsi",data=dBHatdpsi)
         geometrygroup.create_dataset("dBHatdtheta",data=dBHatdtheta)
-        geometrygroup.create_dataset("RHat",data=JHat)
+        geometrygroup.create_dataset("RHat",data=RHat)
         geometrygroup.create_dataset("JHat",data=JHat)
         geometrygroup.create_dataset("IHat",data=IHat)
         geometrygroup.create_dataset("dIHatdpsi",data=dIHatdpsi)

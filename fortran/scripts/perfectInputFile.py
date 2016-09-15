@@ -308,13 +308,13 @@ class perfectInput(object):
                 value = value.replace('e','d') # Write exponents in Fortran double precision format
             else:
                 value = value+"d0" # Write as a Fortran double precision literal
-        if type(value) == str:
+        elif type(value) == str:
             #strings must be enclosed in "" in namelists
             #may be wise to see if the string contains citation marks...
             if (value.find("'") != -1) or (value.find('"') != -1):
                 print "Warning! String to changevar contains a ' or \" character." 
             value = '"' + value + '"'
-        if (type(value) == list) or (type(value) == numpy.ndarray):
+        elif (type(value) == list) or (type(value) == numpy.ndarray):
             # arrays are space seperated
             delimiter=' '
             value_temp = '' 

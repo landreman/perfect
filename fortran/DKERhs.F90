@@ -63,6 +63,7 @@ contains
                      + 2*charges(ispecies)/THats(ispecies,ipsi)*omega/Delta*dPhiHatdpsi(ipsi) &
                      + (x2(ix)-3/two)/THats(ispecies,ipsi)*dTHatdpsis(ispecies,ipsi))
 
+
                 ! It's okay to assign the rhs even at ipsi=1 and ipsi=Npsi because we will
                 ! over-write these values later.
 
