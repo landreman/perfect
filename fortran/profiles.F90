@@ -770,15 +770,22 @@ contains
     if (noChargeSource == 1) then
        select case(noChargeSourceOption)
        case(0)
-          allocate(momentumSourceSpeciesDependence(numSpecies))
-          momentumSourceSpeciesDependence = masses
+          ! momentum source
+          allocate(extraSourceSpeciesDependence(numSpecies))
+          extraSourceSpeciesDependence = masses
        case(1)
-          allocate(momentumSourceSpeciesDependence(numSpecies))
-          momentumSourceSpeciesDependence = zero
-          momentumSourceSpeciesDependence(1) = one
+          ! momentum source
+          allocate(extraSourceSpeciesDependence(numSpecies))
+          extraSourceSpeciesDependence = zero
+          extraSourceSpeciesDependence(1) = one
        case(2)
-          allocate(momentumSourceSpeciesDependence(numSpecies))
-          momentumSourceSpeciesDependence = masses*nHats(:,1)
+          ! momentum source
+          allocate(extraSourceSpeciesDependence(numSpecies))
+          extraSourceSpeciesDependence = masses*nHats(:,1)
+       case(3)
+          ! particle source
+          allocate(extraSourceSpeciesDependence(numSpecies))
+          extraSourceSpeciesDependence = masses*nHats(:,1)
 	  ! scales with core (ipsi=1) concentration. 
 	  ! TODO: make it possible to have extra psi dependence here, to scale with local value of density, etc.
        case default
