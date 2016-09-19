@@ -127,7 +127,7 @@ contains
        !
        select case(noChargeSourceOption)
        case(0,1)
-          allocate(noChargeSourceMomentumSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+          allocate(noChargeSourceExtraSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
        case default
           print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1. Cannot read from solnArray."
        end select
@@ -170,8 +170,8 @@ contains
              select case(noChargeSourceOption)
              case(0,1)
                 do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
-                   noChargeSourceMomentumSourceProfile(ispecies,ipsi) = &
-                        momentumSourceSpeciesDependence(ispecies)*solnArray(Npsi * localMatrixSize &
+                   noChargeSourceExtraSourceProfile(ispecies,ipsi) = &
+                        extraSourceSpeciesDependence(ispecies)*solnArray(Npsi * localMatrixSize &
                         + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi))
                 end do
              case default
