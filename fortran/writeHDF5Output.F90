@@ -244,7 +244,7 @@ contains
       
       if (noChargeSource == 1) then
          select case(noChargeSourceOption)
-         case(0,1)
+         case(0,1,2)
             call writeVariable(momentumSourceSpeciesDependence,"momentumSourceSpeciesDependence",runNum)
             call writeVariable(noChargeSourceMomentumSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
          case default

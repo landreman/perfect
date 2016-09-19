@@ -210,20 +210,6 @@ contains
     end if
 
     numSpecies = numCharges
-    if (noChargeSource == 1) then
-       select case(noChargeSourceOption)
-       case(0)
-          allocate(extraSourceSpeciesDependence(numSpecies))
-          extraSourceSpeciesDependence = masses
-       case(1)
-          allocate(extraSourceSpeciesDependence(numSpecies))
-          extraSourceSpeciesDependence = zero
-          extraSourceSpeciesDependence(1) = one
-       case default
-          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1."
-          stop
-       end select
-    end if
 
     if (.not. useIterativeSolver) then
       useIterativeBoundarySolver = .false.
