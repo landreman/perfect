@@ -74,48 +74,57 @@ contains
        call preallocateMatrices(whichMatrix)
 
        call setDiagonalsToZero()
+       print *,"Set diagonals to zero: done"
 
        ! *********************************************************
        ! Add the streaming and mirror terms which persist even 
        ! in the (delta,omega)=(0,0) limit:
        ! *********************************************************
        call streamingAndMirrorTerms0(whichMatrix)
+       print *,"Set local streaming and mirror terms: done"
 
        ! *********************************************************
        ! Add the streaming and mirror terms which vanish
        ! in the (delta,omega)=(0,0) limit:
        ! *********************************************************
        call streamingAndMirrorTerms1(whichMatrix)
+       print *,"Set global streaming and mirror terms: done"
 
        ! *********************************************************
        ! Add the collisionless d/dx term:
        ! *********************************************************
        call collisionlessDdx(whichMatrix)
+       print *,"Set collisionless d/dx term: done"
 
        ! *********************************************************
        ! Add the collisionless d/dpsi term:
        ! *********************************************************
        call collisionlessDdpsi(whichMatrix,upwinding)
+       print *,"Set collisionless d/dpsi term: done"
 
        ! *********************************************************
        ! Add the collision operator
        ! *********************************************************
        call collisionOperator(whichMatrix)
+       print *,"Set collision operator: done"
 
        ! *******************************************************************************
        ! Put a 1 on the matrix diagonal where appropriate to enforce the radial boundary condition
        ! *******************************************************************************
        call radialBoundaryConditionDiagonal()
+       print *,"Set boundary conditions: done"
 
        ! *******************************************************************************
        ! Add sources:
        ! *******************************************************************************
        call sources()
+       print *,"Set sources: done"
 
        ! *******************************************************************************
        ! Add constraints:
        ! *******************************************************************************
        call constraints()
+       print *,"Set constraints: done"
 
        ! *******************************************************************************
        ! Done inserting values into the matrices.
@@ -1306,7 +1315,7 @@ contains
     ! *******************************************************************************
 
     PetscErrorCode :: ierr
-    PetscScalar, dimension(:), allocatable :: sourceThetaPart
+    PetscScalar, dimension(:), allocatable :: sourceThetaPart, this_sourceThetaPart
     PetscScalar, dimension(:), allocatable :: sourceXPart
   
     PetscScalar :: signOfPsiDot, xPartOfSource
@@ -1383,10 +1392,24 @@ contains
        end do
     end do
 
-    if (noChargeSource == 1) then 
-       L = 1
-       do ix=1,Nx
-          sourceXPart(ix) = x(ix)*(x2(ix)-7/two)*exp(-x2(ix))
+    if (noChargeSource == 1) then
+       allocate(this_sourceThetaPart(Ntheta))
+       select case(noChargeSourceOption)
+       case(0,1,2)
+          ! momentum source
+          ! provides momentum but no energy-weighted momentum
+          L = 1
+          sourceXPart = x*(x2-7/two)*exp(-x2)
+          this_sourceThetaPart = sourceThetaPart
+       case(3)
+          ! particle source
+          ! Provides particles but no heat or momentum
+          L = 0
+          sourceXPart = (x2-5/two)*exp(-x2)
+          this_sourceThetaPart = 1 + sourcePoloidalVariationStrength * cos(theta + sourcePoloidalVariationPhase)
+       end select
+          
+       do ix=1,Nx         
           do ipsi=this_ipsiMin,this_ipsiMax
              do ispecies = 1,numSpecies
                 do itheta=1,Ntheta
@@ -1400,7 +1423,7 @@ contains
                       rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
                       colIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
                       call MatSetValueSparse(matrix, rowIndex, colIndex, &
-                           momentumSourceSpeciesDependence(ispecies)*sourceThetaPart(itheta) * sourceXPart(ix), ADD_VALUES, ierr)
+                           extraSourceSpeciesDependence(ispecies)*this_sourceThetaPart(itheta)*sourceXPart(ix), ADD_VALUES, ierr)
                    end if
                 end do
              end do
@@ -1518,6 +1541,7 @@ contains
     if (procThatHandlesRightBoundary) then
        call MatAssemblyBegin(rightMatrix, MAT_FINAL_ASSEMBLY, ierr)
     end if
+    print *,"Started assembling matrix. Checking errors..."
     CHKERRQ(ierr)
     call MatAssemblyEnd(matrix, MAT_FINAL_ASSEMBLY, ierr)
     if (procThatHandlesLeftBoundary) then
@@ -1526,7 +1550,9 @@ contains
     if (procThatHandlesRightBoundary) then
        call MatAssemblyEnd(rightMatrix, MAT_FINAL_ASSEMBLY, ierr)
     end if
+    print *,"Finished assembling matrix. Checking errors..."
     CHKERRQ(ierr)
+    print *,"Error checking done!"
 
     if (whichMatrix==0) then
        preconditionerMatrix = matrix

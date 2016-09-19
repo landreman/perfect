@@ -106,9 +106,9 @@ module globalVariables
   integer :: noChargeSource
   ! the following 2 variables are used for noChargeSource = 1
   integer :: noChargeSourceOption
-  PetscScalar, dimension(:), allocatable :: momentumSourceSpeciesDependence
-  ! this is used to write the out the momentum source
-  PetscScalar, dimension(:,:), allocatable :: noChargeSourceMomentumSourceProfile
+  PetscScalar, dimension(:), allocatable :: extraSourceSpeciesDependence
+  ! this is used to write the out the extra source
+  PetscScalar, dimension(:,:), allocatable :: noChargeSourceExtraSourceProfile
 
   logical :: makeLocalApproximation
 

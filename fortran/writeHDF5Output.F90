@@ -245,10 +245,10 @@ contains
       if (noChargeSource == 1) then
          select case(noChargeSourceOption)
          case(0,1,2)
-            call writeVariable(momentumSourceSpeciesDependence,"momentumSourceSpeciesDependence",runNum)
-            call writeVariable(noChargeSourceMomentumSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
+            call writeVariable(extraSourceSpeciesDependence,"momentumSourceSpeciesDependence",runNum)
+            call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
          case default
-            print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1. Will not write extra to output."
+            print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2. Will not write extra to output."
          end select
       end if
       call writeVariable(VPrimeHat,"VPrimeHat",runNum)
