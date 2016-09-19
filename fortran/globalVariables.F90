@@ -221,6 +221,12 @@ module globalVariables
   ! number of indices with enforced constraints
   integer ::  NEnforcedPsi
 
+  ! Sometimes used to tone down global term towards the boundary
+  integer :: useGlobalTermMultiplier
+  character(len=100) :: globalTermMultiplierFilename 
+  PetscScalar, dimension(:), allocatable :: globalTermMultiplier
+
+
   PetscScalar :: thresh
 
   PetscScalar :: xScaleFactor = 1

@@ -296,6 +296,11 @@
   ! 1 = inhomogenous grid in psi. Inhomogenous grid obtained by mapping from psi' to psi, where grid is homogenous in psi'. All other inputs quantities intepreted as being given in psi', dpsi/dpsi' specified in file below
   psiAHatFilename = "psiAHat.h5"
 
+  useGlobalTermMultiplier = 0
+  ! 0 = no multiplier is used
+  ! 1 = the global term is multiplied with a function of internal grid, given in the following file
+  globalTermMultiplierFilename = "globalTermMultiplier.h5"
+  
 
   psiDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.

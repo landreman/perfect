@@ -1406,7 +1406,9 @@ contains
           ! Provides particles but no heat or momentum
           L = 0
           sourceXPart = (x2-5/two)*exp(-x2)
-          this_sourceThetaPart = 1 + sourcePoloidalVariationStrength * cos(theta + sourcePoloidalVariationPhase)
+          this_sourceThetaPart = 1 + sourcePoloidalVariationStrength * cos(theta + sourcePoloidalVariationPhase)  		
+       case default
+       	  print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3."	 
        end select
           
        do ix=1,Nx         

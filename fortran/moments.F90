@@ -127,7 +127,7 @@ contains
        !
        select case(noChargeSourceOption)
 
-       case(0,1,2)
+       case(0,1,2,3)
           allocate(noChargeSourceExtraSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
        case default
           print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2. Cannot read from solnArray."
@@ -169,7 +169,7 @@ contains
           if (noChargeSource == 1) then
              ! we will have some extra field to read out
              select case(noChargeSourceOption)
-             case(0,1,2)
+             case(0,1,2,3)
                 do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
                    noChargeSourceExtraSourceProfile(ispecies,ipsi) = &
                         extraSourceSpeciesDependence(ispecies)*solnArray(Npsi * localMatrixSize &

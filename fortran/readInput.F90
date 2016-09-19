@@ -51,6 +51,7 @@ contains
          useIterativeSolver, useIterativeBoundarySolver, &
          psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
          psiGridType, psiAHatFilename, NpsiSourcelessRight, NpsiSourcelessLeft, &
+	 useGlobalTermMultiplier, globalTermMultiplierFilename, &
          whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy, Nxi_for_x_option
 
     namelist / preconditionerOptions / preconditioner_species, &
@@ -134,7 +135,8 @@ contains
 
        NpsiSourcelessLeft = 0
        NpsiSourcelessRight = 0
-       
+       useGlobalTermMultiplier = 0       
+
        read(fileUnit, nml=otherNumericalParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
@@ -236,6 +238,15 @@ contains
           stop
        end if       
     end if
+
+    if (useGlobalTermMultiplier .eq. 1) then
+       ! Check if globalTermMultiplierFilename is set
+       if (.not. len(globalTermMultiplierFilename)>=0) then
+          print *,"If useGlobalTermMultiplier==1 then globalTermMultiplierFilename must be set."
+          stop
+       end if       
+    end if
+
   end subroutine readNamelistInput
 
 end module readInput

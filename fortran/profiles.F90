@@ -61,7 +61,54 @@ contains
     allocate(detaHatdpsis(numSpecies,Npsi))
     allocate(nHats(numSpecies,Npsi))
     allocate(dnHatdpsis(numSpecies,Npsi))
+    ! multiplies global terms
+    allocate(globalTermMultiplier(Npsi))
 
+
+    select case (psiGridType)
+      case(0)
+         ! uniform grid
+         do i=1,Npsi
+            psiAHatArray(i) = psiAHat
+         end do
+      case(1)
+         ! Create groupname to be read
+         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+       
+         ! Open input file
+         call openInputFile(psiAHatFilename,HDF5Groupname)
+
+         call readVariable(psiAHatArray, "psiAHatArray")
+
+         call closeInputFile() 
+       
+      case default
+         print *,"Error! Invalid setting for psiGridType"
+         stop
+
+     end select
+      
+
+    select case (useGlobalTermMultiplier)
+    case(0)
+       ! no multiplier
+       globalTermMultiplier = one
+    case(1)
+       ! Create groupname to be read
+        write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+       ! Open input file
+         call openInputFile(globalTermMultiplierFilename,HDF5Groupname)
+
+         call readVariable(globalTermMultiplier, "globalTermMultiplier")
+
+         call closeInputFile() 
+       
+      case default
+         print *,"Error! Invalid setting for useGlobalTermMultiplier" 
+         stop
+
+      end select
+    
     if (profilesScheme .eq. 7) then
        ! Read in profiles from file
 
@@ -789,7 +836,7 @@ contains
 	  ! scales with core (ipsi=1) concentration. 
 	  ! TODO: make it possible to have extra psi dependence here, to scale with local value of density, etc.
        case default
-          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1."
+          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3."
           stop
        end select
     end if
