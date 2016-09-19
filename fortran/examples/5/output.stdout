@@ -1,0 +1,160 @@
+ ****************************************************************************
+ PERFECT: Pedestal and Edge Radially-global Fokker-Planck Evaluation of Collisio
+ nal Transport.
+ Using double precision.
+ Parallel job (   2 processes) detected.
+ Successfully read parameters from flowControl namelist in input.namelist.
+ Successfully read parameters from geometryParameters namelist in input.namelist
+ .
+ Successfully read parameters from speciesParameters namelist in input.namelist.
+ Successfully read parameters from physicsParameters namelist in input.namelist.
+ Successfully read parameters from resolutionParameters namelist in 
+ input.namelist.
+ Successfully read parameters from otherNumericalParameters namelist in 
+ input.namelist.
+ Successfully read parameters from preconditionerOptions namelist in 
+ input.namelist.
+ mumps detected
+ superlu_dist not detected
+ [           1 ] ---- Physics parameters: ----
+ [           1 ] number of species =            2
+ [           1 ] masses =    1.00000000000000       2.719336917680000E-004
+ [           1 ] charges =    1.00000000000000       -1.00000000000000     
+ [           1 ] desiredU =   0.200000000000000     
+ [           1 ] epsilon =   0.263000000000000     
+ [           1 ] nu_r =   2.840871366570000E-002
+ [           1 ] Geometry scheme:            1
+ [           1 ] Not making the local approximation
+ [           1 ] ---- Numerical parameters: ----
+ [           1 ] NpsiPerDiameter    =    250.000000000000     
+ [           1 ] psiDiameter        =   0.253630202149000     
+ [           1 ] widthExtender      =   0.000000000000000E+000
+ [           1 ] Npsi               =           64
+ [           1 ] Ntheta             =           13
+ [           1 ] Nxi                =           12
+ [           1 ] NL                 =            4
+ [           1 ] Nx                 =            6
+ [           1 ] NxPotentialsPerVth =    30.0000000000000     
+ [           1 ] xMax               =    5.00000000000000     
+ [           1 ] solverTolerance    =   1.000000000000000E-005
+ [           1 ] xScaleFactor       =    1.00000000000000     
+ [           1 ] Psi derivative: centered finite differences, 5-point stencil
+ [           1 ] Theta derivative: centered finite differences, 5-point stencil
+ [           1 ] Using iterative solver
+ [           1 ] Processor            1  owns psi indices            1  to 
+          32
+ [           1 ] Processor            2  owns psi indices           33  to 
+          64
+ Nxi_for_x_option:           0
+ x:  7.860065941309817E-002  0.386739410270630       0.866429471682044     
+   1.46569804966351        2.17270779693900        3.03682016932287     
+ Nxi for each x:          12          12          12          12          12
+          12
+ min_x_for_L:           1           1           1           1           1
+           1           1           1           1           1           1
+           1
+ [           1 ] The matrix is       120128 x      120128  elements.
+ Beginning preallocation for whichMatrix =            0
+ Beginning preallocation for whichMatrix =            1
+ Set diagonals to zero: done
+ Set diagonals to zero: done
+ Set local streaming and mirror terms: done
+ Set local streaming and mirror terms: done
+ Set global streaming and mirror terms: done
+ Set global streaming and mirror terms: done
+ Set collisionless d/dx term: done
+ Set collisionless d/dx term: done
+ Set collisionless d/dpsi term: done
+ Set collisionless d/dpsi term: done
+ Set collision operator: done
+ Set boundary conditions: done
+ Set sources: done
+ Set constraints: done
+ Set collision operator: done
+ Set boundary conditions: done
+ Set sources: done
+ Set constraints: done
+ [           1 ] Time to pre-assemble preconditioner matrix: 
+   2.42462396621704       seconds.
+ Started assembling matrix. Checking errors...
+ Started assembling matrix. Checking errors...
+ Finished assembling matrix. Checking errors...
+ Error checking done!
+ Finished assembling matrix. Checking errors...
+ Error checking done!
+ [           1 ] Time to assemble preconditioner matrices: 
+  2.569413185119629E-002  seconds.
+ Beginning preallocation for whichMatrix =            0
+ Beginning preallocation for whichMatrix =            1
+ Set diagonals to zero: done
+ Set diagonals to zero: done
+ Set local streaming and mirror terms: done
+ Set local streaming and mirror terms: done
+ Set global streaming and mirror terms: done
+ Set global streaming and mirror terms: done
+ Set collisionless d/dx term: done
+ Set collisionless d/dx term: done
+ Set collisionless d/dpsi term: done
+ Set collisionless d/dpsi term: done
+ Set collision operator: done
+ Set boundary conditions: done
+ Set sources: done
+ Set constraints: done
+ Set collision operator: done
+ Set boundary conditions: done
+ Set sources: done
+ Set constraints: done
+ [           1 ] Time to pre-assemble matrix:    2.74585890769958       seconds.
+ Started assembling matrix. Checking errors...
+ Started assembling matrix. Checking errors...
+ Finished assembling matrix. Checking errors...
+ Error checking done!
+ [           1 ] Time to assemble matrices:   2.409911155700684E-002  seconds.
+ Finished assembling matrix. Checking errors...
+ Error checking done!
+ [           1 ] Proc           1 
+  is solving local kinetic equation at left boundary ...
+ [           1 ] Proc           2 
+  is solving local kinetic equation at right boundary ...
+  0 KSP Residual norm 3.692843296486e+00 
+  0 KSP Residual norm 4.637571581748e+00 
+  2 KSP Residual norm 1.116690422578e+00 
+  2 KSP Residual norm 1.317227764473e+00 
+  4 KSP Residual norm 1.742463787866e-01 
+  4 KSP Residual norm 3.687400200904e-01 
+  6 KSP Residual norm 1.660068644668e-02 
+  6 KSP Residual norm 1.869174567786e-03 
+  8 KSP Residual norm 1.499796521622e-04 
+  8 KSP Residual norm 5.128559098470e-05 
+ 10 KSP Residual norm 1.490699655271e-05 
+ 10 KSP Residual norm 1.599460183837e-06 
+ [           1 ] Done solving for left boundary.  Time to solve: 
+  5.701398849487305E-002  seconds.
+ [           1 ] Done solving for right boundary.  Time to solve: 
+ [           1 ] Solution at left boundary converged!  KSPConvergedReason = 
+           2
+  5.702686309814453E-002  seconds.
+ [           1 ] Solution at right boundary converged!  KSPConvergedReason = 
+           2
+ [           1 ] Using mumps to factorize the preconditioner.
+ [           1 ] # of nonzeros in matrix:     4599673 
+ , # of nonzeros in preconditioner:     2666187 , ratio:  0.579647074911630     
+ [           1 ] Beginning the main solve.  This could take a while ...
+  0 KSP Residual norm 3.850315865016e+01 
+  2 KSP Residual norm 1.139239053677e+01 
+  4 KSP Residual norm 1.277617944175e+01 
+  6 KSP Residual norm 9.030325091490e-01 
+  8 KSP Residual norm 2.392992429284e-01 
+ 10 KSP Residual norm 3.806179782314e-01 
+ 12 KSP Residual norm 3.018524596965e-02 
+ 14 KSP Residual norm 1.220923869745e-02 
+ 16 KSP Residual norm 6.571846262976e-03 
+ 18 KSP Residual norm 1.311527232815e-03 
+ 20 KSP Residual norm 5.056308542826e-04 
+ 22 KSP Residual norm 4.973649717811e-04 
+ 24 KSP Residual norm 2.707779809589e-05 
+ [           1 ] Done with the main solve.  Time to solve: 
+   9.38799905776978       seconds.
+ [           1 ] Converged!  KSPConvergedReason =            2
+ [           1 ] Total elapsed time:    14.7465178966522       seconds.
+ Converted output derivatives to psiN

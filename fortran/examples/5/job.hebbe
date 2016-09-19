@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#SBATCH -A C3SE2016-1-10
+#SBATCH -p hebbe
+#SBATCH -J perfect
+#SBATCH -N 2
+#SBATCH -t 00:01:00
+#SBATCH -o output.stdout
+#SBATCH -e output.stderr
+
+mpirun -n 2 /c3se/users/bstefan/Hebbe/perfect/fortran/perfect 
+# End script
