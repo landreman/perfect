@@ -158,6 +158,8 @@ class perfectInput(object):
 
     psiGridType = property(groupGetter('otherNumericalParameters','psiGridType'), groupSetter('otherNumericalParameters','psiGridType'))
 
+    useGlobalTermMultiplier = property(groupGetter('otherNumericalParameters','useGlobalTermMultiplier'), groupSetter('otherNumericalParameters','useGlobalTermMultiplier'))
+
     def read(self,inputfilename):
         self.inputfilename = inputfilename
         self.inputfile = f90nml.read(inputfilename)
@@ -213,7 +215,13 @@ class perfectInput(object):
             #this will give the Getter something to return,
             #the sed part of the Setter should silently fail
             self.inputfile["otherNumericalParameters"]["psiGridType"] = 0
+
+        if self.useGlobalTermMultiplier == None:
+            #this will give the Getter something to return,
+            #the sed part of the Setter should silently fail
+            self.inputfile["otherNumericalParameters"]["useGlobalTermMultiplier"] = 0
         
+            
         self.psiMin = self.psiMid - self.psiDiameter/2. - self.widthExtender + self.leftBoundaryShift
         self.psiMax = self.psiMid + self.psiDiameter/2. + self.widthExtender + self.rightBoundaryShift
         self.psi = numpy.linspace(self.psiMin, self.psiMax, self.Npsi)
