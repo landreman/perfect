@@ -1,0 +1,407 @@
+&flowControl
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Options for program flow control:
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  programMode = 1
+  ! Options for 'programMode':
+  ! 1 = Solve for a single set of numerical parameters.
+  ! 2 = Scan the numerical parameters to test for convergence, keeping the physics parameters fixed.
+  ! 3 = Same as 2, but also include a run with the local approximation.
+  ! 4 = Scan desiredU
+
+  ! If you make the sign of programMode negative, the program will print the number of runs required
+  ! for the scan corresponding to abs(programMode) and then exit without actually carrying out any solves.
+
+  outputFilename = "perfectOutput.h5"
+
+  outputScheme = 2
+  ! Options for outputScheme:
+  ! 0 = Do not save any HDF5 file.
+  ! 1 = Do save an HDF5 file with the program inputs and outputs, but do not include the distribution function.
+  ! 2 = Also include the distribution functions at the outboard side.
+
+  ! If the following switch is set to true, a Matlab m-file is created which
+  ! stores the matrix, right-hand side, and solution vector.  If an iterative solver is used,
+  ! the preconditioner matrix is also saved. Note: writing this file takes a long time.
+!  saveMatlabOutput = .true.
+  saveMatlabOutput = .false.
+
+  MatlabOutputFilename = "PERFECT.m"
+
+  parallelizeOverScan = .true.
+!  parallelizeOverScan = .false.
+
+  ! If the parameter below is false, the linear system will not actually be solved.
+  ! Sometimes it is useful to run the code without solving the system in order to quickly
+  ! output profiles or for debugging.
+    solveSystem = .true.
+  !  solveSystem = .false.
+/
+
+&geometryParameters
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Options for the magnetic geometry
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  ! 'epsil' is the inverse aspect ratio:
+  epsil = 0.263d+0
+ 
+  geometryToUse = 1
+  ! Options for geometryToUse:
+  ! 
+  ! 0: Circular concentric flux surface model:
+  !    B = B0/(1 + epsilon*cos(theta))
+  !    b dot grad theta = constant.
+  !    Magnetic quantities are taken to have no radial variation.
+  !    
+  ! 1: Miller geometry
+  !    Magnetic quantities are taken to have no radial variation.
+  !
+  ! 2: B = B0 * (1 + epsilon * cos(theta)),  
+  !    B dot grad theta \propto B^2.
+  !    In this scheme, theta is the Boozer angle.  
+  !    Magnetic quantities are taken to have no radial variation.
+  !
+  ! 3: Interface to EFIT, including radial variation.
+  !    (Not yet implemented.)
+  ! 
+  ! 4: Reads geometry from an HDF5 file specified below.
+  geometryFilename = "input.geometry.h5"
+  ! Miller parameters: (these are only used when geometryToUse = 1.)
+  Miller_kappa = 1.58
+  Miller_delta = 0.24
+  Miller_s_delta = 0.845
+  Miller_s_kappa = 0.479
+  Miller_dRdr = -0.14
+  Miller_q = 3.5
+  ! The inverse aspect ratio epsil is also used for Miller geometry.
+  
+/
+
+&speciesParameters
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Species parameters
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  ! D N e
+  charges = 1.0 2.0 -1.0
+  masses = 1.0 1.98356580243 0.000271933691768
+  scalarNHats = 0.72 0.04 1
+  scalarTHats = 1 1 1 
+
+!  charges = 1 6 -1
+!  masses = 1 6 0.00027
+!  scalarNHats = 1 0.01 1.06
+!  scalarTHats = 1 1 1
+
+/
+
+&physicsParameters
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Physics parameters:
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  desiredU = 0.2d+0
+  desiredUMin = 0.5
+  desiredUMax = 16
+  desiredUNumRuns = 0
+
+  desiredFWHMInRhoTheta = 2
+  dTHatdpsiScalar = -20.98
+  detaHatdpsiScalar = 0
+
+  ! delta = 0.00193d+0
+  ! omega = 0.000967d+0
+  ! psiAHat = 0.0359d+0
+  !   nu_r = 0.0139d+0
+
+  ! Formulas in Matts normalization documentation with TBar 1keV in J
+  Delta = 0.000584784980554
+  ! ePhiBar is 1keV in J. 
+  omega = 0.000292392490277
+
+  ! psiAHat = epsil^2/q
+  psiAHat = 0.0116993706357
+  ! nu_r = nu'/q nHat/THat^2 . If hats are 1 this nu_r gives  nu' = 0.05.
+  ! Also, nu*=nu'/epsil^(3/2) = 50 for epsil=0.01
+  nu_r = 0.0284363818839
+
+
+  psiMid = 0.974636979785
+  ! From psimid_MATLAB - psiInnerExtender_MATLAB/2
+
+  profilesScheme = 7
+  ! 0 = simplistic profiles with no radial variation in magnetic quantities.
+  ! 1 = more complicated profiles
+  ! 2 = profiles for comparison to analytic theory
+  ! 3 = Profiles with constant analytic plateau-regime heat flux according to the old (incorrect) theory, Gaussian U
+  ! 4 = Profiles with constant analytic plateau-regime heat flux according to the new (corrected) theory, Gaussian U
+  ! 5 = Profiles with constant analytic plateau-regime heat flux according to the new (corrected) theory, flat U
+  ! 6 = Profiles with constant n^(exponent) * (dT/dpsi), Gaussian U
+  ! 7 = Read in (experimental?) profiles.
+  profilesFilename = "input.profiles.h5" ! if(profilesScheme == 7) then get profiles from this file
+
+  exponent = 2
+
+!  setTPrimeToBalanceHeatFlux = .true.
+  setTPrimeToBalanceHeatFlux = .false.
+
+  sourcePoloidalVariation = 0
+  ! 0 = Sources are constant in theta
+  ! 1 = Sources vary as (1 + cos(theta))
+  sourcePoloidalVariationStrength = 1.0
+  sourcePoloidalVariationPhase = 0.52360
+
+  noChargeSource = 1
+  ! 0: sum_a Z_a S_a = 0 is not enforced. (Default)
+  ! 1: sum_a Z_a S_a = 0 is enforced. A new unknown is introduced to make the system solvable, see option below.
+
+  noChargeSourceOption = 1
+  ! This option is used if noChargeSource = 1.
+  ! 0: one momentum source field S_m is solved for. Species momentum field assumed to scale as S_{ma} = \hat{m}_a S_m.
+  ! 1: first species only S_m
+
+
+!  makeLocalApproximation = .true.
+  makeLocalApproximation = .false.
+  ! If makeLocalApproximation is set to true, the conventional radially local
+  ! kinetic equation is solved instead of the radially global kinetic equation.
+
+  includeddpsiTerm = .true.
+!  includeddpsiTerm = .false.
+
+  leftBoundaryShift = 0.0
+  rightBoundaryShift = 0.0
+  !Shifts the lower (left) and upper (right) boundary so that it is not centered around psiMid. Unlike the MATLAB version, positive values shift to higher psi for both left and right.
+
+  !Options for leftBoundaryScheme and rightBoundaryScheme:
+  ! 0: Impose f_1 = 0
+  ! 1: Impose the local solution for f_1.
+  leftBoundaryScheme = 1
+  rightBoundaryScheme = 1
+/
+
+&resolutionParameters
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Numerical resolution parameters:
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  ! For each set of 4 numbers below, the first is the value used in a single run.
+  ! The second and third numbers set the range by which the first number is scaled
+  ! in a convergence scan. The fourth number sets the number of values tried in a
+  ! convergence scan. The code attempts to space the values evenly in a logarithmic
+  ! sense, as in Matlab's 'logspace' function. For example, the following settings
+  ! Ntheta = 6
+  ! NthetaMinFactor = 0.5
+  ! NthetaMaxFactor = 2.0
+  ! NthetaNumRuns = 3
+  ! would mean the values Ntheta = 3, 6, and 12 would be tried in a scan.
+  ! If you don't want to scan a variable in a convergence scan, set the associated
+  ! xxxNumRuns parameter to 0.
+  
+   ! This value, when multiplied by the range of normalized psi included in the simulation,
+  ! gives the number of grid points in the radial direction.
+  ! Memory and time requirements DO depend strongly on this parameter.
+  NpsiPerDiameter = 300
+  NpsiMinFactor = 0.75
+  NpsiMaxFactor = 1.5
+  NpsiNumRuns = 0
+
+  psiDiameter = 0.253630202149
+  psiDiameterMinFactor = 1
+  psiDiameterMaxFactor = 1.5
+  psiDiameterNumRuns = 0
+  !From psiDiameter = psiDiameter_MATLAB +  psiInnerExtender_MATLAB
+
+
+  widthExtender = 0d+0
+  widthExtenderMin = -0.03d+0
+  widthExtenderMax = 0.05d+0
+  widthExtenderNumRuns = 0
+
+  ! Number of grid points in the poloidal direction.
+  ! Memory and time requirements DO depend strongly on this parameter.
+  Ntheta = 24
+  NthetaMinFactor = 0.7
+  NthetaMaxFactor = 1.6
+  NthetaNumRuns = 3
+
+  ! Number of Legendre polynomials used to represent the distribution function.
+  ! Memory and time requirements DO depend strongly on this parameter.
+  ! The value of this parameter required for convergence depends strongly on
+  ! the collisionality. At high collisionality, this parameter can be as low
+  ! as ~ 5. At low collisionality, this parameter may need to be many 10s or
+  ! even > 100 for convergence.
+  Nxi = 12
+  NxiMinFactor = 0.5
+  NxiMaxFactor = 1.5
+  NxiNumRuns = 3
+  
+  ! Number of Legendre polynomials used to represent the Rosenbluth
+  ! potentials. Except in exceptional circumstances, this number should be 4.
+  ! Memory and time requirements do NOT depend strongly on this parameter.
+  NL = 4
+  NLMinFactor = 1
+  NLMaxFactor = 2
+  NLNumRuns = 2
+  
+  ! Number of grid points in energy used to represent the distribution function.
+  ! Memory and time requirements DO depend strongly on this parameter.
+  ! This parameter almost always needs to be at least 5.
+  ! Usually a value in the range 5-8 is plenty for convergence.
+  Nx = 8
+  NxMinFactor = 0.6
+  NxMaxFactor = 2.5
+  NxNumRuns = 10
+
+  ! Number of grid points in energy used to represent the Rosenbluth potentials.
+  ! Memory and time requirements do NOT depend strongly on this parameter.
+  NxPotentialsPerVth = 30d+0
+  NxPotentialsPerVthMinFactor = 1
+  NxPotentialsPerVthMaxFactor = 4
+  NxPotentialsPerVthNumRuns = 4
+  
+  ! Maximum normalized speed for the Rosenbluth potential grid.
+  ! Memory and time requirements do NOT depend strongly on this parameter.
+  ! Typically a value of 5 is good.
+  xMax = 5.0d+0
+  xMaxMinFactor = 0.5
+  xMaxMaxFactor = 2
+  xMaxNumRuns = 3
+
+  xMaxForDistribution = 4d+0
+
+  ! Tolerance used to define convergence of the Krylov solver.
+  ! This parameter does not affect memory requirements but it does affect the
+  ! time required for solution somewhat.
+  solverTolerance = 1d-5
+  solverToleranceMinFactor = 1d-1
+  solverToleranceMaxFactor = 1
+  solverToleranceNumRuns = 0
+
+  forceOddNtheta = .true.
+  ! If forceOddNtheta is set to true, 1 is added to Ntheta any time a run is attempted with even Ntheta.
+  ! This can be useful because the iterative solvers sometimes do not work with even Ntheta.
+
+  ! The next 2 parameters are used only for saving slices of the distribution function,
+  ! remapping the solution to uniform grids in x and xi.  These parameters therefore do not 
+  ! the solution itself, or convergence of the solution with respect to the real resolution parameters, Nx and Nxi.
+  NxUniform = 25
+  NxiUniform = 31
+  xUniformMax = 3d+0
+/
+
+&otherNumericalParameters
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  ! Other numerical parameters:
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  psiGridType = 1
+  psiAHatFilename = "psiAHat.h5"
+
+  useGlobalTermMultiplier = 1
+  ! 0 = no multiplier is used
+  ! 1 = the global term is multiplied with a function of internal grid, given in the following file
+  globalTermMultiplierFilename = "globalTermMultiplier.h5"
+  
+
+
+  Nxi_for_x_option=1
+
+  psiDerivativeScheme = 2
+  ! This parameter should be 2 except in extraordinary circumstances.
+  ! Options for psiDerivativeScheme:
+  ! 1 = Uniform grid, centered finite differences, 3-point stencil
+  ! 2 = Uniform grid, centered finite differences, 5-point stencil
+
+  thetaDerivativeScheme = 2
+  ! This parameter should be 2 except in extraordinary circumstances.
+  ! Options for thetaDerivativeScheme:
+  ! 0 = Uniform grid, Fourier spectral collocation
+  ! 1 = Uniform grid, centered finite differences, 3-point stencil
+  ! 2 = Uniform grid, centered finite differences, 5-point stencil
+
+  xDerivativeScheme = 0
+  ! This parameter should almost always be 0.
+  ! Options for xDerivativeScheme:
+  ! 0 = Gaussian grid, polynomial spectral collocation
+  ! 1 = Uniform grid, centered finite differences, 5-point stencil
+
+  ! Amount by which to scale the polynomial speed (x) grid:
+  ! (Use 1 unless you know what you are doing.)
+  ! This parameter only matters for xDerivativeScheme = 0.
+  xScaleFactor = 1
+ 
+  thresh = -1d-12
+  ! 'thresh' is a threshhold used to determine whether trajectories that
+  ! are nearly parallel to the boundary are counted as ingoing (in which case
+  ! a Dirichlet boundary condition is imposed) or outgoing (in which case
+  ! no boundary condition is imposed.)  Use thresh = -1d-12 unless you
+  ! know what you are doing.
+
+  ! If 'useIterativeSolver' is set to false, PETSc's built-in sparse direct solver
+  ! will be used. The direct solver is faster for small problems and always yields a solution.
+  ! For large problems, the iterative solver may be faster, but it may not always converge.
+
+  useIterativeSolver = .true.
+!  useIterativeSolver = .false.
+
+ ! If 'useIterativeBoundarySolver' is set to false, PETSc's built-in sparse direct solver
+  ! will be used for the boundaries when useIterativeSolver is true (if useIterativeSolver is
+  ! false the direct solver will be used for both main system and the boundaries, regardless of
+  ! the value of useIterativeBoundarySlover). The direct solver is faster for small problems and
+  ! always yields a solution. For large problems, the iterative solver may be faster, but it may
+  ! not always converge.
+
+   useIterativeBoundarySolver = .true.
+  !  useIterativeBoundarySolver = .false.
+
+  whichParallelSolverToFactorPreconditioner = 1
+  ! Options for whichParallelSolverToFactorPreconditioner:
+  ! 1 = use mumps if it is detected, otherwise use superlu_dist
+  ! 2 = force use of superlu_dist, if it is available
+  !
+  ! The value of whichParallelSolverToFactorPreconditioner is only used when perfect is run with 
+  ! more MPI processors than runs desired (1 if a single run, or more if a convergence scan.)
+  ! Otherwise, matrices are not distributed across processors, so the PETSc built-in serial sparse
+  ! direct solver is used to factor the preconditioner.
+
+/
+
+&preconditionerOptions
+
+  preconditioner_species = 1
+  ! 0 = keep full cross-species coupling (through collisions)
+  ! 1 = drop all cross-species coupling
+
+  preconditioner_x = 1
+  ! 0 = keep full x coupling
+  ! 1 = drop everything off-diagonal in x
+  ! 2 = keep only upper-triangular part in x
+  ! 3 = keep only the tridiagonal terms in x
+  ! 4 = keep only the diagonal and superdiagonal in x
+  ! 5 = use finite differences with a 3-point stencil.
+  !     (This option requires xDerivativeScheme = 1 or 2.)
+
+  preconditioner_x_min_L = 0
+  ! The x structure of the matrix will only be simplified for L >= this value.
+  ! Set preconditioner_x_min_L=0 to simplify the matrix for every L.
+
+  preconditioner_psi = 0
+  ! 0 = keep full psi coupling
+  ! 1 = use less accurate ddpsi
+  ! 2 = drop ddpsi term, even at boundaries
+  ! 3 = keep only diagonal of ddpsi term, which is only nonzero near the boundaries
+  ! 4 = drop all global terms (those proportional to delta or omega)
+
+  preconditioner_theta = 0
+  ! 0 = keep full theta coupling
+  ! 1 = use a 3-point finite difference stencil for d/dtheta
+
+  preconditioner_xi = 0
+  ! 0 = keep full xi coupling
+  ! 1 = drop terms that are +/- 2 from the diagonal in xi, 
+  !     so preconditioner is tridiagonal in xi
+
+/
