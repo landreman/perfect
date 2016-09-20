@@ -391,31 +391,32 @@ contains
          sqrtMass = sqrt(masses(ispecies))
          do ipsi = ipsiMin, ipsiMax
             do itheta=1,Ntheta
-               spatialPartOfStreamingTermDiagonal1(itheta,:) = &
-                    sqrtMass * omega*JHat(itheta,ipsi)*IHat(ipsi)*dPhiHatdpsi(ipsi) &
+               spatialPartOfStreamingTermDiagonal1(itheta,:) = globalTermMultiplier(ipsi) &
+                    * sqrtMass * omega*JHat(itheta,ipsi)*IHat(ipsi)*dPhiHatdpsi(ipsi) &
                     / (psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * ddthetaToUse(itheta,:)
 
-               spatialPartOfStreamingTermDiagonal2(itheta,:) = &
-                    sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
+               spatialPartOfStreamingTermDiagonal2(itheta,:) =  globalTermMultiplier(ipsi) &
+                    * sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
                     /(psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * IHat(ipsi)*dBHatdpsi(itheta,ipsi)/BHat(itheta,ipsi) &
                     * ddthetaToUse(itheta,:)
 
-               spatialPartOfStreamingTermDiagonal3(itheta,:) = &
-                    sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
+               spatialPartOfStreamingTermDiagonal3(itheta,:) =  globalTermMultiplier(ipsi) &
+                    * sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
                     /(psiAHatArray(ipsi)*BHat(itheta,ipsi)*BHat(itheta,ipsi)) &
                     * dIHatdpsi(ipsi) &
                     * ddthetaToUse(itheta,:)
 
-               spatialPartOfStreamingTermOffDiagonal(itheta,:) = &
-                    sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
+               spatialPartOfStreamingTermOffDiagonal(itheta,:) =  globalTermMultiplier(ipsi) &
+                   * sqrtMass/charges(ispecies)*delta*THats(ispecies,ipsi)*JHat(itheta,ipsi) &
                     / (BHat(itheta,ipsi)*BHat(itheta,ipsi)*psiAHatArray(ipsi)) &
                     * (IHat(ipsi)/(two*BHat(itheta,ipsi))*dBHatdpsi(itheta,ipsi) - dIHatdpsi(ipsi)) &
                     * ddthetaToUse(itheta,:)
             end do
             do ix=1,Nx
-               thetaPartOfMirrorTerm = sqrt(masses(ispecies))*(omega*dPhiHatdpsi(ipsi)*IHat(ipsi) &
+               thetaPartOfMirrorTerm =  globalTermMultiplier(ipsi) &
+               * sqrt(masses(ispecies))*(omega*dPhiHatdpsi(ipsi)*IHat(ipsi) &
                     + delta*x2(ix)*THats(ispecies,ipsi)/charges(ispecies)*dIHatdpsi(ipsi)) &
                     * JHat(:,ipsi)*dBHatdtheta(:,ipsi) / (two*psiAHatArray(ipsi)*(BHat(:,ipsi) ** 3))
 
@@ -542,7 +543,7 @@ contains
       deallocate(spatialPartOfStreamingTermOffDiagonal)
       deallocate(thetaPartOfMirrorTerm)
       deallocate(thetaPartMatrix)
-    end if
+   end if
 
   end subroutine streamingAndMirrorTerms1
 
@@ -596,7 +597,8 @@ contains
                       ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                       ! so impose the kinetic equation here.
 
-                      xDotFactor = JHat(itheta,ipsi) * IHat(ipsi) * dBHatdtheta(itheta,ipsi) &
+                      xDotFactor =  globalTermMultiplier(ipsi) &
+                           * JHat(itheta,ipsi) * IHat(ipsi) * dBHatdtheta(itheta,ipsi) &
                            / (two*psiAHatArray(ipsi)*(BHat(itheta,ipsi) ** 3))
 
                       ! Term that is diagonal in L:
@@ -712,7 +714,8 @@ contains
        !allocate(localddpsiToUse(localNpsiInterior,Npsi))
        do ispecies = 1,numSpecies
           do itheta = 1, Ntheta
-             thetaPartOfPsiDot = -oneHalf * sqrt(masses(ispecies)) * delta * JHat(itheta,:) &
+             thetaPartOfPsiDot = -oneHalf * globalTermMultiplier(:) &
+             * sqrt(masses(ispecies)) * delta * JHat(itheta,:) &
                   * IHat(:) * THats(ispecies,:) * dBHatdtheta(itheta,:) &
                   / (charges(ispecies) * psiAHatArray(:) * (BHat(itheta,:) ** 3))
              if (upwinding .and. (maxval(thetaPartOfPsiDot)>0) .and. (minval(thetaPartOfPsiDot)<0)) then
@@ -1401,7 +1404,7 @@ contains
           L = 1
           sourceXPart = x*(x2-7/two)*exp(-x2)
           this_sourceThetaPart = sourceThetaPart
-       case(3)
+       case(3,4)
           ! particle source
           ! Provides particles but no heat or momentum
           L = 0

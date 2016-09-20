@@ -819,12 +819,13 @@ contains
        case(0)
           ! momentum source
           allocate(extraSourceSpeciesDependence(numSpecies))
-          extraSourceSpeciesDependence = masses
+          extraSourceSpeciesDependence = masses(1:numSpecies)
        case(1)
           ! momentum source
           allocate(extraSourceSpeciesDependence(numSpecies))
           extraSourceSpeciesDependence = zero
           extraSourceSpeciesDependence(1) = one
+          ! TODO: perhaps try to infer main ion rather than just use first.
        case(2)
           ! momentum source
           allocate(extraSourceSpeciesDependence(numSpecies))
@@ -832,9 +833,15 @@ contains
        case(3)
           ! particle source
           allocate(extraSourceSpeciesDependence(numSpecies))
-          extraSourceSpeciesDependence = masses*nHats(:,1)
+          extraSourceSpeciesDependence = masses(1:numSpecies)*nHats(:,1)
 	  ! scales with core (ipsi=1) concentration. 
 	  ! TODO: make it possible to have extra psi dependence here, to scale with local value of density, etc.
+       case(4)
+          ! particle source
+          allocate(extraSourceSpeciesDependence(numSpecies))
+          extraSourceSpeciesDependence = zero
+          extraSourceSpeciesDependence(1) = one
+	  ! TODO: perhaps try to infer main ion rather than just use first.
        case default
           print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3."
           stop

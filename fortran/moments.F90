@@ -127,10 +127,10 @@ contains
        !
        select case(noChargeSourceOption)
 
-       case(0,1,2,3)
+       case(0,1,2,3,4)
           allocate(noChargeSourceExtraSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
        case default
-          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2. Cannot read from solnArray."
+          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4. Cannot read from solnArray."
        end select
        
        densityIntegralWeights = x*x
@@ -169,14 +169,14 @@ contains
           if (noChargeSource == 1) then
              ! we will have some extra field to read out
              select case(noChargeSourceOption)
-             case(0,1,2,3)
+             case(0,1,2,3,4)
                 do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
                    noChargeSourceExtraSourceProfile(ispecies,ipsi) = &
                         extraSourceSpeciesDependence(ispecies)*solnArray(Npsi * localMatrixSize &
                         + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi))
                 end do
              case default
-                print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1. Cannot read from solnArray."
+                print *,"Error! Invalid noChargeSourceOption. Supported values are: 0,1,2,3,4. Cannot read from solnArray."
              end select  
           end if
           

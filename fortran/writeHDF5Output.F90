@@ -186,6 +186,8 @@ contains
       call writeVariable(psiAHat,"psiAHat",runNum)
       call writeVariable(psiGridType,"psiGridType",runNum)
       call writeVariable(psiAHatArray,"psiAHatArray",runNum)
+      call writeVariable(useGlobalTermMultiplier,"useGlobalTermMultiplier",runNum)
+      call writeVariable(globalTermMultiplier,"globalTermMultiplier",runNum)
       call writeVariable(nu_r,"nu_r",runNum)
       call writeVariable(Miller_q,"Miller_q",runNum)
       call writeVariable(epsil,"epsil",runNum)
@@ -244,9 +246,12 @@ contains
       
       if (noChargeSource == 1) then
          select case(noChargeSourceOption)
-         case(0,1,2,3)
+         case(0,1,2)
             call writeVariable(extraSourceSpeciesDependence,"momentumSourceSpeciesDependence",runNum)
             call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
+         case(3,4)
+            call writeVariable(extraSourceSpeciesDependence,"noChargeParticleSourceSpeciesDependence",runNum)
+            call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceParticleSourceProfile",runNum)
          case default
             print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3. Will not write extra to output."
          end select
