@@ -144,8 +144,8 @@ module grids
       end if
       if ( leftBoundaryScheme/=2 .or. rightBoundaryScheme/=2 ) then
         stop "Are you sure you want leftBoundaryScheme or rightBoundaryScheme other than 2 &
-              when running with Npsi<5? It is likely to be inefficient because the local &
-              solutions are calculated multiple times for the boundary points."
+              &when running with Npsi<5? It is likely to be inefficient because the local &
+              &solutions are calculated multiple times for the boundary points."
       end if
       
       ! Just build psi grid
