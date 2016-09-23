@@ -119,7 +119,7 @@ contains
 
        ! Save the extra command line arguments in the file:
        argString=""
-       do i = 1, iargc()
+       do i = 1, COMMAND_ARGUMENT_COUNT()
           call getarg(i, arg)
           if (i == 1) then
                 argString=trim(arg)
