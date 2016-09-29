@@ -252,7 +252,14 @@ contains
                * dBHatdtheta / (BHat * BHat * BHat)
 
           do itheta=1,Ntheta
-             pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
+             if (.not. makeLocalApproximation) then
+               pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
+             else
+               ! When making local approximation, does not make sense to include psi-derivatives which are ordered small for local
+               ! approximation. In particular, psi-derivatives break when Npsi<5.
+               pPerpTermInVp(ispecies,itheta,:) = 0d0
+             endif
+
              toroidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:) 
              poloidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:)
              
