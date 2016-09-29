@@ -143,7 +143,7 @@ end
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BData, BDotGradThetaData, IHat, qData, RData, as, R0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff);
+[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, as, R0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';
@@ -152,13 +152,13 @@ dIHatdpsi = (ddpsi * IHat')';
 NThetaFilter = 100;
 thetaForBFilter = linspace(0,2*pi,NThetaFilter+1);
 thetaForBFilter(end)=[];
-BModes = zeros(NThetaFilter, Npsi);
+BPModes = zeros(NThetaFilter, Npsi);
 JModes = zeros(NThetaFilter, Npsi);
 RModes = zeros(NThetaFilter, Npsi);
 for psiIndex = 1:Npsi
   %temp = interp1(thetaData{psiIndex}, BData{psiIndex}/B0, thetaForBFilter, 'spline');
-  temp = interp1(thetaData{psiIndex}, BData{psiIndex}, thetaForBFilter, 'spline');
-  BModes(:,psiIndex) = fft(temp)/NThetaFilter;
+  temp = interp1(thetaData{psiIndex}, BPData{psiIndex}, thetaForBFilter, 'spline');
+  BPModes(:,psiIndex) = fft(temp)/NThetaFilter;
   %temp = interp1(thetaData{psiIndex}, BDotGradThetaData{psiIndex}/B0, thetaForBFilter, 'spline');
   temp = interp1(thetaData{psiIndex}, BDotGradThetaData{psiIndex}, thetaForBFilter, 'spline');
   JModes(:,psiIndex) = fft(temp)/NThetaFilter;
@@ -173,61 +173,85 @@ Miller_q = qData;
 fprintf('Inverse aspect ratio derived from EFIT equilibrium: %g to %g\n',min(epsilon),max(epsilon))
 
 
-BHat_beforeSmoothing = ones(Ntheta,1) * BModes(1,:);
+BPHat_beforeSmoothing = ones(Ntheta,1) * BPModes(1,:);
 JHat_beforeSmoothing = ones(Ntheta,1) * JModes(1,:);
 RHat_beforeSmoothing = ones(Ntheta,1) * RModes(1,:);
 keepUpDownAsymmetry = 1; % This variable should be either 1 or 0.
 for m=1:numFourierModesInThetaToKeepInEFITGeometry
-  BHat_beforeSmoothing = BHat_beforeSmoothing + 2*cos(m*theta)*real(BModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(BModes(m+1,:));
+  BPHat_beforeSmoothing = BPHat_beforeSmoothing + 2*cos(m*theta)*real(BPModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(BPModes(m+1,:));
   JHat_beforeSmoothing = JHat_beforeSmoothing + 2*cos(m*theta)*real(JModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(JModes(m+1,:));
   RHat_beforeSmoothing = RHat_beforeSmoothing + 2*cos(m*theta)*real(RModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(RModes(m+1,:));
 end
 
-% Smooth in the psi direction by fitting a polynomial:
-BHat = zeros(Ntheta,Npsi);
-JHat = zeros(Ntheta,Npsi);
-RHat = zeros(Ntheta,Npsi);
+if smoothInPsi
+  % Smooth in the psi direction by fitting a polynomial:
+  BPHat = zeros(Ntheta,Npsi);
+  JHat = zeros(Ntheta,Npsi);
+  RHat = zeros(Ntheta,Npsi);
+  dBHatDPsi = zeros(Ntheta,Npsi);
+  for itheta = 1:Ntheta
+    if Npsi >= 5
+      [p,S,mu] = polyfit(psi, BPHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
+      [y,~]= polyval(p,psi,S,mu);
+      BPHat(itheta,:) = y;
+    elseif Npsi == 1
+      BPHat(itheta,:) = BPHat_beforeSmoothing(itheta,:);
+    else
+      error('Invalid Npsi, must be 1 or greater than 5')
+    end
+
+    %% Analytically differentiate the fitting polynomial:
+    %if Npsi >= 5
+    %  [y,~]= polyval([0,polyder(p)],psi,S,mu);
+    %  dBHatDPsi(itheta,:) = y / mu(2);
+    %elseif Npsi == 1
+    %  dBHatDPsi(itheta,:) = zeros(Npsi);
+    %else
+    %  error('Invalid Npsi, must be 1 or greater than 5');
+    %end
+
+    if Npsi >= 5
+      [p,S,mu] = polyfit(psi, JHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
+      [y,~]= polyval(p,psi,S,mu);
+      JHat(itheta,:) = y;
+    elseif Npsi == 1
+      JHat(itheta,:) = JHat_beforeSmoothing(itheta,:);
+    else
+      error('Invalid Npsi, must be 1 or greater than 5')
+    end
+
+    if Npsi >= 5
+      [p,S,mu] = polyfit(psi, RHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
+      [y,~]= polyval(p,psi,S,mu);
+      RHat(itheta,:) = y;
+    elseif Npsi == 1
+      RHat(itheta,:) = RHat_beforeSmoothing(itheta,:);
+    else
+      error('Invalid Npsi, must be 1 or greater than 5')
+    end
+  end
+else
+  BPHat = BPHat_beforeSmoothing;
+  JHat = JHat_beforeSmoothing;
+  RHat = RHat_beforeSmoothing;
+  %dBHatDPsi = zeros(Ntheta,Npsi);
+  %if Npsi >= 5
+  %  for itheta = 1:Ntheta
+  %    dBHatDPsi(itheta,:) = (ddpsi * BHat(itheta,:)')';
+  %  end
+  %elseif Npsi ~= 1
+  %  error('Invalid Npsi, must be 1 or greater than 5')
+  %end
+end
+
+BHat = sqrt(repmat(IHat,Ntheta,1).^2./RHat.^2+BPHat.^2);
 dBHatDPsi = zeros(Ntheta,Npsi);
-for itheta = 1:Ntheta
-  if Npsi >= 5
-    [p,S,mu] = polyfit(psi, BHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
-    [y,~]= polyval(p,psi,S,mu);
-    BHat(itheta,:) = y;
-  elseif Npsi == 1
-    BHat(itheta,:) = BHat_beforeSmoothing(itheta,:);
-  else
-    error('Invalid Npsi, must be 1 or greater than 5')
+if Npsi >= 5
+  for itheta = 1:Ntheta
+    dBHatDPsi(itheta,:) = (ddpsi * BHat(itheta,:)')';
   end
-
-  % Analytically differentiate the fitting polynomial:
-  if Npsi >= 5
-    [y,~]= polyval([0,polyder(p)],psi,S,mu);
-    dBHatDPsi(itheta,:) = y / mu(2);
-  elseif Npsi == 1
-    dBHatDPsi(itheta,:) = zeros(Npsi);
-  else
-    error('Invalid Npsi, must be 1 or greater than 5');
-  end
-
-  if Npsi >= 5
-    [p,S,mu] = polyfit(psi, JHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
-    [y,~]= polyval(p,psi,S,mu);
-    JHat(itheta,:) = y;
-  elseif Npsi == 1
-    JHat(itheta,:) = JHat_beforeSmoothing(itheta,:);
-  else
-    error('Invalid Npsi, must be 1 or greater than 5')
-  end
-
-  if Npsi >= 5
-    [p,S,mu] = polyfit(psi, RHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
-    [y,~]= polyval(p,psi,S,mu);
-    RHat(itheta,:) = y;
-  elseif Npsi == 1
-    RHat(itheta,:) = RHat_beforeSmoothing(itheta,:);
-  else
-    error('Invalid Npsi, must be 1 or greater than 5')
-  end
+elseif Npsi ~= 1
+  error('Invalid Npsi, must be 1 or greater than 5')
 end
 
 % Spectral uniform differentiation matrix:

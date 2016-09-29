@@ -1,6 +1,6 @@
-function [thetaSurfs, BSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, as, R0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff)
+function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, as, R0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff)
 
-% 'BSurfs' and 'B0' should have units of Tesla.
+% 'BPSurfs' and 'B0' should have units of Tesla.
 % Both 'as' and 'R0' should have units of meters.
 % 'BDotGradThetaSurfs' should have units of Tesla / meters.
 
@@ -54,7 +54,7 @@ dthetadR = -(Z2D-Z0) ./ hypotenuse;
 
 N = numel(desiredPsiNs);
 thetaSurfs = cell(N,1);
-BSurfs = cell(N,1);
+BPSurfs = cell(N,1);
 RSurfs = cell(N,1);
 BDotGradThetaSurfs = cell(N,1);
 Rss = cell(N,1);
@@ -82,7 +82,7 @@ for i=1:N
     %bDotGradTheta = BDotGradTheta ./ B;
     
     thetaSurf = interp2(R, Z, theta, Rs, Zs,'spline');
-    BSurf = interp2(R, Z, B, Rs, Zs,'spline');
+    BPSurf = interp2(R, Z, BPol, Rs, Zs,'spline');
     BDotGradThetaSurf = interp2(R, Z, BDotGradTheta, Rs, Zs,'spline');
     
     % Sometimes, a point can fall in the tiny sliver of the R-Z plane where theta decreases
@@ -98,34 +98,35 @@ for i=1:N
     % but if there are more than 1 such point, remove all but the last:
     thetaIncreasing(find(thetaIncreasing,1,'last')) = false;
     thetaSurf(thetaIncreasing) = [];
-    BSurf(thetaIncreasing) = [];
+    BPSurf(thetaIncreasing) = [];
     BDotGradThetaSurf(thetaIncreasing) = [];
     Rs(thetaIncreasing) = [];
     Zs(thetaIncreasing) = [];
     
     % Make 3 copies:
     thetaSurf = [thetaSurf-2*pi, thetaSurf, thetaSurf+2*pi];
-    BSurf = [BSurf, BSurf, BSurf];
+    BPSurf = [BPSurf, BPSurf, BPSurf];
     BDotGradThetaSurf = [BDotGradThetaSurf, BDotGradThetaSurf, BDotGradThetaSurf];
     RSurf = [Rs, Rs, Rs];
     
     % Sort:
     [thetaSurf, permutation] = sort(thetaSurf');
-    BSurf = BSurf(permutation)';
+    BPSurf = BPSurf(permutation)';
     BDotGradThetaSurf = BDotGradThetaSurf(permutation)';
     RSurf = RSurf(permutation)';
     
     %bSurf = BSurf / abs(efit.B0EXP);
     
     thetaSurfs{i} = thetaSurf;
-    BSurfs{i} = BSurf;
+    BPSurfs{i} = BPSurf;
     RSurfs{i} = RSurf;
     BDotGradThetaSurfs{i} = BDotGradThetaSurf;
     as(i) = (max(Rs)-min(Rs))/2;
 end
 
 if plotStuff
-    fig1 = figure(1)
+    %fig1 = figure(1)
+    fig1 = figure('Visible','off');
     clf
     
     numRows=3;
@@ -194,7 +195,8 @@ if plotStuff
     colorbar
     title('B.\nabla\theta (T/m)')
     
-    fig3 = figure(3)
+    %fig3 = figure(3)
+    fig3 = figure('visible','off');
     clf
     
     numRows=2;
@@ -217,11 +219,11 @@ if plotStuff
     subplot(numRows,numCols,1)
     for i=1:N
         colorNum = mod(i-1,numColors)+1;
-        plot(thetaSurfs{i}, BSurfs{i},'.-','Color',colors(colorNum,:))
+        plot(thetaSurfs{i}, BPSurfs{i},'.-','Color',colors(colorNum,:))
         hold on
     end
     xlabel('\theta')
-    ylabel('B (T)')
+    ylabel('B_poloidal (T)')
     
     subplot(numRows,numCols,2)
     for i=1:N
@@ -232,7 +234,9 @@ if plotStuff
     xlabel('\theta')
     ylabel('B.\nabla\theta (T/m)')
 
-    waitfor(fig1);
-    waitfor(fig3);
+    %waitfor(fig1);
+    %waitfor(fig3);
+    print(fig1,'EFITgeometry_testFig1','-dpdf')
+    print(fig3,'EFITgeometry_testFig3','-dpdf')
     
 end
