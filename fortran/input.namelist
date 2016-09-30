@@ -143,6 +143,9 @@
   noChargeSource = 0
   ! 0: sum_a Z_a S_a = 0 is not enforced. (Default)
   ! 1: sum_a Z_a S_a = 0 is enforced. A new unknown is introduced to make the system solvable, see option below.
+  ! 2: sum_a Z_a S_a = CS is enforced, where CS is specified in the input underneath. A new unknown is introduced to make the system solvable, see option below.
+  chargeSourceFilename = "chargeSource.h5"
+  
 
   noChargeSourceOption = 0
   ! This option is used if noChargeSource = 1.
@@ -167,6 +170,8 @@
   !Options for leftBoundaryScheme and rightBoundaryScheme:
   ! 0: Impose f_1 = 0
   ! 1: Impose the local solution for f_1.
+  ! 2: Neumann
+  ! 3: Periodic boundary conditions (left and right must both be 3)
   leftBoundaryScheme = 1
   rightBoundaryScheme = 1
 /

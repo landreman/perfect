@@ -74,58 +74,49 @@ contains
        call preallocateMatrices(whichMatrix)
 
        call setDiagonalsToZero()
-       print *,"Set diagonals to zero: done"
-
+       
        ! *********************************************************
        ! Add the streaming and mirror terms which persist even 
        ! in the (delta,omega)=(0,0) limit:
        ! *********************************************************
        call streamingAndMirrorTerms0(whichMatrix)
-       print *,"Set local streaming and mirror terms: done"
-
+       
        ! *********************************************************
        ! Add the streaming and mirror terms which vanish
        ! in the (delta,omega)=(0,0) limit:
        ! *********************************************************
        call streamingAndMirrorTerms1(whichMatrix)
-       print *,"Set global streaming and mirror terms: done"
-
+       
        ! *********************************************************
        ! Add the collisionless d/dx term:
        ! *********************************************************
        call collisionlessDdx(whichMatrix)
-       print *,"Set collisionless d/dx term: done"
-
+       
        ! *********************************************************
        ! Add the collisionless d/dpsi term:
        ! *********************************************************
        call collisionlessDdpsi(whichMatrix,upwinding)
-       print *,"Set collisionless d/dpsi term: done"
-
+       
        ! *********************************************************
        ! Add the collision operator
        ! *********************************************************
        call collisionOperator(whichMatrix)
-       print *,"Set collision operator: done"
-
+       
        ! *******************************************************************************
        ! Put a 1 on the matrix diagonal where appropriate to enforce the radial boundary condition
        ! *******************************************************************************
        call radialBoundaryConditionDiagonal()
-       print *,"Set boundary conditions: done"
-
+       
        ! *******************************************************************************
        ! Add sources:
        ! *******************************************************************************
        call sources()
-       print *,"Set sources: done"
-
+       
        ! *******************************************************************************
        ! Add constraints:
        ! *******************************************************************************
        call constraints()
-       print *,"Set constraints: done"
-
+       
        ! *******************************************************************************
        ! Done inserting values into the matrices.
        ! Now finalize the matrices:
@@ -266,7 +257,7 @@ contains
                    ! Petsc uses a transposed format relative to Fortran:
                    thetaPartMatrix = transpose(thetaPartMatrix)
                    ! Put values in matrix, 
-                   if (ipsi==1) then
+                   if (ipsi==1 .and. leftBoundaryScheme /= 3) then
                       call MatSetValuesSparse(leftMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
@@ -277,7 +268,7 @@ contains
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
                       end do
-                   elseif (ipsi==Npsi) then
+                   elseif (ipsi==Npsi .and. leftBoundaryScheme /= 3) then
                       call MatSetValuesSparse(rightMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
@@ -312,7 +303,7 @@ contains
                    thetaPartMatrix = transpose(thetaPartMatrix)
 
                    ! Put values in matrix, noting that Petsc uses a transposed format relative to Fortran
-                   if (ipsi==1) then
+                   if (ipsi==1 .and. leftBoundaryScheme /= 3) then
                       call MatSetValuesSparse(leftMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
@@ -323,7 +314,7 @@ contains
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
                       end do
-                   elseif (ipsi==Npsi) then
+                   elseif (ipsi==Npsi .and. leftBoundaryScheme /= 3) then
                       call MatSetValuesSparse(rightMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
@@ -441,7 +432,7 @@ contains
                   thetaPartMatrix = transpose(thetaPartMatrix)
 
                   ! Put values in matrix
-                  if (ipsi>1 .and. ipsi<Npsi) then
+                  if ((ipsi>1 .and. ipsi<Npsi) .or. leftBoundaryScheme == 3) then
                      call MatSetValuesSparse(matrix, Ntheta, rowIndices, &
                           Ntheta, colIndices, thetaPartMatrix, ADD_VALUES, ierr)
                   else
@@ -477,7 +468,7 @@ contains
                      thetaPartMatrix = transpose(thetaPartMatrix)
 
                      ! Put values in matrix
-                     if (ipsi>1 .and. ipsi<Npsi) then
+                     if ((ipsi>1 .and. ipsi<Npsi) .or. leftBoundaryScheme == 3) then
                         call MatSetValuesSparse(matrix, Ntheta, rowIndices, &
                              Ntheta, colIndices, thetaPartMatrix, ADD_VALUES, ierr)
                      else
@@ -514,7 +505,7 @@ contains
                      thetaPartMatrix = transpose(thetaPartMatrix)
 
                      ! Put values in matrix
-                     if (ipsi>1 .and. ipsi<Npsi) then
+                     if ((ipsi>1 .and. ipsi<Npsi) .or. leftBoundaryScheme == 3) then
                         call MatSetValuesSparse(matrix, Ntheta, rowIndices, &
                              Ntheta, colIndices, thetaPartMatrix, ADD_VALUES, ierr)
                      else
@@ -592,7 +583,8 @@ contains
                 do itheta=1,Ntheta
                    signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                         / (psiAHat*charges(ispecies))
-                   if (((ipsi > 1) .and. (ipsi < Npsi)) .or. ((ipsi == 1) .and. (signOfPsiDot < -thresh)) &
+                   if ((ipsi > 1 .and. ipsi < Npsi) .or. (leftBoundaryScheme == 3) &
+                        .or. ((ipsi == 1) .and. (signOfPsiDot < -thresh)) &
                         .or. ((ipsi==Npsi) .and. (signOfPsiDot > thresh))) then
                       ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                       ! so impose the kinetic equation here.
@@ -1171,7 +1163,7 @@ contains
                    do itheta=1,Ntheta
                       signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                            / (psiAHat*charges(iSpeciesA))
-                      if ((ipsi > 1 .and. ipsi < Npsi) &
+                      if ((ipsi > 1 .and. ipsi < Npsi) .or. (leftBoundaryScheme == 3) &
                            .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
                            .or. (ipsi==Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then
                          ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
@@ -1273,7 +1265,7 @@ contains
     integer :: ispecies
     PetscScalar :: signOfPsiDot
 
-    if (procThatHandlesLeftBoundary .and. leftBoundaryScheme /= 2) then
+    if (procThatHandlesLeftBoundary .and. leftBoundaryScheme /= 2 .and. leftBoundaryScheme /= 3) then
        ipsi=1
        do ispecies = 1,numSpecies
           do itheta=1,Ntheta
@@ -1290,7 +1282,7 @@ contains
           end do
        end do
     end if
-    if (procThatHandlesRightBoundary .and. rightBoundaryScheme /= 2) then
+    if (procThatHandlesRightBoundary .and. rightBoundaryScheme /= 2 .and. leftBoundaryScheme /= 3) then
        ipsi = Npsi
        do ispecies = 1,numSpecies
           do itheta=1,Ntheta
@@ -1378,7 +1370,7 @@ contains
                 do itheta=1,Ntheta
                    signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                         / (psiAHat*charges(ispecies))
-                   if ((ipsi > 1 .and. ipsi < Npsi) &
+                   if ((ipsi > 1 .and. ipsi < Npsi) .or. (leftBoundaryScheme == 3)&
                         .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
                         .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then 
                       ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
@@ -1420,7 +1412,7 @@ contains
                 do itheta=1,Ntheta
                    signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                         / (psiAHat*charges(ispecies))
-                   if ((ipsi > 1 .and. ipsi < Npsi) &
+                   if ((ipsi > 1 .and. ipsi < Npsi) .or. (leftBoundaryScheme == 3)&
                         .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
                         .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then 
                       ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
@@ -1546,7 +1538,6 @@ contains
     if (procThatHandlesRightBoundary) then
        call MatAssemblyBegin(rightMatrix, MAT_FINAL_ASSEMBLY, ierr)
     end if
-    print *,"Started assembling matrix. Checking errors..."
     CHKERRQ(ierr)
     call MatAssemblyEnd(matrix, MAT_FINAL_ASSEMBLY, ierr)
     if (procThatHandlesLeftBoundary) then
@@ -1555,10 +1546,8 @@ contains
     if (procThatHandlesRightBoundary) then
        call MatAssemblyEnd(rightMatrix, MAT_FINAL_ASSEMBLY, ierr)
     end if
-    print *,"Finished assembling matrix. Checking errors..."
     CHKERRQ(ierr)
-    print *,"Error checking done!"
-
+    
     if (whichMatrix==0) then
        preconditionerMatrix = matrix
        if (procThatHandlesLeftBoundary) then

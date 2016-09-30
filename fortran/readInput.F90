@@ -27,7 +27,7 @@ contains
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
          detaHatdpsiScalar, sourcePoloidalVariation, &
          sourcePoloidalVariationStrength, sourcePoloidalVariationPhase, &
-         noChargeSource, noChargeSourceOption, &
+         noChargeSource, chargeSourceFilename, noChargeSourceOption, &
          Delta, omega, psiAHat, psiMid,  &
          exponent, setTPrimeToBalanceHeatFlux, &
          includeCollisionOperator, includeddpsiTerm, &
@@ -116,6 +116,11 @@ contains
                " but not read data from the physicsParameters namelist in it."
           stop
        end if
+       if (((leftBoundaryScheme .eq. 3) .or. (rightBoundaryScheme .eq. 3)) .and.  (leftBoundaryScheme /= rightBoundaryScheme)) then
+          print *,"Error: If left or right boundary uses periodic boundary conditions , both boundaries must us periodic."
+          stop
+       end if
+       
        if (masterProc) then
           print *,"Successfully read parameters from physicsParameters namelist in ", filename, "."
        end if
@@ -247,6 +252,15 @@ contains
        end if       
     end if
 
+    if (noChargeSource .eq. 2) then
+       ! Check if chargeSourceFilename is set
+       if (.not. len(chargeSourceFilename)>=0) then
+          print *,"If noChargeSource==2 then chargeSourceFilename must be set."
+          stop
+       end if       
+    end if
+
+    
   end subroutine readNamelistInput
 
 end module readInput

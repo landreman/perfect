@@ -31,7 +31,7 @@ contains
     integer :: ispecies
     PetscScalar :: LFactor
     PetscScalar :: stuffToAdd
-
+    print *,matrixSize
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
     CHKERRQ(ierr)
     call VecSet(rhs, zero,ierr)
@@ -104,6 +104,15 @@ contains
        end do
     end do
 
+    if ((noChargeSource == 1) .or. (noChargeSource == 2)) then
+       ! Add the RHS of the relation between particle sources
+       ! We do not care about boundaries except possibly through the enforced ipsi parameters.
+       do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
+          index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+          call VecSetValue(rhs, index, chargeSource(ipsi), INSERT_VALUES, ierr)
+       end do
+    end if
+       
   end subroutine DKECreateRhsVector
 
 end module DKERhs

@@ -63,6 +63,8 @@ contains
     allocate(dnHatdpsis(numSpecies,Npsi))
     ! multiplies global terms
     allocate(globalTermMultiplier(Npsi))
+    ! charge source
+    allocate(chargeSource(NEnforcedPsi))
 
 
     select case (psiGridType)
@@ -108,7 +110,31 @@ contains
          stop
 
       end select
+
+      select case (noChargeSource)
+      case(0)
+         ! no constraints enforced on particle source
+      case(1)
+         ! no charge source
+         chargeSource = zero
+      case(2)
+         ! read charge source from file
+         ! Create groupname to be read
+         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+         ! Open input file
+         call openInputFile(chargeSourceFilename,HDF5Groupname)
+         
+         call readVariable(chargeSource, "chargeSource")
+         
+         call closeInputFile() 
+       
+      case default
+         print *,"Error! Invalid setting for noChargeSource" 
+         stop
+
+      end select
     
+      
     if (profilesScheme .eq. 7) then
        ! Read in profiles from file
 

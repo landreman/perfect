@@ -216,7 +216,7 @@ contains
        case (1)
 
           call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
-       if (useIterativeBoundarySolver) then
+          if (useIterativeBoundarySolver) then
              ! Use iterative solver
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
              ! Syntax for PETSc versions up through 3.4:
@@ -290,13 +290,15 @@ contains
           call applyBoundaryConstraints(solnLeft, "inner")
        case (2)
           ! Don't do anything
+       case (3)
+          ! Don't do anything
        case default
           print *,"Error! Invalid setting for leftBoundaryScheme"
           stop
        end select
 
        ! Where trajectories enter the domain, copy solnLeft to the global rhs:
-       if (leftBoundaryScheme /= 2) then
+       if (leftBoundaryScheme /= 2 .and. leftBoundaryScheme /= 3) then
          call VecGetArrayF90(solnLeft, solnArray, ierr)
          ipsi=1
          do ispecies=1,numSpecies
@@ -337,7 +339,7 @@ contains
        case (1)
 
           call KSPCreate(MPI_COMM_SELF, KSPBoundary, ierr)
-       if (useIterativeBoundarySolver) then
+          if (useIterativeBoundarySolver) then
              ! Use iterative solver
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 5))
              ! Syntax for PETSc versions up through 3.4:
@@ -411,13 +413,15 @@ contains
           call applyBoundaryConstraints(solnRight, "outer")
        case (2)
           ! Don't do anything
+       case (3)
+          ! Don't do anything
        case default
           print *,"Error! Invalid setting for rightBoundaryScheme"
           stop
        end select
 
        ! Where trajectories enter the domain, copy solnRight to the global rhs:
-       if (rightBoundaryScheme /= 2) then
+       if (rightBoundaryScheme /= 2 .and. rightBoundaryScheme /= 3) then
          call VecGetArrayF90(solnRight, solnArray, ierr)
          ipsi = Npsi
          do ispecies = 1,numSpecies

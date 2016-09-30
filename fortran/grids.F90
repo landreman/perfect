@@ -171,7 +171,13 @@ module grids
          stop
       end if
       ! centered finite differences, no upwinding, 3-point stencil
-      scheme = 2
+      if (leftBoundaryScheme == 3) then
+         !perioid domain
+         scheme = 0
+      else
+         ! non-periodic domain
+         scheme = 2
+      end if
       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
       ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
 
@@ -180,11 +186,23 @@ module grids
       select case (psiDerivativeScheme)
       case (1)
          ! centered finite differences, 3-point stencil
-         scheme = 2
+         if (leftBoundaryScheme == 3) then
+            ! periodic domain
+            scheme = 0
+         else
+            ! non-periodic domain
+            scheme = 2
+         end if
          call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
       case (2)
          ! centered finite differences, 5-point stencil
-         scheme = 12
+         if (leftBoundaryScheme == 3) then
+            ! periodic domain
+            scheme = 10
+         else
+            ! non-periodic domain
+            scheme = 12
+         end if
          call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
       case default
          if (masterProcInSubComm) then

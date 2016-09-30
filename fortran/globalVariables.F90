@@ -104,7 +104,9 @@ module globalVariables
   PetscScalar :: sourcePoloidalVariationPhase
 
   integer :: noChargeSource
-  ! the following 2 variables are used for noChargeSource = 1
+  ! the following 3 variables are used for noChargeSource > 0
+  character(len=100) :: chargeSourceFilename
+  PetscScalar, dimension(:), allocatable :: chargeSource
   integer :: noChargeSourceOption
   PetscScalar, dimension(:), allocatable :: extraSourceSpeciesDependence
   ! this is used to write the out the extra source
