@@ -31,6 +31,10 @@ contains
     PetscScalar, intent(in) :: psiDiameter0, widthExtender0
 
     computeNpsi = nint(NpsiPerDiameter0 * (psiDiameter0 + 2*widthExtender0 - leftBoundaryShift + rightBoundaryShift))+1
+    if (leftBoundaryScheme == 3) then
+       ! exclude the point at psiMax
+       computeNpsi = computeNpsi - 1
+    end if
     if (makeLocalApproximation) then
       computeNpsi = max(1, computeNpsi)
     else

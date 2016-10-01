@@ -116,7 +116,6 @@ contains
        call computedBdthetas_1D(theta, dbdthetas_1D)
        call computeOneOverqRbDotGradThetas_1D(theta, oneOverqRbDotGradThetas_1D)
        call computeR_1D(theta, R_1D)
-       
        do i=1,Npsi
           BHat(:,i) = bs_1D
           RHat(:,i) = R_1D

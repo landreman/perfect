@@ -17,9 +17,16 @@ class perfectInput(object):
     Keyword arguments:
     inputfilename -- the name of the PERFECT input file
     """
-    def computeNpsi(self,NpsiPerDiameter0, psiDiameter0, widthExtender0, leftBoundaryShift, rightBoundaryShift):
-        return int(round(NpsiPerDiameter0 * (psiDiameter0 + 2*widthExtender0 - leftBoundaryShift + rightBoundaryShift))+1)
-
+    def computeNpsi(self,NpsiPerDiameter0, psiDiameter0, widthExtender0, leftBoundaryShift, rightBoundaryShift,makeLocalApproximation,leftBoundaryScheme):
+        Npsi = int(round(NpsiPerDiameter0 * (psiDiameter0 + 2*widthExtender0 - leftBoundaryShift + rightBoundaryShift))+1)
+        if leftBoundaryScheme == 3:
+            Npsi = Npsi - 1
+            
+        if makeLocalApproximation:
+            Npsi = max(1, Npsi)
+        else:
+            Npsi = max(5, Npsi)
+        return Npsi
     def RHat(self,theta):
         return 1. + 1./self.Miller_A*numpy.cos(theta + self.Miller_x*numpy.sin(theta))
 
@@ -121,6 +128,8 @@ class perfectInput(object):
     psiAHat = property(groupGetter('physicsParameters','psiAHat'), groupSetter('physicsParameters','psiAHat'))
     leftBoundaryShift = property(groupGetter('physicsParameters','leftBoundaryShift'), groupSetter('physicsParameters','leftBoundaryShift'))
     rightBoundaryShift = property(groupGetter('physicsParameters','rightBoundaryShift'), groupSetter('physicsParameters','rightBoundaryShift'))
+    leftBoundaryScheme = property(groupGetter('physicsParameters','leftBoundaryScheme'), groupSetter('physicsParameters','leftBoundaryScheme'))
+    rightBoundaryScheme = property(groupGetter('physicsParameters','rightBoundaryScheme'), groupSetter('physicsParameters','rightBoundaryScheme'))
     psiMid = property(groupGetter('physicsParameters','psiMid'), groupSetter('physicsParameters','psiMid'))
     desiredU = property(groupGetter('physicsParameters','desiredU'), groupSetter('physicsParameters','desiredU'))
     desiredUNumRuns = property(groupGetter('physicsParameters','desiredUNumRuns'), groupSetter('physicsParameters','desiredUNumRuns'))
@@ -206,7 +215,7 @@ class perfectInput(object):
         #self.dTHatdpsiScalar = physicsParameters["dTHatdpsiScalar"]
         #self.detaHatdpsiScalar = physicsParameters["detaHatdpsiScalar"]
 
-        self.Npsi = self.computeNpsi(self.NpsiPerDiameter, self.psiDiameter, self.widthExtender, self.leftBoundaryShift, self.rightBoundaryShift)
+        self.Npsi = self.computeNpsi(self.NpsiPerDiameter, self.psiDiameter, self.widthExtender, self.leftBoundaryShift, self.rightBoundaryShift,self.makeLocalApproximation,self.leftBoundaryScheme)
         #self.makeLocalApproximation=physicsParameters["makeLocalApproximation"]
 
         # psi grid is uniformly spaced and should always include psiMin and psiMax points (options for psiDerivative Scheme are 1 and 2)
@@ -224,7 +233,7 @@ class perfectInput(object):
             
         self.psiMin = self.psiMid - self.psiDiameter/2. - self.widthExtender + self.leftBoundaryShift
         self.psiMax = self.psiMid + self.psiDiameter/2. + self.widthExtender + self.rightBoundaryShift
-        self.psi = numpy.linspace(self.psiMin, self.psiMax, self.Npsi)
+        self.psi = numpy.linspace(self.psiMin, self.psiMax, self.Npsi,endpoint=(self.leftBoundaryScheme!=3))
         #We might have a psi grid with only one point
         if self.Npsi>1:
             self.dpsi = self.psi[1]-self.psi[0]

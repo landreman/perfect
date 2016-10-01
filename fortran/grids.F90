@@ -180,9 +180,7 @@ module grids
       end if
       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
       ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
-
-         
-         
+  
       select case (psiDerivativeScheme)
       case (1)
          ! centered finite differences, 3-point stencil
@@ -210,7 +208,6 @@ module grids
          end if
          stop
       end select
-
       allocate(ddpsi_accurate(Npsi,Npsi))
 
       if (.not. upwinding) then
@@ -256,7 +253,6 @@ module grids
     
     call uniformDiffMatrices(Ntheta, scaledThetaGridShift, two*pi + scaledThetaGridShift, scheme, theta, &
          thetaWeights, ddtheta, d2dtheta2)
-
     ! Also make a sparser differentiation matrix for the preconditioner:
     allocate(theta_preconditioner(Ntheta))
     allocate(thetaWeights_preconditioner(Ntheta))

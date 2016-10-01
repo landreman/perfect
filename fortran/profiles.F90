@@ -807,7 +807,13 @@ contains
 
          ! Re-create ddpsi_accurate, since it is over-written in the loop.
          ! centered finite differences, no upwinding, 5-point stencil
-         scheme = 12
+         if(leftBoundaryScheme /= 3) then
+            ! non-periodic
+            scheme = 12
+         else
+            ! periodic
+            scheme = 10
+         end if
          call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsi_accurate, d2dpsi2)
          ! Change first row of ddpsi matrix so matrix is nonsingular:
          ddpsi_accurate(1,:) = 0
@@ -869,7 +875,7 @@ contains
           extraSourceSpeciesDependence(1) = one
 	  ! TODO: perhaps try to infer main ion rather than just use first.
        case default
-          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3."
+          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4."
           stop
        end select
     end if

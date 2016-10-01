@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+#SBATCH -A C3SE2016-1-10
+#SBATCH -p hebbe
+#SBATCH -J perfect
+#SBATCH -C MEM128
+##SBATCH --mem 896000
+##SBATCH -w hebbe03-1
+#SBATCH -N 6
+#SBATCH -n 120
+#SBATCH -t 4:00:00
+#SBATCH -o out.txt
+#SBATCH -e err.txt
+
+nodes=`scontrol show hostnames $SLURM_NODELIST`
+echo $nodes
+export I_MPI_USE_DYNAMIC_CONNECTIONS=0 
+export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
+
+
+#srun -n 22 -m arbitrary -w "${nodearray[0]},${nodearray[0]},${nodearray[1]},${nodearray[1]},${nodearray[2]},${nodearray[2]},${nodearray[3]},${nodearray[3]},${nodearray[4]},${nodearray[4]},${nodearray[4]},${nodearray[5]},${nodearray[5]},${nodearray[6]},${nodearray[6]},${nodearray[6]},${nodearray[7]},${nodearray[7]},${nodearray[7]},${nodearray[8]},${nodearray[8]},${nodearray[8]}" /c3se/users/bstefan/Hebbe/perfect/fortran/perfect
+
+srun -n 36 -m cyclic /c3se/users/bstefan/Hebbe/perfect/fortran/perfect -ksp_view -mat_mumps_cntl_1 1e-6 -mat_mumps_icntl_14 50 -mat_mumps_icntl_23 128000
+
+# End script
