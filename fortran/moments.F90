@@ -166,7 +166,7 @@ contains
              end do
           end do
 
-          if (noChargeSource == 1) then
+          if (noChargeSource == 1 .or. noChargeSource == 2) then
              ! we will have some extra field to read out
              select case(noChargeSourceOption)
              case(0,1,2,3,4)

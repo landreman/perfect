@@ -102,6 +102,9 @@ module globalVariables
   integer :: sourcePoloidalVariation
   PetscScalar :: sourcePoloidalVariationStrength
   PetscScalar :: sourcePoloidalVariationPhase
+  PetscScalar, dimension(:), allocatable :: sourceThetaPart
+  PetscScalar, dimension(:), allocatable :: sourceThetaPartFSA 
+  
 
   integer :: noChargeSource
   ! the following 3 variables are used for noChargeSource > 0

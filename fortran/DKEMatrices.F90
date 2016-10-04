@@ -113,7 +113,7 @@ contains
        call sources()
        
        ! *******************************************************************************
-       ! Add constraints:
+       ! Add constraints: (2016-10-03: Must be called after sources, as it uses sourcePoloidalVariationFSA)
        ! *******************************************************************************
        call constraints()
        
@@ -1310,7 +1310,7 @@ contains
     ! *******************************************************************************
 
     PetscErrorCode :: ierr
-    PetscScalar, dimension(:), allocatable :: sourceThetaPart, this_sourceThetaPart
+    PetscScalar, dimension(:), allocatable :: this_sourceThetaPart
     PetscScalar, dimension(:), allocatable :: sourceXPart
   
     PetscScalar :: signOfPsiDot, xPartOfSource
@@ -1333,19 +1333,6 @@ contains
 
     this_ipsiMin = max(ipsiMin,lowestEnforcedIpsi)
     this_ipsiMax = min(ipsiMax,highestEnforcedIpsi)
-
-    allocate(sourceThetaPart(Ntheta))
-    select case (sourcePoloidalVariation)
-    case (0)
-       sourceThetaPart = 1
-    case (1)
-       do i=1,Ntheta
-          sourceThetaPart(i) = 1 + sourcePoloidalVariationStrength * cos(theta(i) + sourcePoloidalVariationPhase)
-       end do
-    case default
-       print *,"Error! Invalid sourcePoloidalVariation."
-       stop
-    end select
 
     allocate(sourceXPart(Nx))
     L = 0
@@ -1387,7 +1374,7 @@ contains
        end do
     end do
 
-    if (noChargeSource == 1) then
+    if (noChargeSource == 1 .or. noChargeSource == 2) then
        allocate(this_sourceThetaPart(Ntheta))
        select case(noChargeSourceOption)
        case(0,1,2)
@@ -1426,9 +1413,9 @@ contains
              end do
           end do
        end do
+       deallocate(this_sourceThetaPart)
     end if
 
-    deallocate(sourceThetaPart)
     deallocate(sourceXPart)
 
   end subroutine sources
@@ -1485,14 +1472,15 @@ contains
           end do
        end do
 
-       if (noChargeSource == 1) then
+       if (noChargeSource == 1 .or. noChargeSource == 2) then
           isources = 1 ! particle sources only enters into this constraint
           allocate(constraintSpeciesPart(Npsi))
           allocate(constraintPsiAndSpeciesPart(Npsi))
           do ispecies = 1,numSpecies
              constraintSpeciesPart = charges(ispecies)/(masses(ispecies)**2)
              do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-                constraintPsiAndSpeciesPart = constraintSpeciesPart*THats(ispecies,ipsi)**(3.0/2.0)
+                constraintPsiAndSpeciesPart = constraintSpeciesPart * sourceThetaPartFSA(ipsi) &
+                     * THats(ispecies,ipsi)**(3.0/2.0)
                 rowIndexArray = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
                 colIndices = Npsi*localMatrixSize &
                      + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1

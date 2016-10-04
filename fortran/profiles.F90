@@ -66,30 +66,49 @@ contains
     ! charge source
     allocate(chargeSource(NEnforcedPsi))
 
+    print *,Ntheta 
+    ! read in poloidal variation of sources
+    allocate(sourceThetaPart(Ntheta))
+    select case (sourcePoloidalVariation)
+    case (0)
+       sourceThetaPart = one
+    case (1)
+       do i=1,Ntheta
+          sourceThetaPart(i) = one + sourcePoloidalVariationStrength * cos(theta(i) + sourcePoloidalVariationPhase)           
+       end do
+    case default
+       print *,"Error! Invalid sourcePoloidalVariation."
+       stop
+    end select
 
+    ! calculate FSA of poloidal variation of sources
+    allocate(sourceThetaPartFSA(NEnforcedPsi))
+    do i=lowestEnforcedIpsi,highestEnforcedIpsi
+       sourceThetaPartFSA(i - lowestEnforcedIpsi + 1) = dot_product(thetaWeights, sourceThetaPart/JHat(:,i)) / VPrimeHat(i)
+    end do
+ 
     select case (psiGridType)
-      case(0)
-         ! uniform grid
-         do i=1,Npsi
-            psiAHatArray(i) = psiAHat
-         end do
-      case(1)
-         ! Create groupname to be read
-         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+    case(0)
+       ! uniform grid
+       do i=1,Npsi
+          psiAHatArray(i) = psiAHat
+       end do
+    case(1)
+       ! Create groupname to be read
+       write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
        
-         ! Open input file
-         call openInputFile(psiAHatFilename,HDF5Groupname)
-
-         call readVariable(psiAHatArray, "psiAHatArray")
-
-         call closeInputFile() 
+       ! Open input file
+       call openInputFile(psiAHatFilename,HDF5Groupname)
        
-      case default
-         print *,"Error! Invalid setting for psiGridType"
-         stop
+       call readVariable(psiAHatArray, "psiAHatArray")
 
-     end select
-      
+       call closeInputFile() 
+       
+    case default
+       print *,"Error! Invalid setting for psiGridType"
+       stop
+         
+    end select
 
     select case (useGlobalTermMultiplier)
     case(0)
