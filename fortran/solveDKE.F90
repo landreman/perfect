@@ -131,6 +131,9 @@ contains
     !
     ! *******************************************************************************
     ! *******************************************************************************
+    if (masterProcInSubComm) then
+       print *,"calling DKECreateRhsVector()"
+    end if
     call DKECreateRhsVector()
     call deallocateInitializationGridArrays()
     ! *********************************************************************************************

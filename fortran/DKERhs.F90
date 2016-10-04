@@ -109,10 +109,12 @@ contains
        ! We do not care about boundaries except possibly through the enforced ipsi parameters.
        do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
           index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
-          ! prefactors needed to translate to source that gives psiN derivative of particleFlux output 
+          ! prefactors needed to translate to source that gives psiN derivative of particleFlux output
           call VecSetValue(rhs, index, chargeSource(ipsi) * Delta/(sqrtpi* abs(VPrimeHat) * psiAHat), INSERT_VALUES, ierr)
+          ! 
        end do
     end if
+    ! 
        
   end subroutine DKECreateRhsVector
 

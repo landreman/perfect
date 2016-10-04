@@ -86,6 +86,7 @@ contains
     do i=lowestEnforcedIpsi,highestEnforcedIpsi
        sourceThetaPartFSA(i - lowestEnforcedIpsi + 1) = dot_product(thetaWeights, sourceThetaPart/JHat(:,i)) / VPrimeHat(i)
     end do
+    !print *,sourceThetaPartFSA
  
     select case (psiGridType)
     case(0)
@@ -145,8 +146,8 @@ contains
          
          call readVariable(chargeSource, "chargeSource")
          
-         call closeInputFile() 
-       
+         call closeInputFile()
+         
       case default
          print *,"Error! Invalid setting for noChargeSource" 
          stop
@@ -865,7 +866,7 @@ contains
     allocate(sqrtTHats(numSpecies,Npsi))
     sqrtTHats = sqrt(THats)
     
-    if (noChargeSource == 1) then
+    if (noChargeSource == 1 .or. noChargeSource == 2) then
        select case(noChargeSourceOption)
        case(0)
           ! momentum source

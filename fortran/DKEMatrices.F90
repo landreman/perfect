@@ -113,7 +113,7 @@ contains
        call sources()
        
        ! *******************************************************************************
-       ! Add constraints: (2016-10-03: Must be called after sources, as it uses sourcePoloidalVariationFSA)
+       ! Add constraints:
        ! *******************************************************************************
        call constraints()
        
@@ -1390,7 +1390,7 @@ contains
           sourceXPart = (x2-5/two)*exp(-x2)
           this_sourceThetaPart = 1 + sourcePoloidalVariationStrength * cos(theta + sourcePoloidalVariationPhase)  		
        case default
-       	  print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3."	 
+       	  print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4."	 
        end select
           
        do ix=1,Nx         
@@ -1430,13 +1430,14 @@ contains
     PetscScalar, dimension(:), allocatable :: constraintXAndThetaPart
     PetscScalar, dimension(:), allocatable :: constraintXPart
     ! the following constraint is only use to enforce noChargeSources
-    PetscScalar, dimension(:), allocatable :: constraintSpeciesPart
-    PetscScalar, dimension(:), allocatable :: constraintPsiAndSpeciesPart
+    PetscScalar :: constraintSpeciesPart
+    PetscScalar :: constraintPsiAndSpeciesPart
     
     integer, dimension(:), allocatable :: rowIndices, colIndices
     integer :: ix, itheta, ipsi, L
     integer :: ispecies, isources
     integer :: rowIndexArray(1)
+    integer :: rowIndex, colIndex
 
     if (procThatHandlesRightBoundary) then
        ! The processor that owns the right-most psi point handles the constraints.
@@ -1466,28 +1467,29 @@ contains
                    constraintXAndThetaPart = constraintXPart(ix) * thetaWeights / JHat(:,ipsi)
                    colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
                    call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, constraintXAndThetaPart,&
-                        ADD_VALUES, ierr)
+                           ADD_VALUES, ierr)
+                   CHKERRQ(ierr)
                 end do
              end do
           end do
        end do
 
        if (noChargeSource == 1 .or. noChargeSource == 2) then
+          print *,"Adding source constraint to DKE"
           isources = 1 ! particle sources only enters into this constraint
-          allocate(constraintSpeciesPart(Npsi))
-          allocate(constraintPsiAndSpeciesPart(Npsi))
           do ispecies = 1,numSpecies
              constraintSpeciesPart = charges(ispecies)/(masses(ispecies)**2)
              do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
                 constraintPsiAndSpeciesPart = constraintSpeciesPart * sourceThetaPartFSA(ipsi) &
                      * THats(ispecies,ipsi)**(3.0/2.0)
-                rowIndexArray = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
-                colIndices = Npsi*localMatrixSize &
+                rowIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+                colIndex = Npsi*localMatrixSize &
                      + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
-                call MatSetValuesSparse(matrix, 1, rowIndexArray, Ntheta, colIndices, constraintPsiAndSpeciesPart,&
+                call MatSetValueSparse(matrix, rowIndex, colIndex, constraintPsiAndSpeciesPart,&
                      ADD_VALUES, ierr)
+                CHKERRQ(ierr)
              end do
-          end do     
+          end do
        end if
              
        deallocate(colIndices)
