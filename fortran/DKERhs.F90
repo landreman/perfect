@@ -31,7 +31,6 @@ contains
     integer :: ispecies
     PetscScalar :: LFactor
     PetscScalar :: stuffToAdd
-    print *,matrixSize
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
     CHKERRQ(ierr)
     call VecSet(rhs, zero,ierr)

@@ -66,7 +66,6 @@ contains
     ! charge source
     allocate(chargeSource(NEnforcedPsi))
 
-    print *,Ntheta 
     ! read in poloidal variation of sources
     allocate(sourceThetaPart(Ntheta))
     select case (sourcePoloidalVariation)
@@ -86,8 +85,7 @@ contains
     do i=lowestEnforcedIpsi,highestEnforcedIpsi
        sourceThetaPartFSA(i - lowestEnforcedIpsi + 1) = dot_product(thetaWeights, sourceThetaPart/JHat(:,i)) / VPrimeHat(i)
     end do
-    !print *,sourceThetaPartFSA
- 
+    
     select case (psiGridType)
     case(0)
        ! uniform grid

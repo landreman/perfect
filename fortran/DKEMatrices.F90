@@ -702,7 +702,7 @@ contains
              stop
           end select
        end if
-
+       
        !allocate(localddpsiToUse(localNpsiInterior,Npsi))
        do ispecies = 1,numSpecies
           do itheta = 1, Ntheta
@@ -716,10 +716,10 @@ contains
              end if
              ipsiMinForThisTheta = ipsiMin
              ipsiMaxForThisTheta = ipsiMax
-             if (procThatHandlesLeftBoundary .and. (thetaPartOfPsiDot(1) .ge. 0)) then
+             if ((procThatHandlesLeftBoundary .and. (thetaPartOfPsiDot(1) .ge. 0)) .and. leftBoundaryScheme /= 3) then
                 ipsiMinForThisTheta = 2
              end if
-             if (procThatHandlesRightBoundary .and. (thetaPartOfPsiDot(Npsi) .le. 0)) then
+             if ((procThatHandlesRightBoundary .and. (thetaPartOfPsiDot(Npsi) .le. 0)).and. leftBoundaryScheme /= 3) then
                 ipsiMaxForThisTheta = Npsi-1
              end if
 
@@ -1475,7 +1475,6 @@ contains
        end do
 
        if (noChargeSource == 1 .or. noChargeSource == 2) then
-          print *,"Adding source constraint to DKE"
           isources = 1 ! particle sources only enters into this constraint
           do ispecies = 1,numSpecies
              constraintSpeciesPart = charges(ispecies)/(masses(ispecies)**2)

@@ -194,7 +194,7 @@
    ! This value, when multiplied by the range of normalized psi included in the simulation,
   ! gives the number of grid points in the radial direction.
   ! Memory and time requirements DO depend strongly on this parameter.
-  NpsiPerDiameter = 405
+  NpsiPerDiameter = 205
   NpsiMinFactor = 0.75
   NpsiMaxFactor = 1.5
   NpsiNumRuns = 0
