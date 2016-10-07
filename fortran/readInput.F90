@@ -252,10 +252,10 @@ contains
        end if       
     end if
 
-    if (noChargeSource .eq. 2) then
+    if (noChargeSource == 2 .or. noChargeSource == 3) then
        ! Check if chargeSourceFilename is set
        if (.not. len(chargeSourceFilename)>=0) then
-          print *,"If noChargeSource==2 then chargeSourceFilename must be set."
+          print *,"If noChargeSource==2 or 3 then chargeSourceFilename must be set."
           stop
        end if       
     end if

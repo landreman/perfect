@@ -162,18 +162,18 @@ contains
           do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
              do isources = 1,Nsources
                 sourceProfile(isources,ispecies,ipsi - lowestEnforcedIpsi + 1) = solnArray(localMatrixSize*Npsi &
-                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources)
+                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + (isources-1) + 1)
              end do
           end do
 
-          if (noChargeSource == 1 .or. noChargeSource == 2) then
+          if (noChargeSource > 0) then
              ! we will have some extra field to read out
              select case(noChargeSourceOption)
              case(0,1,2,3,4)
                 do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
-                   noChargeSourceExtraSourceProfile(ispecies,ipsi) = &
+                   noChargeSourceExtraSourceProfile(ispecies,ipsi - lowestEnforcedIpsi + 1) = &
                         extraSourceSpeciesDependence(ispecies)*solnArray(Npsi * localMatrixSize &
-                        + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi))
+                        + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi) + 1)
                 end do
              case default
                 print *,"Error! Invalid noChargeSourceOption. Supported values are: 0,1,2,3,4. Cannot read from solnArray."

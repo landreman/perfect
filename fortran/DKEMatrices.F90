@@ -1364,7 +1364,7 @@ contains
                    ! so impose the kinetic equation here.
                       rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
                       colIndex = Npsi*localMatrixSize &
-                           + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
+                           + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + (isources - 1)
                       call MatSetValueSparse(matrix, rowIndex, colIndex, &
                            sourceThetaPart(itheta) * sourceXPart(ix), ADD_VALUES, ierr)
                    end if
@@ -1374,7 +1374,7 @@ contains
        end do
     end do
 
-    if (noChargeSource == 1 .or. noChargeSource == 2) then
+    if (noChargeSource == 1 .or. noChargeSource == 2 .or. noChargeSource == 3) then
        allocate(this_sourceThetaPart(Ntheta))
        select case(noChargeSourceOption)
        case(0,1,2)
@@ -1432,6 +1432,8 @@ contains
     ! the following constraint is only use to enforce noChargeSources
     PetscScalar :: constraintSpeciesPart
     PetscScalar :: constraintPsiAndSpeciesPart
+    ! used when noChargeSources == 3
+    PetscScalar ::sourceThetaPartIHatOverBHatFSA
     
     integer, dimension(:), allocatable :: rowIndices, colIndices
     integer :: ix, itheta, ipsi, L
@@ -1462,7 +1464,7 @@ contains
           do ispecies = 1,numSpecies
              do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
                 rowIndexArray = Npsi*localMatrixSize &
-                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
+                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + (isources - 1)
                 do ix = 1, Nx
                    constraintXAndThetaPart = constraintXPart(ix) * thetaWeights / JHat(:,ipsi)
                    colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
@@ -1483,19 +1485,38 @@ contains
                      * THats(ispecies,ipsi)**(3.0/2.0)
                 rowIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
                 colIndex = Npsi*localMatrixSize &
-                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources - 1
+                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + (isources - 1)
                 call MatSetValueSparse(matrix, rowIndex, colIndex, constraintPsiAndSpeciesPart,&
                      ADD_VALUES, ierr)
                 CHKERRQ(ierr)
              end do
           end do
        end if
-             
+       
+       if (noChargeSource == 3) then
+          ! momentum sources only enters into this constraint
+          ! this is reflected in the col-indices used, which should match
+          ! the row-indices in the source subroutine
+          do ispecies = 1,numSpecies
+             constraintSpeciesPart = extraSourceSpeciesDependence(ispecies)/(masses(ispecies)**(3.0/2.0))
+             do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+                sourceThetaPartIHatOverBHatFSA = &
+                     dot_product(thetaWeights, sourceThetaPart*IHat(ipsi)/(BHat(:,ipsi)*JHat(:,ipsi))) / VPrimeHat(ipsi)
+                constraintPsiAndSpeciesPart = constraintSpeciesPart * sourceThetaPartIHatOverBHatFSA &
+                    * THats(ispecies,ipsi)**(2.0) 
+                rowIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+                colIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+                call MatSetValueSparse(matrix, rowIndex, colIndex, constraintPsiAndSpeciesPart,&
+                     ADD_VALUES, ierr)
+                CHKERRQ(ierr)
+             end do
+          end do
+       end if
+       
        deallocate(colIndices)
        deallocate(constraintXAndThetaPart)
-       deallocate(constraintXPart)
+       deallocate(constraintXPart) 
     end if
-
   end subroutine constraints
 
   subroutine finalizeMatrices(whichMatrix,time1)

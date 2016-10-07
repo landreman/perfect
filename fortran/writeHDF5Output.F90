@@ -244,7 +244,7 @@ contains
       call writeVariable(noChargeSource,"noChargeSource",runNum)
       call writeVariable(noChargeSourceOption,"noChargeSourceOption",runNum)
       
-      if (noChargeSource == 1 .or. noChargeSource == 2) then
+      if (noChargeSource > 0) then
          select case(noChargeSourceOption)
          case(0,1,2)
             call writeVariable(extraSourceSpeciesDependence,"momentumSourceSpeciesDependence",runNum)

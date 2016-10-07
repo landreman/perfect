@@ -145,7 +145,18 @@ contains
          call readVariable(chargeSource, "chargeSource")
          
          call closeInputFile()
+
+      case(3)
+         ! read momentum source from file
+         ! Create groupname to be read
+         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+         ! Open input file
+         call openInputFile(chargeSourceFilename,HDF5Groupname)
          
+         call readVariable(chargeSource, "chargeSource")
+         
+         call closeInputFile()
+      
       case default
          print *,"Error! Invalid setting for noChargeSource" 
          stop
@@ -864,7 +875,7 @@ contains
     allocate(sqrtTHats(numSpecies,Npsi))
     sqrtTHats = sqrt(THats)
     
-    if (noChargeSource == 1 .or. noChargeSource == 2) then
+    if (noChargeSource > 0) then
        select case(noChargeSourceOption)
        case(0)
           ! momentum source

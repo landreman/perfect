@@ -183,7 +183,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
      stop "Invalid xDerivativeScheme"
   end select
 
-  if (whichMatrix==0 .and. (noChargeSource==1 .or. noChargeSource==2)) then
+  if (whichMatrix==0 .and. noChargeSource > 0) then
      ! We add an extra source on each row
      ! but we should really add one just for each L=1 row.
      predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 1
@@ -208,7 +208,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
         end do
      end do
 
-     if (noChargeSource==1) then
+     if (noChargeSource > 0) then
         do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
            index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi-lowestEnforcedIpsi)
            predictedNNZsForEachRow(index) = Npsi * numSpecies

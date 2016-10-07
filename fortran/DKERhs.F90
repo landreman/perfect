@@ -109,10 +109,23 @@ contains
        do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
           index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
           ! prefactors needed to translate to source that gives psiN derivative of particleFlux output
-          call VecSetValue(rhs, index, chargeSource(ipsi) * Delta/(sqrtpi* abs(VPrimeHat) * psiAHat), INSERT_VALUES, ierr)
+          call VecSetValue(rhs, index, chargeSource(ipsi) * Delta/(sqrtpi* abs(VPrimeHat(ipsi)) * psiAHat), INSERT_VALUES, ierr)
           ! 
        end do
     end if
+
+        if (noChargeSource == 3) then
+       ! Add the RHS to constrain momentum sources
+       ! We do not care about boundaries except possibly through the enforced ipsi parameters.
+       do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
+          index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+          ! prefactors needed to translate to source that gives psiN derivative of momentumFlux output
+          ! chargeSource is not a suitable name.
+          call VecSetValue(rhs, index, chargeSource(ipsi)* two*Delta/(sqrtpi* abs(VPrimeHat(ipsi)) * psiAHat), INSERT_VALUES, ierr) !!CHANGE
+          ! 
+       end do
+    end if
+
     ! 
        
   end subroutine DKECreateRhsVector
