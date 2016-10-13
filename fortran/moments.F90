@@ -184,7 +184,7 @@ contains
           !       pPerpTermInKThetaFactors = THat ** (5/two)
 
           if (includeNeutrals .and. ispecies==1) then
-            tauXHat = 1d0/2d0/nHats(1,:)/sqrt(THats(1,:)/masses(1))/CXCrossSectionHat
+            tauXHat = 1d0/nHats(1,:)/sqrt(THats(1,:)/masses(1))/CXCrossSectionHat
             do itheta=1,Ntheta
               neutralMomentumFluxFactors1(itheta,:) = nHatNeutral(itheta,:)/nHats(1,:)*momentumFluxFactors
               neutralMomentumFluxFactors2(itheta,:) = 2d0*pi*Delta*tauXHat*RHat(itheta,:)&
@@ -530,9 +530,15 @@ contains
          end if
          fullNeutralMomentumFlux = fullNeutralMomentumFluxDiamagnetic + fullNeutralMomentumFluxNC
 
+         ! NB non-intrinsic is highly misleading. New version actually means dPhiHatdpsi-dependent part of neutral  momentum flux.
+         ! But don't want to bother renaming variables right now, sorry
          do itheta = 1,Ntheta
-           nonIntrinsicNeutralMomentumFluxFactor(itheta,:) = -Delta/2d0/psiAHat*RHat(itheta,:) &
-               *(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)*THats(1,:)*toroidalFlow(1,itheta,:)
+           !nonIntrinsicNeutralMomentumFluxFactor(itheta,:) = -Delta/2d0/psiAHat*RHat(itheta,:) &
+           !    *(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)*THats(1,:)*toroidalFlow(1,itheta,:)
+           nonIntrinsicNeutralMomentumFluxFactor(itheta,:) = Delta/2d0/psiAHat*RHat(itheta,:) &
+               *(RHat(itheta,:)**2*BHat(itheta,:)**2-IHat**2)*THats(1,:) &
+               !dPhiHatdpsi-dependent part of toroidal velocity:
+               *omega/Delta/psiAHat*RHat(itheta,:)*dPhiHatdpsi
          end do
          nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral = nonIntrinsicNeutralMomentumFluxFactor*nHatNeutral
          do ipsi = 1,Npsi
