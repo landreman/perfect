@@ -10,7 +10,12 @@ module profiles
 
   implicit none
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsysdef.h>
+#endif
 
 contains
 
@@ -703,12 +708,12 @@ contains
     do ispecies = 1,numSpecies
 
        do i=1,Npsi
-          deltaT(ispecies,i) = abs(delta*sqrt(masses(ispecies))*IHat(i)/(psiAHat*typicalB(i) &
+          deltaT(ispecies,i) = abs(delta*sqrt(masses(ispecies))*IHat(i)/(psiAHatArray(i)*typicalB(i) &
                *charges(ispecies)*sqrt(THats(ispecies,i)))*dTHatdpsis(ispecies,i))
           deltaN(ispecies,i) = abs(delta*sqrt(masses(ispecies)*THats(ispecies,i))*IHat(i) &
-               / (psiAHat*charges(ispecies)*typicalB(i)*nHats(ispecies,i)) * dnHatdpsis(ispecies,i))
+               / (psiAHatArray(i)*charges(ispecies)*typicalB(i)*nHats(ispecies,i)) * dnHatdpsis(ispecies,i))
           deltaEta(ispecies,i) = abs(delta*sqrt(masses(ispecies)*THats(ispecies,i))*IHat(i) &
-               / (psiAHat*charges(ispecies)*typicalB(i)*etaHats(ispecies,i)) * detaHatdpsis(ispecies,i))
+               / (psiAHatArray(i)*charges(ispecies)*typicalB(i)*etaHats(ispecies,i)) * detaHatdpsis(ispecies,i))
        end do
 
        do i=1,Npsi
@@ -717,7 +722,7 @@ contains
           nuStarProfile(ispecies,i) = nuPrimeProfile(ispecies,i) / (epsil*sqrt(epsil))
        end do
 
-       U(ispecies,:) = omega*IHat*dPhiHatdpsi/psiAHat*sqrt(masses(ispecies)/(FSABHat2*THats(ispecies,:)))
+       U(ispecies,:) = omega*IHat*dPhiHatdpsi/psiAHatArray(:)*sqrt(masses(ispecies)/(FSABHat2*THats(ispecies,:)))
 
        ! Next, compute r.
        if (Npsi<5) then
@@ -725,7 +730,7 @@ contains
          rSingleSpecies = 0d0
        else
          ! Store dr/dpsi in the variable r, since LAPACK will over-write dr/dpsi with r in a few lines:
-         rSingleSpecies = psiAHat / delta * sqrt(FSABHat2 / THats(ispecies,:)) / IHat
+         rSingleSpecies = psiAHatArray(:) / delta * sqrt(FSABHat2 / THats(ispecies,:)) / IHat
 
          ! Re-create ddpsi_accurate, since it is over-written in the loop.
          ! centered finite differences, no upwinding, 5-point stencil

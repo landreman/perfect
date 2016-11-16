@@ -243,7 +243,7 @@
   ! Tolerance used to define convergence of the Krylov solver.
   ! This parameter does not affect memory requirements but it does affect the
   ! time required for solution somewhat.
-  solverTolerance = 1d-5
+  solverTolerance = 1d-7
   solverToleranceMinFactor = 1d-1
   solverToleranceMaxFactor = 1
   solverToleranceNumRuns = 0
@@ -265,6 +265,13 @@
   ! Other numerical parameters:
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+
+  psiGridType = 0
+  ! 0 = Homogenous grid in psi with spacing as specified above
+  ! 1 = inhomogenous grid in psi. Inhomogenous grid obtained by mapping from psi' to psi, where grid is homogenous in psi'. All other inputs quantities intepreted as being given in psi', dpsi/dpsi' specified in file below
+  psiAHatFilename = "psiAHat.h5"
+
+
   psiDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.
   ! Options for psiDerivativeScheme:
@@ -278,11 +285,12 @@
   ! 1 = Uniform grid, centered finite differences, 3-point stencil
   ! 2 = Uniform grid, centered finite differences, 5-point stencil
 
-  xDerivativeScheme = 0
-  ! This parameter should almost always be 0.
+  xDerivativeScheme = 2
+  ! This parameter should almost always be 2.
   ! Options for xDerivativeScheme:
-  ! 0 = Gaussian grid, polynomial spectral collocation
+  ! 0 = Gaussian grid, polynomial spectral collocation, old method for Rosenbluth potentials
   ! 1 = Uniform grid, centered finite differences, 5-point stencil
+  ! 2 = Gaussian grid, polynomial spectral collocation, new better method for Rosenbluth potentials
 
   ! Amount by which to scale the polynomial speed (x) grid:
   ! (Use 1 unless you know what you are doing.)
@@ -323,6 +331,7 @@
   ! Otherwise, matrices are not distributed across processors, so the PETSc built-in serial sparse
   ! direct solver is used to factor the preconditioner.
 
+  Nxi_for_x_option=0
 /
 
 &preconditionerOptions

@@ -1,5 +1,7 @@
+# -*- mode: makefile -*-
+
 OBJ_FILES = perfect.o xGrid.o geometry.o writeHDF5Output.o \
-	readHDF5Input.o globalVariables.o scan.o readInput.o \
+	readHDF5Input.o globalVariables.o indices.o scan.o readInput.o \
 	polynomialDiffMatrices.o uniformDiffMatrices.o \
 	uniformInterpolationMatrix.o printToStdout.o \
 	profiles.o sparsify.o preallocateMatrix.o \
@@ -8,10 +10,11 @@ OBJ_FILES = perfect.o xGrid.o geometry.o writeHDF5Output.o \
         quadpack/quadpack.a 
 
 # Dependencies:
-DKEMatrices.o: globalVariables.o grids.o sparsify.o
+DKEMatrices.o: globalVariables.o grids.o indices.o sparsify.o
 DKERhs.o: globalVariables.o grids.o
 geometry.o: globalVariables.o grids.o readHDF5Input.o
-grids.o: globalVariables.o polynomialDiffMatrices.o printToStdout.o xGrid.o
+grids.o: globalVariables.o indices.o polynomialDiffMatrices.o printToStdout.o xGrid.o readHDF5Input.o
+indices.o: globalVariables.o
 matlabOutput.o: globalVariables.o DKEMatrices.o DKERhs.o
 moments.o: globalVariables.o grids.o writeHDF5Output.o
 perfect.o: globalVariables.o geometry.o printToStdout.o perfectVersion.h readInput.o solveDKE.o scan.o writeHDF5Output.o 

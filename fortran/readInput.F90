@@ -21,13 +21,15 @@ contains
          Miller_kappa, Miller_delta, Miller_s_delta, Miller_s_kappa, Miller_dRdr, Miller_q
 
     namelist / speciesParameters / masses, charges, scalarNHats, scalarTHats
-
+    
     namelist / physicsParameters / nu_r, profilesScheme, profilesFilename, &
          makeLocalApproximation, desiredU, desiredUMin, desiredUMax, desiredUNumRuns, &
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
          detaHatdpsiScalar, sourcePoloidalVariation, &
+         sourcePoloidalVariationStrength, sourcePoloidalVariationPhase, &
          Delta, omega, psiAHat, psiMid,  &
-         exponent, setTPrimeToBalanceHeatFlux, includeddpsiTerm, &
+         exponent, setTPrimeToBalanceHeatFlux, &
+         includeCollisionOperator, includeddpsiTerm, &
          leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme
 
     namelist / resolutionParameters / forceOddNtheta, &
@@ -41,12 +43,14 @@ contains
          xMax, xMaxMaxFactor, xMaxMinFactor, xMaxNumRuns, &
          solverTolerance, solverToleranceMinFactor, solverToleranceMaxFactor, solverToleranceNumRuns, &
          NxPotentialsPerVth, NxPotentialsPerVthMaxFactor, NxPotentialsPerVthMinFactor, NxPotentialsPerVthNumRuns, &
-         xMaxForDistribution, NxUniform, NxiUniform, xUniformMax
+         xMaxForDistribution, NxUniform, NxiUniform, xUniformMax, &
+         thetaGridShift
 
     namelist / otherNumericalParameters / thresh, xScaleFactor, &
          useIterativeSolver, useIterativeBoundarySolver, &
          psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
-         whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy
+         psiGridType, psiAHatFilename, NpsiSourcelessRight, NpsiSourcelessLeft, &
+         whichParallelSolverToFactorPreconditioner, PETSCPreallocationStrategy, Nxi_for_x_option
 
     namelist / preconditionerOptions / preconditioner_species, &
          preconditioner_x, preconditioner_psi, &
@@ -93,6 +97,13 @@ contains
           print *,"Successfully read parameters from speciesParameters namelist in ", filename, "."
        end if
 
+       ! Default phase and poloidal variation
+       sourcePoloidalVariationStrength = 1.0
+       sourcePoloidalVariationPhase = 0.0
+
+       ! include collision operator by default
+       includeCollisionOperator= .true.
+       
        read(fileUnit, nml=physicsParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
@@ -103,6 +114,9 @@ contains
           print *,"Successfully read parameters from physicsParameters namelist in ", filename, "."
        end if
 
+       ! default shift of theta grid
+       thetaGridShift = 0.0
+       
        read(fileUnit, nml=resolutionParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
@@ -113,12 +127,16 @@ contains
           print *,"Successfully read parameters from resolutionParameters namelist in ", filename, "."
        end if
 
+       NpsiSourcelessLeft = 0
+       NpsiSourcelessRight = 0
+       
        read(fileUnit, nml=otherNumericalParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
                " but not read data from the otherNumericalParameters namelist in it."
           stop
        end if
+       
        if (masterProc) then
           print *,"Successfully read parameters from otherNumericalParameters namelist in ", filename, "."
        end if
@@ -197,6 +215,21 @@ contains
     if (outputScheme < 0 .or. outputScheme > 2) then
        print *,"Error: outputScheme must be 0, 1, or 2."
        stop
+    end if
+
+    if (thetaGridShift < 0 .or. thetaGridShift >= 1) then
+       print *,"Error: thetaGridShift should be in [0,1),"
+       print *,"where 0 corresponds to no shift (default),"
+       print *,"and 1 corresponds to shifting the grid an entire gridpoint (2pi/(Ntheta+1))."
+       stop
+    end if
+    
+    if (psiGridType .eq. 1) then
+       ! Check psiAHatFilename is set
+       if (.not. len(psiAHatFilename)>=0) then
+          print *,"If psiGridType==1 then psiAHatFilename must be set."
+          stop
+       end if       
     end if
 
   end subroutine readNamelistInput

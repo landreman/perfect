@@ -44,9 +44,11 @@ def shouldBe(variableName, trueValue, relativeTolerance):
     relativeDifference = abs((latestValue - trueValue) / trueValue)
     if relativeDifference > relativeTolerance:
         print "*** TEST FAILED!!  Variable "+variableName+" should be close to "+str(trueValue)+", but it is instead "+str(latestValue)
+        print "Actual / correct = ",latestValue/trueValue
         return 1
     else:
         print "    Test passed:   Variable "+variableName+" should be close to "+str(trueValue)+", and it came out to be "+str(latestValue)+", which is within tolerance."
+        print "Actual / correct = ",latestValue/trueValue
         return 0
 
 def diffAll(absoluteTolerance):
@@ -59,9 +61,15 @@ def diffAll(absoluteTolerance):
 
     failureCount = 0
 
-    for varname in newFile["run  1"]:
-        if varname == "elapsed time (s)" or varname == "gitCommit":
-            # Differences in runtime and commit do not matter
+    # Differences in runtime and commit do not matter
+    ignoredVariables = ["elapsed time (s)","gitCommit"]
+    # these are intermediate variables used to calculate poloidal and toroidal flows
+    # they will be practically zero and noisy in the local limit,
+    # so we ignore them and only report errors if they actually affect
+    # the resulting flows
+    ignoredVariables += ["pPerpTermInVp", "pPerpTermInVpBeforePsiDerivative"]
+    for varname in origFile["run  1"]:
+        if varname in ignoredVariables:
             continue
         newData = newFile["run  1"][varname][...]
         origData = origFile["run  1"][varname][...]

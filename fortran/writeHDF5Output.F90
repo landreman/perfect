@@ -9,7 +9,12 @@ use HDF5
 
 implicit none
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsysdef.h>
+#endif
 
 integer, private :: HDF5Error
 integer(HID_T), private :: HDF5FileID, parallelID
@@ -30,6 +35,7 @@ interface rank
    module procedure rank_character
    module procedure rank_scalar
    module procedure rank_1d
+   module procedure rank_1d_integer
    !module procedure rank_1d_nonalloc
    module procedure rank_2d
    module procedure rank_3d
@@ -145,9 +151,16 @@ contains
 
     integer, intent(in) :: runNum
     integer :: temp
+    ! to make the writeVariable interface recognize slices of our source array
+    PetscScalar, dimension(:,:), allocatable :: genericSourceProfile
+    allocate(genericSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+    
+    if ((psiGridType == 1) .and. masterProcInSubComm) then
+       call convertToPsiNDerivatives()
+       print *,"Converted output derivatives to psiN"
+    end if
 
-    if (outputScheme > 0) then
-
+    if (outputScheme > 0) then      
       call writeVariable_1d_nonalloc(charges,numSpecies,"charges",runNum)
       call writeVariable_1d_nonalloc(masses,numSpecies,"masses",runNum)
       call writeVariable_1d_nonalloc(scalarTHats,numSpecies,"scalarTHats",runNum)
@@ -158,7 +171,10 @@ contains
       call writeVariable(widthExtender,"widthExtender",runNum)
       call writeVariable(numSpecies,"Nspecies",runNum)
       call writeVariable(Ntheta,"Ntheta",runNum)
+      call writeVariable(thetaGridShift,"thetaGridShift",runNum)
       call writeVariable(Nxi,"Nxi",runNum)
+      call writeIntegerVariable_1d(Nxi_for_x,"Nxi_for_x",runNum)
+      call writeIntegerVariable_1d(min_x_for_L,"min_x_for_L",runNum)
       call writeVariable(NL,"NL",runNum)
       call writeVariable(Nx,"Nx",runNum)
       call writeVariable(NxPotentialsPerVth,"NxPotentialsPerVth",runNum)
@@ -168,6 +184,8 @@ contains
       call writeVariable(Delta,"Delta",runNum)
       call writeVariable(omega,"omega",runNum)
       call writeVariable(psiAHat,"psiAHat",runNum)
+      call writeVariable(psiGridType,"psiGridType",runNum)
+      call writeVariable(psiAHatArray,"psiAHatArray",runNum)
       call writeVariable(nu_r,"nu_r",runNum)
       call writeVariable(Miller_q,"Miller_q",runNum)
       call writeVariable(epsil,"epsil",runNum)
@@ -177,6 +195,9 @@ contains
       call writeVariable(BHat,"BHat",runNum)
       call writeVariable(dBHatdpsi,"d(BHat)d(psi)",runNum)
       call writeVariable(dBHatdtheta,"d(BHat)d(theta)",runNum)
+      call writeVariable(BPHat,"BPHat",runNum)
+      call writeVariable(BTHat,"BTHat",runNum)
+      call writeVariable(RHat,"RHat",runNum)
       call writeVariable(IHat,"IHat",runNum)
       call writeVariable(dIHatdpsi,"d(IHat)d(psi)",runNum)
       call writeVariable(PhiHat,"PhiHat",runNum)
@@ -188,9 +209,36 @@ contains
       call writeVariable(etaHats,"etaHat",runNum)
       call writeVariable(detaHatdpsis,"d(etaHat)d(psi)",runNum)
       call writeVariable(elapsedTime,"elapsed time (s)",runNum)
+      call writeVariable(NpsiSourcelessLeft,"NpsiSourcelessLeft",runNum)
+      call writeVariable(NpsiSourcelessRight,"NpsiSourcelessRight",runNum)
       call writeVariable(sourcePoloidalVariation,"sourcePoloidalVariation",runNum)
-      call writeVariable(particleSourceProfile,"particleSourceProfile",runNum)
-      call writeVariable(heatSourceProfile,"heatSourceProfile",runNum)
+      call writeVariable(sourcePoloidalVariationStrength,"sourcePoloidalVariationStrength",runNum)
+      call writeVariable(sourcePoloidalVariationPhase,"sourcePoloidalVariationPhase",runNum)
+      ! todo: implement an array of strings with source names
+      ! in parts of code specifying velocity space structure of sources
+      do temp = 1,Nsources
+         select case(temp)
+         case(1)
+            ! particle source
+            if (masterProcInSubComm) then
+               genericSourceProfile = sourceProfile(temp,:,:)
+            end if
+            call writeVariable(genericSourceProfile,"particleSourceProfile",runNum)
+         case(2)
+            ! heat source
+            if (masterProcInSubComm) then
+               genericSourceProfile = sourceProfile(temp,:,:)
+            end if
+            call writeVariable(genericSourceProfile,"heatSourceProfile",runNum)
+         case default
+            ! as of now unspecified source
+            if (masterProcInSubComm) then
+               print *,"Writing source with isource > 2. This should not happen!"
+               genericSourceProfile = sourceProfile(temp,:,:)
+            end if
+            call writeVariable(genericSourceProfile,"unknownSourceProfile",runNum)
+         end select
+      end do
       call writeVariable(VPrimeHat,"VPrimeHat",runNum)
       call writeVariable(FSABHat2,"FSABHat2",runNum)
       call writeVariable(U,"U",runNum)
@@ -198,6 +246,10 @@ contains
       call writeVariable(densityPerturbation,"densityPerturbation",runNum)
       call writeVariable(flow,"flow",runNum)
       call writeVariable(kPar,"kPar",runNum)
+      call writeVariable(pPerpTermInVp,"pPerpTermInVp",runNum)
+      call writeVariable(pPerpTermInVpBeforePsiDerivative,"pPerpTermInVpBeforePsiDerivative",runNum)
+      call writeVariable(toroidalFlow,"toroidalFlow",runNum)
+      call writeVariable(poloidalFlow,"poloidalFlow",runNum)
       call writeVariable(pressurePerturbation,"pressurePerturbation",runNum)
       call writeVariable(particleFluxBeforeThetaIntegral,"particleFluxBeforeThetaIntegral",runNum)
       call writeVariable(momentumFluxBeforeThetaIntegral,"momentumFluxBeforeThetaIntegral",runNum)
@@ -205,6 +257,9 @@ contains
       call writeVariable(FSADensityPerturbation,"FSADensityPerturbation",runNum)
       call writeVariable(flowOutboard,"flowOutboard",runNum)
       call writeVariable(flowInboard,"flowInboard",runNum)
+      call writeVariable(FSAFlow,"FSAFlow",runNum)
+      call writeVariable(FSAToroidalFlow,"FSAToroidalFlow",runNum)
+      call writeVariable(FSAPoloidalFlow,"FSAPoloidalFlow",runNum)
       call writeVariable(FSABFlow,"FSABFlow",runNum)
       call writeVariable(kParOutboard,"kParOutboard",runNum)
       call writeVariable(kParInboard,"kParInboard",runNum)
@@ -262,6 +317,12 @@ contains
          temp = integerToRepresentFalse
       end if
       call writeVariable(temp,"includeddpsiTerm",runNum)
+      if (includeCollisionOperator) then
+         temp = integerToRepresentTrue
+      else
+         temp = integerToRepresentFalse
+      end if
+      call writeVariable(temp,"includeCollisionOperator",runNum)
       call writeVariable(preconditioner_species,"preconditioner_species",runNum)
       call writeVariable(preconditioner_x,"preconditioner_x",runNum)
       call writeVariable(preconditioner_x_min_L,"preconditioner_x_min_L",runNum)
@@ -274,6 +335,7 @@ contains
       call writeVariable(xUniform,"xUniform",runNum)
       call writeVariable(xiUniform,"xiUniform",runNum)
       call writeVariable(thetaIndexForOutboard,"thetaIndexForOutboard",runNum)
+      call writeVariable(thetaIndexForInboard,"thetaIndexForInboard",runNum)
       if (outputScheme > 1) then
         call writeVariable(deltaFOutboard,"deltaFOutboard",runNum)
         call writeVariable(fullFOutboard,"fullFOutboard",runNum)
@@ -606,6 +668,48 @@ contains
 
   end subroutine writeVariable_5d
 
+  subroutine writeIntegerVariable_1d(var, varname, i)
+
+    integer, dimension(:), allocatable, intent(in) :: var
+    integer, intent(in) :: i
+    character(len=*), intent(in) :: varname
+    integer(HID_T) :: dspaceID, dsetID
+    integer(HSIZE_T), dimension(1) :: dimensions
+    integer :: ierror
+
+#ifdef HAVE_PARALLEL_HDF5
+    if (masterProcInSubComm) then
+      if (.not. allocated(var)) then
+        print *,"Tried to write unallocated variable:",varname
+        stop
+      end if
+      dimensions = shape(var)
+    end if
+    call MPI_Bcast(dimensions,2*size(dimensions),MPI_INTEGER,0,MPIComm,ierror) ! 2*size(dimensions) since there seems to be no MPI datatype for long integers in Fortran, while the HSIZE_T kind is a long integer
+    call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+    call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_INTEGER, dspaceID, dsetID, HDF5Error)
+    if (masterProcInSubComm) then
+      call h5dwrite_f(dsetID, H5T_NATIVE_INTEGER, var, dimensions, HDF5Error)
+    end if
+    call h5dclose_f(dsetID, HDF5Error)
+    call h5sclose_f(dspaceID, HDF5Error)
+#else
+    if (masterProcInSubComm) then
+      if (.not. allocated(var)) then
+        print *,"Tried to write unallocated variable:",varname
+        stop
+      end if
+      dimensions = shape(var)
+      call h5screate_simple_f(rank(var), dimensions, dspaceID, HDF5Error)
+      call h5dcreate_f(groupIDs(i), varname, H5T_NATIVE_DOUBLE, dspaceID, dsetID, HDF5Error)
+      call h5dwrite_f(dsetID, H5T_NATIVE_DOUBLE, var, dimensions, HDF5Error)
+      call h5dclose_f(dsetID, HDF5Error)
+      call h5sclose_f(dspaceID, HDF5Error)
+    end if
+#endif
+
+  end subroutine writeIntegerVariable_1d
+
   subroutine writeIntegerNoGroup(var,varname)
     ! Only writes on masterProc
 
@@ -850,6 +954,13 @@ contains
     return
   end function rank_1d
 
+  integer function rank_1d_integer(A)
+    integer, dimension(:), allocatable, intent(in) :: A
+    rank_1d_integer=size(shape(A))
+    return
+  end function rank_1d_integer
+
+  
   ! conflicts with rank_1d
   !integer function rank_1d_nonalloc(A)
   !  PetscScalar, dimension(:), intent(in) :: A
@@ -882,5 +993,35 @@ contains
     return
   end function rank_5d
 
+
+ 
+  ! -------------------------------------------------------------------------------------
+  
+  subroutine convertToPsiNDerivatives()
+    implicit none
+    integer :: ipsi,itheta,ispecies
+    PetscScalar :: scaleFactor
+    
+    do ipsi=1,Npsi
+       scaleFactor = psiAHat/psiAHatArray(ipsi)
+       !print *,"ipsi: ",ipsi
+       ! psi
+       dIHatdpsi(ipsi)=scaleFactor*dIHatdpsi(ipsi)
+       dPhiHatdpsi(ipsi)=scaleFactor*dPhiHatdpsi(ipsi)
+
+       !psi,theta
+       do itheta=1,Ntheta
+          dBHatdpsi(itheta,ipsi) = scaleFactor*dBHatdpsi(itheta,ipsi)
+       end do
+    
+       !psi,species
+       do ispecies=1,numSpecies
+          dTHatdpsis(ispecies,ipsi)=scaleFactor*dTHatdpsis(ispecies,ipsi)
+          dnHatdpsis(ispecies,ipsi)=scaleFactor*dnHatdpsis(ispecies,ipsi)
+          detaHatdpsis(ispecies,ipsi)=scaleFactor*detaHatdpsis(ispecies,ipsi)
+       end do
+    end do
+  end subroutine convertToPsiNDerivatives
+  
 end module writeHDF5Output
 

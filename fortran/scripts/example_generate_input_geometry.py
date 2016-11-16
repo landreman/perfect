@@ -30,6 +30,7 @@ psi_dependence=numpy.ones((Npsi,1))
 BHat=psi_dependence*(1/(1 + epsil * numpy.cos(theta)))
 dBHatdpsi=numpy.zeros((Npsi,Ntheta))
 dBHatdtheta=psi_dependence*(epsil*numpy.sin(theta)/((1 + epsil * numpy.cos(theta))**2))
+RHat=psi_dependence*(1 + epsil * numpy.cos(theta))
 JHat=BHat/Miller_q
 IHat=numpy.ones((Npsi))
 dIHatdpsi=numpy.zeros((Npsi))
@@ -46,7 +47,7 @@ dIHatdpsi=numpy.zeros((Npsi))
 
 # Output geometry
 geometry_outputfile = perfectGeometry(inputfile.geometryFilename)
-geometry_outputfile.create_geometry_for_Npsi_Ntheta(Npsi,Ntheta,BHat,dBHatdpsi,dBHatdtheta,JHat,IHat,dIHatdpsi)
+geometry_outputfile.create_geometry_for_Npsi_Ntheta(Npsi,Ntheta,BHat,dBHatdpsi,dBHatdtheta,RHat,JHat,IHat,dIHatdpsi)
 
 
 

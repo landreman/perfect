@@ -5,7 +5,12 @@ module scan
 
   implicit none
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsysdef.h>
+#endif
 
   integer, allocatable :: NthetasForScan(:), NxisForScan(:), &
        NLsForScan(:), NxsForScan(:), NpsisForScan(:), psiDerivativeSchemesForScan(:)
@@ -59,6 +64,10 @@ contains
     xMaxsForScan(1) = xMax
 
     Npsi = computeNpsi(NpsiPerDiameter, psiDiameter, widthExtender)
+    
+    ! Boundaries of region where sources are enforced
+    lowestEnforcedIpsi = 1 + NpsiSourcelessLeft
+    highestEnforcedIpsi = Npsi - NpsiSourcelessRight
 
     numRunsInScan = 1
 
