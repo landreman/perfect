@@ -351,9 +351,7 @@ contains
           L = 4
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = (ipsi-1)*localMatrixSize + (ispecies-1)*Nx*Nxi*Ntheta &
-                     + [(ix-1, ix=1,Nx)]*Nxi*Ntheta + L*Ntheta + itheta
-
+                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
                 if (includeNeutrals .and. ispecies==1) then
                   neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) = &
                       neutralMomentumFluxBeforeThetaIntegral3(itheta,ipsi) &
