@@ -44,9 +44,9 @@ contains
 
     if (masterProcInSubComm) then
        print *,"[",myCommunicatorIndex,"] ---- Physics parameters: ----"
-       print *,"[",myCommunicatorIndex,"] number of species = ",numSpecies
-       print *,"[",myCommunicatorIndex,"] masses = ",masses(1:numSpecies)
-       print *,"[",myCommunicatorIndex,"] charges = ",charges(1:numSpecies)
+       print *,"[",myCommunicatorIndex,"] number of species = ",Nspecies
+       print *,"[",myCommunicatorIndex,"] masses = ",masses(1:Nspecies)
+       print *,"[",myCommunicatorIndex,"] charges = ",charges(1:Nspecies)
        print *,"[",myCommunicatorIndex,"] desiredU = ", desiredU
        print *,"[",myCommunicatorIndex,"] epsilon = ", epsil
 !       print *,"[",myCommunicatorIndex,"] nuStar  = ", nuStar

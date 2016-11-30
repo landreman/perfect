@@ -26,6 +26,10 @@ module DKEMatrices
   Mat, public :: leftMatrix, leftPreconditionerMatrix
   Mat, public :: rightMatrix, rightPreconditionerMatrix
 
+  integer :: iparticleSources = -99
+  integer :: iheatSources = -99
+  integer :: imomentumSources = -99
+   
 contains
   
   subroutine DKECreateMainMatrix(upwinding,time1)
@@ -227,7 +231,7 @@ contains
     allocate(localColIndices(Ntheta))
     allocate(globalRowIndices(Ntheta))
     allocate(globalColIndices(Ntheta))
-    do ispecies = 1,numSpecies
+    do ispecies = 1,Nspecies
        do ipsi = ipsiMin, ipsiMax
           thetaPartOfMirrorTerm = -oneHalf * sqrtTHats(ispecies,ipsi) &
                * JHat(:,ipsi) * dBHatdtheta(:,ipsi) &
@@ -378,7 +382,7 @@ contains
       allocate(rowIndices(Ntheta))
       allocate(colIndices(Ntheta))
 
-      do ispecies = 1,numSpecies
+      do ispecies = 1,Nspecies
          sqrtMass = sqrt(masses(ispecies))
          do ipsi = ipsiMin, ipsiMax
             do itheta=1,Ntheta
@@ -573,7 +577,7 @@ contains
              else
                 ddxToUse = ddx
              end if
-             do ispecies = 1,numSpecies
+             do ispecies = 1,Nspecies
                 do ix=1,Nx
                    xPartOfXDot(ix,:) = x(ix)*(delta*dTHatdpsis(ispecies,ipsi)*x2(ix)/(two*charges(ispecies))&
                         + omega*dPhiHatdpsi(ipsi)) * sqrt(masses(ispecies)) * ddxToUse(ix,:)
@@ -704,7 +708,7 @@ contains
        end if
        
        !allocate(localddpsiToUse(localNpsiInterior,Npsi))
-       do ispecies = 1,numSpecies
+       do ispecies = 1,Nspecies
           do itheta = 1, Ntheta
              thetaPartOfPsiDot = -oneHalf * globalTermMultiplier(:) &
              * sqrt(masses(ispecies)) * delta * JHat(itheta,:) &
@@ -821,7 +825,7 @@ contains
     allocate(expxb2(Nx))
     allocate(erfs(Nx))
     allocate(Psi_Chandra(Nx))
-    allocate(nuDHat(numSpecies, Nx))
+    allocate(nuDHat(Nspecies, Nx))
 
     allocate(M21(NxPotentials, Nx))
     allocate(M32(NxPotentials, NxPotentials))
@@ -840,7 +844,7 @@ contains
     allocate(KWithoutThetaPart(Nx,Nx))
     allocate(fToFInterpolationMatrix(Nx,Nx))
     allocate(potentialsToFInterpolationMatrix(Nx, NxPotentials))
-    allocate(CECD(numSpecies, numSpecies, Nx, Nx))
+    allocate(CECD(Nspecies, Nspecies, Nx, Nx))
 
     allocate(IPIV(NxPotentials))
 
@@ -949,8 +953,8 @@ contains
        ! Before adding the collision operator, we must loop over both species
        ! to build several terms in the operator.
        ! row is species a, column is species b
-       do iSpeciesA = 1,numSpecies
-          do iSpeciesB = 1,numSpecies
+       do iSpeciesA = 1,Nspecies
+          do iSpeciesB = 1,Nspecies
              speciesFactor = sqrt(THats(iSpeciesA,ipsi)*masses(iSpeciesB) &
                   / (THats(iSpeciesB,ipsi) * masses(iSpeciesA)))
              xb =  x * speciesFactor
@@ -1033,9 +1037,9 @@ contains
 
        do L=0, Nxi-1
           !print *,"Adding L=",L
-          do iSpeciesA = 1,numSpecies
+          do iSpeciesA = 1,Nspecies
              sqrt_m = sqrt(masses(iSpeciesA))
-             do iSpeciesB = 1,numSpecies
+             do iSpeciesB = 1,Nspecies
                 if (includeCollisionOperator .and. ((iSpeciesA == iSpeciesB .or. preconditioner_species==0) &
                      .or. whichMatrix==1)) then
                    ! Build M11
@@ -1267,7 +1271,7 @@ contains
 
     if (procThatHandlesLeftBoundary .and. leftBoundaryScheme /= 2 .and. leftBoundaryScheme /= 3) then
        ipsi=1
-       do ispecies = 1,numSpecies
+       do ispecies = 1,Nspecies
           do itheta=1,Ntheta
              signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                   /(psiAHat*charges(ispecies))
@@ -1284,7 +1288,7 @@ contains
     end if
     if (procThatHandlesRightBoundary .and. rightBoundaryScheme /= 2 .and. leftBoundaryScheme /= 3) then
        ipsi = Npsi
-       do ispecies = 1,numSpecies
+       do ispecies = 1,Nspecies
           do itheta=1,Ntheta
              signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                   / (psiAHat*charges(ispecies))
@@ -1310,7 +1314,6 @@ contains
     ! *******************************************************************************
 
     PetscErrorCode :: ierr
-    PetscScalar, dimension(:), allocatable :: this_sourceThetaPart
     PetscScalar, dimension(:), allocatable :: sourceXPart
   
     PetscScalar :: signOfPsiDot, xPartOfSource
@@ -1335,25 +1338,33 @@ contains
     this_ipsiMax = min(ipsiMax,highestEnforcedIpsi)
 
     allocate(sourceXPart(Nx))
-    L = 0
-    do ix=1,Nx
-       do isources = 1,Nsources             
-          select case(isources)
-          case(1)
-             ! Add particle source:
-             ! S = f_M * (x^2 - 5/2)  (Provides particles but no heat or momentum)
-             sourceXPart(ix) = (x2(ix)-5/two)*exp(-x2(ix))
-          case(2)
-             ! Add heat source:
-             ! S = f_M * (x^2 - 3/2)  (Provides heat but no particle or momentum)
-             sourceXPart(ix) = (x2(ix)-3/two)*exp(-x2(ix))
-          case default
-             print *,"Error! Invalid source. Nsources > not implemented"
-             stop
-          end select
-
+    do isources = 1,Nsources               
+       select case(sourcesVStructure(isources))
+       case(1)
+          ! Add particle source:
+          ! S = f_M * (x^2 - 5/2)  (Provides particles but no heat or momentum)
+          L = 0
+          sourceXPart = (x2-5/two)*exp(-x2)
+          iparticleSources = isources
+       case(2)
+          ! Add heat source:
+          ! S = f_M * (x^2 - 3/2)  (Provides heat but no particle or momentum)
+          L = 0
+          sourceXPart = (x2-3/two)*exp(-x2)
+          iheatSources = isources
+       case(3)
+          ! momentum source
+          ! provides momentum but no energy-weighted momentum
+          L = 1
+          sourceXPart = x*(x2-7/two)*exp(-x2)
+          imomentumSources = isources
+       case default
+          print *,"Error! Invalid source. Nsources > not implemented"
+          stop
+       end select
+       do ix=1,Nx
           do ipsi=this_ipsiMin,this_ipsiMax
-             do ispecies = 1,numSpecies
+             do ispecies = 1,Nspecies
                 do itheta=1,Ntheta
                    signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                         / (psiAHat*charges(ispecies))
@@ -1363,10 +1374,9 @@ contains
                       ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                    ! so impose the kinetic equation here.
                       rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
-                      colIndex = Npsi*localMatrixSize &
-                           + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + (isources - 1)
+                      colIndex = getIndexSources(isources,ispecies,ipsi)
                       call MatSetValueSparse(matrix, rowIndex, colIndex, &
-                           sourceThetaPart(itheta) * sourceXPart(ix), ADD_VALUES, ierr)
+                           sourceThetaPart(isources,itheta) * sourceXPart(ix), ADD_VALUES, ierr)
                    end if
                 end do
              end do
@@ -1374,28 +1384,31 @@ contains
        end do
     end do
 
-    if (noChargeSource == 1 .or. noChargeSource == 2 .or. noChargeSource == 3) then
-       allocate(this_sourceThetaPart(Ntheta))
-       select case(noChargeSourceOption)
-       case(0,1,2)
-          ! momentum source
-          ! provides momentum but no energy-weighted momentum
-          L = 1
-          sourceXPart = x*(x2-7/two)*exp(-x2)
-          this_sourceThetaPart = sourceThetaPart
-       case(3,4)
+    do isources = 1,NextraSources
+       select case(extraSourcesVStructure(isources))
+       case(1)
           ! particle source
           ! Provides particles but no heat or momentum
           L = 0
           sourceXPart = (x2-5/two)*exp(-x2)
-          this_sourceThetaPart = 1 + sourcePoloidalVariationStrength * cos(theta + sourcePoloidalVariationPhase)  		
+       case(2)
+          ! heat sources
+          ! provides heat but no particle or momentum
+          L = 0
+          sourceXPart = (x2-3/two)*exp(-x2)
+       case(3)
+          ! momentum source
+          ! provides momentum but no energy-weighted momentum
+          L = 1
+          sourceXPart = x*(x2-7/two)*exp(-x2)
+
        case default
-       	  print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4."	 
+       	  print *,"Error! Invalid extraSourcesVStructure. Currently supported values are: 1,2,3"	 
        end select
           
        do ix=1,Nx         
           do ipsi=this_ipsiMin,this_ipsiMax
-             do ispecies = 1,numSpecies
+             do ispecies = 1,Nspecies
                 do itheta=1,Ntheta
                    signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                         / (psiAHat*charges(ispecies))
@@ -1405,16 +1418,16 @@ contains
                       ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                       ! so impose the kinetic equation here.
                       rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
-                      colIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+                      colIndex = getIndexExtraSources(isources,ipsi)
                       call MatSetValueSparse(matrix, rowIndex, colIndex, &
-                           extraSourceSpeciesDependence(ispecies)*this_sourceThetaPart(itheta)*sourceXPart(ix), ADD_VALUES, ierr)
+                           extraSourceSpeciesDependence(ispecies)*extraSourceThetaPart(isources,itheta)*sourceXPart(ix) &
+                           , ADD_VALUES, ierr)
                    end if
                 end do
              end do
           end do
        end do
-       deallocate(this_sourceThetaPart)
-    end if
+    end do
 
     deallocate(sourceXPart)
 
@@ -1429,42 +1442,43 @@ contains
     PetscErrorCode :: ierr
     PetscScalar, dimension(:), allocatable :: constraintXAndThetaPart
     PetscScalar, dimension(:), allocatable :: constraintXPart
+    PetscScalar, dimension(:,:), allocatable ::constraintPsiAndSpeciesPart
     ! the following constraint is only use to enforce noChargeSources
     PetscScalar :: constraintSpeciesPart
-    PetscScalar :: constraintPsiAndSpeciesPart
     ! used when noChargeSources == 3
     PetscScalar ::sourceThetaPartIHatOverBHatFSA
     
     integer, dimension(:), allocatable :: rowIndices, colIndices
     integer :: ix, itheta, ipsi, L
-    integer :: ispecies, isources
+    integer :: ispecies, isources, thisSource
     integer :: rowIndexArray(1)
     integer :: rowIndex, colIndex
 
     if (procThatHandlesRightBoundary) then
        ! The processor that owns the right-most psi point handles the constraints.
-
-       L=0
        allocate(colIndices(Ntheta))
        allocate(constraintXAndThetaPart(Ntheta))
        allocate(constraintXPart(Nx))
 
+       ! constraints on distribution function
+       ! solves for sources
        do isources = 1,Nsources
-          select case(isources)
+          select case(gConstraints(isources))
           case(1)
              ! Enforce <n_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
+             L=0
              constraintXPart = xWeights*x2
           case(2)
              ! Enforce <p_1> = 0 at psi between lowestEnforcedIpsi and highestEnforcedIpsi
+             L=0
              constraintXPart = xWeights*x2*x2
           case default
-             print *,"Error! Invalid source. Nsources > not implemented"
+             print *,"Error! Invalid constraint option. Currently supported: 1, 2"
              stop
           end select
-          do ispecies = 1,numSpecies
+          do ispecies = 1,Nspecies
              do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-                rowIndexArray = Npsi*localMatrixSize &
-                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + (isources - 1)
+                rowIndexArray = getIndexSources(isources,ispecies,ipsi)
                 do ix = 1, Nx
                    constraintXAndThetaPart = constraintXPart(ix) * thetaWeights / JHat(:,ipsi)
                    colIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
@@ -1476,46 +1490,58 @@ contains
           end do
        end do
 
-       if (noChargeSource == 1 .or. noChargeSource == 2) then
-          isources = 1 ! particle sources only enters into this constraint
-          do ispecies = 1,numSpecies
-             constraintSpeciesPart = charges(ispecies)/(masses(ispecies)**2)
+       ! Constraints on sources themselves
+       ! solves for extra sources
+       allocate(constraintPsiAndSpeciesPart(Nspecies,Npsi))
+       do isources = 1,NextraSources
+          select case(sourceConstraints(isources))
+          case(0)
+             thisSource = iparticleSources
+             do ispecies = 1,Nspecies
+                constraintSpeciesPart = charges(ispecies)/masses(ispecies)**2
+                do ipsi = 1,Npsi
+                   constraintPsiAndSpeciesPart(ispecies,ipsi) = &
+                        constraintSpeciesPart * sourceThetaPartFSA(thisSource,ipsi) * THats(ispecies,ipsi)**(3.0/2.0)
+                end do
+             end do
+
+             ! todo: ID more than one particle source if needed
+             
+          case(1)
+             thisSource = imomentumSources
+             do ispecies = 1,Nspecies
+                constraintSpeciesPart = 1.0/masses(ispecies)**(3.0/2.0)
+                do ipsi = 1,Npsi
+                   sourceThetaPartIHatOverBHatFSA = &
+                        dot_product(thetaWeights, sourceThetaPart(Nsources,:) &
+                        * IHat(ipsi)/(BHat(:,ipsi) * JHat(:,ipsi))) / VPrimeHat(ipsi)
+                   constraintPsiAndSpeciesPart(ispecies,ipsi) = &
+                        constraintSpeciesPart * sourceThetaPartIHatOverBHatFSA * THats(ispecies,ipsi)**(2.0)
+                end do
+             end do
+
+             ! todo: ID more than one momentum source if needed
+
+          case default
+             print *,"Error! Invalid source constraint option. Currently supported: 0, 1"
+             stop
+          end select
+          
+          do ispecies = 1,Nspecies
              do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-                constraintPsiAndSpeciesPart = constraintSpeciesPart * sourceThetaPartFSA(ipsi) &
-                     * THats(ispecies,ipsi)**(3.0/2.0)
-                rowIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
-                colIndex = Npsi*localMatrixSize &
-                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + (isources - 1)
-                call MatSetValueSparse(matrix, rowIndex, colIndex, constraintPsiAndSpeciesPart,&
+                rowIndex = getIndexExtraSources(isources,ipsi)
+                colIndex = getIndexSources(thisSource,ispecies,ipsi)
+                call MatSetValueSparse(matrix, rowIndex, colIndex, constraintPsiAndSpeciesPart(ispecies,ipsi),&
                      ADD_VALUES, ierr)
                 CHKERRQ(ierr)
              end do
           end do
-       end if
-       
-       if (noChargeSource == 3) then
-          ! momentum sources only enters into this constraint
-          ! this is reflected in the col-indices used, which should match
-          ! the row-indices in the source subroutine
-          do ispecies = 1,numSpecies
-             constraintSpeciesPart = extraSourceSpeciesDependence(ispecies)/(masses(ispecies)**(3.0/2.0))
-             do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-                sourceThetaPartIHatOverBHatFSA = &
-                     dot_product(thetaWeights, sourceThetaPart*IHat(ipsi)/(BHat(:,ipsi)*JHat(:,ipsi))) / VPrimeHat(ipsi)
-                constraintPsiAndSpeciesPart = constraintSpeciesPart * sourceThetaPartIHatOverBHatFSA &
-                    * THats(ispecies,ipsi)**(2.0) 
-                rowIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
-                colIndex = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
-                call MatSetValueSparse(matrix, rowIndex, colIndex, constraintPsiAndSpeciesPart,&
-                     ADD_VALUES, ierr)
-                CHKERRQ(ierr)
-             end do
-          end do
-       end if
-       
+       end do
+            
        deallocate(colIndices)
        deallocate(constraintXAndThetaPart)
-       deallocate(constraintXPart) 
+       deallocate(constraintXPart)
+       deallocate(constraintPsiAndSpeciesPart)
     end if
   end subroutine constraints
 

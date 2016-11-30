@@ -153,7 +153,7 @@ contains
     integer :: temp
     ! to make the writeVariable interface recognize slices of our source array
     PetscScalar, dimension(:,:), allocatable :: genericSourceProfile
-    allocate(genericSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+    allocate(genericSourceProfile(Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
     
     if ((psiGridType == 1) .and. masterProcInSubComm) then
        call convertToPsiNDerivatives()
@@ -161,15 +161,15 @@ contains
     end if
 
     if (outputScheme > 0) then      
-      call writeVariable_1d_nonalloc(charges,numSpecies,"charges",runNum)
-      call writeVariable_1d_nonalloc(masses,numSpecies,"masses",runNum)
-      call writeVariable_1d_nonalloc(scalarTHats,numSpecies,"scalarTHats",runNum)
-      call writeVariable_1d_nonalloc(scalarNHats,numSpecies,"scalarNHats",runNum)
+      call writeVariable_1d_nonalloc(charges,Nspecies,"charges",runNum)
+      call writeVariable_1d_nonalloc(masses,Nspecies,"masses",runNum)
+      call writeVariable_1d_nonalloc(scalarTHats,Nspecies,"scalarTHats",runNum)
+      call writeVariable_1d_nonalloc(scalarNHats,Nspecies,"scalarNHats",runNum)
       call writeVariable(NpsiPerDiameter,"NpsiPerDiameter",runNum)
       call writeVariable(Npsi,"Npsi",runNum)
       call writeVariable(psiDiameter,"psiDiameter",runNum)
       call writeVariable(widthExtender,"widthExtender",runNum)
-      call writeVariable(numSpecies,"Nspecies",runNum)
+      call writeVariable(Nspecies,"Nspecies",runNum)
       call writeVariable(Ntheta,"Ntheta",runNum)
       call writeVariable(thetaGridShift,"thetaGridShift",runNum)
       call writeVariable(Nxi,"Nxi",runNum)
@@ -1032,7 +1032,7 @@ contains
        end do
     
        !psi,species
-       do ispecies=1,numSpecies
+       do ispecies=1,Nspecies
           dTHatdpsis(ispecies,ipsi)=scaleFactor*dTHatdpsis(ispecies,ipsi)
           dnHatdpsis(ispecies,ipsi)=scaleFactor*dnHatdpsis(ispecies,ipsi)
           detaHatdpsis(ispecies,ipsi)=scaleFactor*detaHatdpsis(ispecies,ipsi)

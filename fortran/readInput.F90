@@ -13,6 +13,8 @@ contains
     character(len=*), intent(in) :: filename
     integer :: fileUnit, didFileAccessWork
     integer :: numMasses, numCharges, numDensities, numTemperatures, i
+    integer :: NsourcesTemp
+    
 
     namelist / flowControl / programMode, saveMatlabOutput, outputScheme, MatlabOutputFilename, &
          outputFilename, parallelizeOverScan, solveSystem
@@ -28,10 +30,14 @@ contains
          detaHatdpsiScalar, sourcePoloidalVariation, &
          sourcePoloidalVariationStrength, sourcePoloidalVariationPhase, &
          noChargeSource, chargeSourceFilename, noChargeSourceOption, &
-         Delta, omega, psiAHat, psiMid,  &
+         Delta, omega, psiAHat, psiMid, &
          exponent, setTPrimeToBalanceHeatFlux, &
          includeCollisionOperator, includeddpsiTerm, &
-         leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme
+         leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme, &
+         gConstraints, sourcesVStructure, sourcesThetaStructure, &
+         sourceConstraints, RHSFromFile, sourceConstraintsFilenames, &
+         extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
+         miscSources, miscSourcesStrength
 
     namelist / resolutionParameters / forceOddNtheta, &
          NpsiPerDiameter, NpsiMaxFactor, NpsiMinFactor, NpsiNumRuns, &
@@ -62,6 +68,20 @@ contains
     charges = speciesNotInitialized
     scalarNHats = speciesNotInitialized
     scalarTHats = speciesNotInitialized
+
+    gConstraints = sourcesNotInitialized
+    sourcesVStructure = sourcesNotInitialized
+    sourcesThetaStructure = sourcesNotInitialized
+    sourceConstraints = sourcesNotInitialized
+    RHSFromFile = sourcesNotInitialized
+    do i=1,maxNsources
+       sourceConstraintsFilenames = filenameNotInitialized
+    end do
+    extraSourcesVStructure = sourcesNotInitialized
+    extraSourcesThetaStructure = sourcesNotInitialized
+    extraSourcesSpeciesStructure = sourcesNotInitialized
+    miscSources = sourcesNotInitialized
+    miscSourcesStrength = sourcesNotInitialized
 
     fileUnit=11
     open(unit=fileUnit, file=filename,    action="read", status="old", iostat=didFileAccessWork)
@@ -113,7 +133,8 @@ contains
        read(fileUnit, nml=physicsParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
-               " but not read data from the physicsParameters namelist in it."
+               " but not read data from the physicsParameters namelist in it.", &
+               " Error code: ",didFileAccessWork
           stop
        end if
        if (((leftBoundaryScheme .eq. 3) .or. (rightBoundaryScheme .eq. 3)) .and.  (leftBoundaryScheme /= rightBoundaryScheme)) then
@@ -168,33 +189,33 @@ contains
 
     ! Validate species parameters
 
-    numCharges = maxNumSpecies
-    numDensities = maxNumSpecies
-    numMasses = maxNumSpecies
-    numTemperatures = maxNumSpecies
+    numCharges = maxNspecies
+    numDensities = maxNspecies
+    numMasses = maxNspecies
+    numTemperatures = maxNspecies
 
-    do i=1,maxNumSpecies
+    do i=1,maxNspecies
        if (charges(i) == speciesNotInitialized) then
           numCharges = i-1
           exit
        end if
     end do
 
-    do i=1,maxNumSpecies
+    do i=1,maxNspecies
        if (masses(i) == speciesNotInitialized) then
           numMasses = i-1
           exit
        end if
     end do
 
-    do i=1,maxNumSpecies
+    do i=1,maxNspecies
        if (scalarNHats(i) == speciesNotInitialized) then
           numDensities = i-1
           exit
        end if
     end do
 
-    do i=1,maxNumSpecies
+    do i=1,maxNspecies
        if (scalarTHats(i) == speciesNotInitialized) then
           numTemperatures = i-1
           exit
@@ -216,11 +237,114 @@ contains
        stop
     end if
 
-    numSpecies = numCharges
+    Nspecies = numCharges
 
     if (.not. useIterativeSolver) then
       useIterativeBoundarySolver = .false.
-    end if
+   end if
+
+   ! Validate sources input
+   Nsources = maxNsources
+  do i=1,maxNsources
+     if (gConstraints(i) == sourcesNotInitialized) then
+        Nsources = i-1
+        exit
+     end if
+  end do
+
+  NsourcesTemp = maxNsources
+  do i=1,maxNsources
+     if (sourcesVStructure(i) == sourcesNotInitialized) then
+        NsourcesTemp = i-1
+        exit
+     end if
+  end do
+
+  if (NsourcesTemp /= Nsources) then
+     print *,"Error: number of sourcesVStructure differs from the number of constraints."
+     stop
+  end if
+
+  NsourcesTemp = maxNsources
+  do i=1,maxNsources
+     if (sourcesThetaStructure(i) == sourcesNotInitialized) then
+        NsourcesTemp = i-1
+        exit
+     end if
+  end do
+
+  if (NsourcesTemp /= Nsources) then
+     print *,"Error: number of sourcesThetaStructure differs from the number of constraints."
+     stop
+  end if
+
+  NextraSources = maxNsources
+  do i=1,maxNsources
+     if (sourceConstraints(i) == sourcesNotInitialized) then
+        NextraSources = i-1
+        exit
+     end if
+  end do
+
+  NsourcesTemp = maxNsources
+  do i=1,maxNsources
+     if (extraSourcesVStructure(i) == sourcesNotInitialized) then
+        NsourcesTemp = i-1
+        exit
+     end if
+  end do
+
+  if (NsourcesTemp /= NextraSources) then
+     print *,"Error: number of extraSourcesVStructure differs from the number of extra sources."
+     stop
+  end if
+
+  NsourcesTemp = maxNsources
+  do i=1,maxNsources
+     if (extraSourcesThetaStructure(i) == sourcesNotInitialized) then
+        NsourcesTemp = i-1
+        exit
+     end if
+  end do
+
+  if (NsourcesTemp /= NextraSources) then
+     print *,"Error: number of extraSourcesThetaStructure differs from the number of extra sources."
+     stop
+  end if
+
+  NsourcesTemp = maxNsources
+  do i=1,maxNsources
+     if (sourceConstraintsFilenames(i) == filenameNotInitialized) then
+        NsourcesTemp = i-1
+        exit
+     end if
+  end do
+
+  if (NsourcesTemp /= NextraSources) then
+     print *,"Error: number of sourceConstraintsFilenames differs from the number of extra sources."
+     stop
+  end if
+
+  NmiscSources = maxNsources
+  do i=1,maxNsources
+     if (miscSources(i) == sourcesNotInitialized) then
+        NmiscSources = i-1
+        exit
+     end if
+  end do
+
+  NsourcesTemp = maxNsources
+  do i=1,maxNsources
+     if (miscSourcesStrength(i) == sourcesNotInitialized) then
+        NsourcesTemp = i-1
+        exit
+     end if
+  end do
+
+  if (NsourcesTemp /= NmiscSources) then
+     print *,"Error: number of miscSourcesStrength differs from the number of misc sources."
+     stop
+  end if
 
     ! Other input validation
 

@@ -97,13 +97,29 @@ module globalVariables
 
   logical :: setTPrimeToBalanceHeatFlux
 
-  integer :: Nsources = 2
+  ! ********************************************************
+  ! ********************************************************
+  !
+  ! Source quantities
+  !
+  ! ********************************************************
+  ! ********************************************************
+
+  integer, parameter :: maxNsources = 5
   
+  integer, parameter :: sourcesNotInitialized = -9998
+  character(len=0), parameter ::  filenameNotInitialized= ''
+
+  integer :: Nsources, NextraSources, NmiscSources
+
+  !!!!!!!!!!!!!!!!!!!!!!!!
   integer :: sourcePoloidalVariation
   PetscScalar :: sourcePoloidalVariationStrength
   PetscScalar :: sourcePoloidalVariationPhase
-  PetscScalar, dimension(:), allocatable :: sourceThetaPart
-  PetscScalar, dimension(:), allocatable :: sourceThetaPartFSA 
+  PetscScalar, dimension(:,:), allocatable :: sourceThetaPart
+  PetscScalar, dimension(:,:), allocatable :: sourceThetaPartFSA
+  PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPart
+  PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPartFSA 
   
 
   integer :: noChargeSource
@@ -114,6 +130,13 @@ module globalVariables
   PetscScalar, dimension(:), allocatable :: extraSourceSpeciesDependence
   ! this is used to write the out the extra source
   PetscScalar, dimension(:,:), allocatable :: noChargeSourceExtraSourceProfile
+  !!!!!!!!!!!!!!!!!!!!!!!!!
+
+  integer, dimension(maxNsources) :: gConstraints, sourcesVStructure, sourcesThetaStructure,&
+       sourceConstraints, RHSFromFile, extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
+       miscSources
+  PetscScalar, dimension(maxNsources) :: miscSourcesStrength
+  character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
 
   logical :: makeLocalApproximation
 
@@ -132,13 +155,13 @@ module globalVariables
   ! ********************************************************
   ! ********************************************************
 
-  integer, parameter :: maxNumSpecies = 100
+  integer, parameter :: maxNspecies = 100
 
   integer, parameter :: speciesNotInitialized = -9999
 
-  integer :: numSpecies
+  integer :: Nspecies
 
-  PetscScalar, dimension(maxNumSpecies) :: charges, masses, scalarNHats, scalarTHats
+  PetscScalar, dimension(maxNspecies) :: charges, masses, scalarNHats, scalarTHats
 
   ! ********************************************************
   ! ********************************************************

@@ -62,36 +62,36 @@ contains
     if (masterProcInSubComm) then
        ! All computation of moments of the distribution function is then done on the master process:
 
-       allocate(sourceProfile(Nsources,numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
-       allocate(densityPerturbation(numSpecies,Ntheta,Npsi))
-       allocate(flow(numSpecies,Ntheta,Npsi))
-       allocate(pPerpTermInVp(numSpecies,Ntheta,Npsi))
-       allocate(pPerpTermInVpBeforePsiDerivative(numSpecies,Ntheta,Npsi))
-       allocate(toroidalFlow(numSpecies,Ntheta,Npsi))
-       allocate(poloidalFlow(numSpecies,Ntheta,Npsi))
-       allocate(kPar(numSpecies,Ntheta,Npsi))
-       allocate(pressurePerturbation(numSpecies,Ntheta,Npsi))
-       allocate(particleFluxBeforeThetaIntegral(numSpecies,Ntheta,Npsi))
-       allocate(momentumFluxBeforeThetaIntegral(numSpecies,Ntheta,Npsi))
-       allocate(heatFluxBeforeThetaIntegral(numSpecies,Ntheta,Npsi))
+       allocate(sourceProfile(Nsources,Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+       allocate(densityPerturbation(Nspecies,Ntheta,Npsi))
+       allocate(flow(Nspecies,Ntheta,Npsi))
+       allocate(pPerpTermInVp(Nspecies,Ntheta,Npsi))
+       allocate(pPerpTermInVpBeforePsiDerivative(Nspecies,Ntheta,Npsi))
+       allocate(toroidalFlow(Nspecies,Ntheta,Npsi))
+       allocate(poloidalFlow(Nspecies,Ntheta,Npsi))
+       allocate(kPar(Nspecies,Ntheta,Npsi))
+       allocate(pressurePerturbation(Nspecies,Ntheta,Npsi))
+       allocate(particleFluxBeforeThetaIntegral(Nspecies,Ntheta,Npsi))
+       allocate(momentumFluxBeforeThetaIntegral(Nspecies,Ntheta,Npsi))
+       allocate(heatFluxBeforeThetaIntegral(Nspecies,Ntheta,Npsi))
 
-       allocate(FSADensityPerturbation(numSpecies,Npsi))
-       allocate(kParOutboard(numSpecies,Npsi))
-       allocate(kParInboard(numSpecies,Npsi))
-       allocate(FSAKPar(numSpecies,Npsi))
-       allocate(flowOutboard(numSpecies,Npsi))
-       allocate(flowInboard(numSpecies,Npsi))
-       allocate(FSAToroidalFlow(numSpecies,Npsi))
-       allocate(FSAPoloidalFlow(numSpecies,Npsi))
-       allocate(FSAFlow(numSpecies,Npsi))
-       allocate(FSABFlow(numSpecies,Npsi))
-       allocate(FSAPressurePerturbation(numSpecies,Npsi))
-       allocate(particleFlux(numSpecies,Npsi))
-       allocate(momentumFlux(numSpecies,Npsi))
-       allocate(heatFlux(numSpecies,Npsi))
+       allocate(FSADensityPerturbation(Nspecies,Npsi))
+       allocate(kParOutboard(Nspecies,Npsi))
+       allocate(kParInboard(Nspecies,Npsi))
+       allocate(FSAKPar(Nspecies,Npsi))
+       allocate(flowOutboard(Nspecies,Npsi))
+       allocate(flowInboard(Nspecies,Npsi))
+       allocate(FSAToroidalFlow(Nspecies,Npsi))
+       allocate(FSAPoloidalFlow(Nspecies,Npsi))
+       allocate(FSAFlow(Nspecies,Npsi))
+       allocate(FSABFlow(Nspecies,Npsi))
+       allocate(FSAPressurePerturbation(Nspecies,Npsi))
+       allocate(particleFlux(Nspecies,Npsi))
+       allocate(momentumFlux(Nspecies,Npsi))
+       allocate(heatFlux(Nspecies,Npsi))
        
-       allocate(deltaFOutboard(numSpecies,Npsi,NxUniform,NxiUniform))
-       allocate(fullFOutboard(numSpecies,Npsi,NxUniform,NxiUniform))
+       allocate(deltaFOutboard(Nspecies,Npsi,NxUniform,NxiUniform))
+       allocate(fullFOutboard(Nspecies,Npsi,NxUniform,NxiUniform))
 
        !       allocate(LHSOfKParEquation(Npsi))
        !       allocate(kThetaWith3PointStencil(Ntheta,Npsi))
@@ -128,7 +128,7 @@ contains
        select case(noChargeSourceOption)
 
        case(0,1,2,3,4)
-          allocate(noChargeSourceExtraSourceProfile(numSpecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+          allocate(noChargeSourceExtraSourceProfile(Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
        case default
           print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4. Cannot read from solnArray."
        end select
@@ -146,7 +146,7 @@ contains
        call VecGetArrayF90(solnOnProc0, solnArray, ierr)
        CHKERRQ(ierr)
 
-       do ispecies = 1,numSpecies
+       do ispecies = 1,Nspecies
           densityFactors = Delta*4*pi*THats(ispecies,:)*sqrtTHats(ispecies,:) &
                / (nHats(ispecies,:)*masses(ispecies)*sqrt(masses(ispecies)))
           flowFactors = 4*pi/(three*nHats(ispecies,:)) * ((THats(ispecies,:)/masses(ispecies)) ** 2)
@@ -162,7 +162,7 @@ contains
           do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
              do isources = 1,Nsources
                 sourceProfile(isources,ispecies,ipsi - lowestEnforcedIpsi + 1) = solnArray(localMatrixSize*Npsi &
-                     + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + (isources-1) + 1)
+                     + (ipsi-lowestEnforcedIpsi)*Nspecies*Nsources + (ispecies-1)*Nsources + (isources-1) + 1)
              end do
           end do
 
@@ -173,7 +173,7 @@ contains
                 do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
                    noChargeSourceExtraSourceProfile(ispecies,ipsi - lowestEnforcedIpsi + 1) = &
                         extraSourceSpeciesDependence(ispecies)*solnArray(Npsi * localMatrixSize &
-                        + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi) + 1)
+                        + NEnforcedPsi * Nsources * Nspecies + (ipsi - lowestEnforcedIpsi) + 1)
                 end do
              case default
                 print *,"Error! Invalid noChargeSourceOption. Supported values are: 0,1,2,3,4. Cannot read from solnArray."
@@ -400,7 +400,7 @@ contains
              LegendresOnXiUniform = ((2*L-1)*xiUniform * LegendresOnXiUniform_m1 - (L-1)*LegendresOnXiUniform_m2)/L
          end if
          
-         do ispecies=1,numSpecies
+         do ispecies=1,Nspecies
             do ipsi = 1,Npsi
                indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
                solnAtL(1:min_x_for_L(L)-1) = 0d0
@@ -415,7 +415,7 @@ contains
       end do
 
       ! Now build the full f from delta f:
-      do ispecies = 1,numSpecies
+      do ispecies = 1,Nspecies
          do ipsi = 1,Npsi
             speciesFactor = nHats(ispecies,ipsi)/(pi*sqrtpi*((THats(ispecies,ipsi)/masses(ispecies)) ** (1.5d+0)))
             do ixi = 1,NxiUniform
@@ -493,33 +493,33 @@ contains
     !! if (masterProcInSubComm) then
        ! All computation of moments of the distribution function is then done on the master process:
 
-       allocate(this_densityPerturbation(numSpecies,Ntheta))
-       allocate(this_flow(numSpecies,Ntheta))
-       allocate(this_pPerpTermInVpBeforePsiDerivative(numSpecies,Ntheta))
-       allocate(this_pPerpTermInVp(numSpecies,Ntheta))
-       allocate(this_poloidalFlow(numSpecies,Ntheta))
-       allocate(this_toroidalFlow(numSpecies,Ntheta))
-       allocate(this_kPar(numSpecies,Ntheta))
-       allocate(this_pressurePerturbation(numSpecies,Ntheta))
-       allocate(this_particleFluxBeforeThetaIntegral(numSpecies,Ntheta))
-       allocate(this_momentumFluxBeforeThetaIntegral(numSpecies,Ntheta))
-       allocate(this_heatFluxBeforeThetaIntegral(numSpecies,Ntheta))
+       allocate(this_densityPerturbation(Nspecies,Ntheta))
+       allocate(this_flow(Nspecies,Ntheta))
+       allocate(this_pPerpTermInVpBeforePsiDerivative(Nspecies,Ntheta))
+       allocate(this_pPerpTermInVp(Nspecies,Ntheta))
+       allocate(this_poloidalFlow(Nspecies,Ntheta))
+       allocate(this_toroidalFlow(Nspecies,Ntheta))
+       allocate(this_kPar(Nspecies,Ntheta))
+       allocate(this_pressurePerturbation(Nspecies,Ntheta))
+       allocate(this_particleFluxBeforeThetaIntegral(Nspecies,Ntheta))
+       allocate(this_momentumFluxBeforeThetaIntegral(Nspecies,Ntheta))
+       allocate(this_heatFluxBeforeThetaIntegral(Nspecies,Ntheta))
 
-       allocate(this_FSADensityPerturbation(numSpecies))
-       allocate(this_kParOutboard(numSpecies))
-       allocate(this_kParInboard(numSpecies))
-       allocate(this_FSAKPar(numSpecies))
-       allocate(this_flowOutboard(numSpecies))
-       allocate(this_flowInboard(numSpecies))
-       allocate(this_FSAFlow(numSpecies))
-       allocate(this_FSABFlow(numSpecies))
-       allocate(this_FSAPressurePerturbation(numSpecies))
-       allocate(this_particleFlux(numSpecies))
-       allocate(this_momentumFlux(numSpecies))
-       allocate(this_heatFlux(numSpecies))
+       allocate(this_FSADensityPerturbation(Nspecies))
+       allocate(this_kParOutboard(Nspecies))
+       allocate(this_kParInboard(Nspecies))
+       allocate(this_FSAKPar(Nspecies))
+       allocate(this_flowOutboard(Nspecies))
+       allocate(this_flowInboard(Nspecies))
+       allocate(this_FSAFlow(Nspecies))
+       allocate(this_FSABFlow(Nspecies))
+       allocate(this_FSAPressurePerturbation(Nspecies))
+       allocate(this_particleFlux(Nspecies))
+       allocate(this_momentumFlux(Nspecies))
+       allocate(this_heatFlux(Nspecies))
 
-       allocate(this_deltaFOutboard(numSpecies,NxUniform,NxiUniform))
-       allocate(this_fullFOutboard(numSpecies,NxUniform,NxiUniform))
+       allocate(this_deltaFOutboard(Nspecies,NxUniform,NxiUniform))
+       allocate(this_fullFOutboard(Nspecies,NxUniform,NxiUniform))
 
        allocate(flowIntegralWeights(Nx))
        allocate(densityIntegralWeights(Nx))
@@ -541,7 +541,7 @@ contains
        !! call VecGetArrayF90(solnOnProc0, solnArray, ierr)
        call VecGetArrayF90(soln, solnArray, ierr)
        CHKERRQ(ierr)
-       do ispecies = 1,numSpecies
+       do ispecies = 1,Nspecies
           densityFactors = Delta*4*pi*THats(ispecies,ipsi)*sqrtTHats(ispecies,ipsi) &
                / (nHats(ispecies,ipsi)*masses(ispecies)*sqrt(masses(ispecies)))
           flowFactors = 4*pi/(three*nHats(ispecies,ipsi)) * ((THats(ispecies,ipsi)/masses(ispecies)) ** 2)
@@ -709,7 +709,7 @@ contains
              LegendresOnXiUniform = ((2*L-1)*xiUniform * LegendresOnXiUniform_m1 - (L-1)*LegendresOnXiUniform_m2)/L
          end if
          
-         do ispecies=1,numSpecies
+         do ispecies=1,Nspecies
             indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
             solnAtL(1:min_x_for_L(L)-1) = 0d0
             solnAtL(min_x_for_L(L):Nx) = solnArray(indices+1)
@@ -722,7 +722,7 @@ contains
       end do
 
       ! Now build the full f from delta f:
-      do ispecies = 1,numSpecies
+      do ispecies = 1,Nspecies
          speciesFactor = nHats(ispecies,ipsi)/(pi*sqrtpi*((THats(ispecies,ipsi)/masses(ispecies)) ** (1.5d+0)))
          do ixi = 1,NxiUniform
             do ix = 1,NxUniform

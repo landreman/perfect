@@ -19,8 +19,8 @@ contains
       stop
     end if
 
-    if (iSpecies > numSpecies) then
-      print *,"Error: iSpecies > numSpecies"
+    if (iSpecies > Nspecies) then
+      print *,"Error: iSpecies > Nspecies"
       stop
     end if
 
@@ -72,6 +72,23 @@ contains
         + first_index_for_x(ix)*Ntheta + L*Ntheta + itheta - 1
 
   end function getIndex
+
+  integer function getIndexSources(iSources,iSpecies,ipsi)
+    ! indices of species dependent sources from constraint on g
+    integer,intent(in) :: iSources,iSpecies,ipsi
+    getIndexSources = &
+         Npsi*localMatrixSize + (ipsi-lowestEnforcedIpsi)*Nspecies*Nsources + (ispecies-1)*Nsources + (iSources - 1)
+
+  end function getIndexSources
+
+  integer function getIndexExtraSources(iExtraSources,ipsi)
+    ! indices of extra, species independent, sources from constraint on sources
+    integer,intent(in) :: iExtraSources,ipsi
+    getIndexExtraSources = &
+         Npsi * localMatrixSize + NEnforcedPsi * Nsources * Nspecies + (ipsi - lowestEnforcedIpsi)*NextraSources &
+         + (iExtraSources - 1)
+
+  end function getIndexExtraSources
 
   subroutine calculate_first_index_for_x
 
