@@ -27,7 +27,7 @@ contains
   subroutine DKECreateRhsVector()
 
     PetscErrorCode :: ierr
-    integer :: ix, itheta, ipsi, L, index
+    integer :: ix, itheta, ipsi, L, index, iextraSources
     integer :: ispecies
     PetscScalar :: LFactor
     PetscScalar :: stuffToAdd
@@ -49,7 +49,7 @@ contains
     end if
     CHKERRQ(ierr)
 
-    do ispecies = 1, numSpecies
+    do ispecies = 1, Nspecies
        do ipsi = ipsiMin, ipsiMax
           do itheta = 1, Ntheta
              do ix = 1, Nx
@@ -104,29 +104,28 @@ contains
     end do
 
     if ((noChargeSource == 1) .or. (noChargeSource == 2)) then
+       iextraSources = 1
        ! Add the RHS of the relation between particle sources
        ! We do not care about boundaries except possibly through the enforced ipsi parameters.
        do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
-          index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+          index = getIndexExtraSources(iextraSources,ipsi)
           ! prefactors needed to translate to source that gives psiN derivative of particleFlux output
-          call VecSetValue(rhs, index, chargeSource(ipsi) * Delta/(sqrtpi* abs(VPrimeHat(ipsi)) * psiAHat), INSERT_VALUES, ierr)
-          ! 
+          call VecSetValue(rhs, index, chargeSource(ipsi) * Delta/(sqrtpi* abs(VPrimeHat(ipsi)) * psiAHat), INSERT_VALUES, ierr) 
        end do
     end if
 
-        if (noChargeSource == 3) then
+    if (noChargeSource == 3) then
+       iextraSources = 1
        ! Add the RHS to constrain momentum sources
        ! We do not care about boundaries except possibly through the enforced ipsi parameters.
        do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
-          index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi - lowestEnforcedIpsi)
+          index = getIndexExtraSources(iextraSources,ipsi)
           ! prefactors needed to translate to source that gives psiN derivative of momentumFlux output
           ! chargeSource is not a suitable name.
-          call VecSetValue(rhs, index, chargeSource(ipsi)* two*Delta/(sqrtpi* abs(VPrimeHat(ipsi)) * psiAHat), INSERT_VALUES, ierr) !!CHANGE
-          ! 
+          call VecSetValue(rhs, index, chargeSource(ipsi)* two*Delta/(sqrtpi* abs(VPrimeHat(ipsi)) * psiAHat), INSERT_VALUES, ierr)
        end do
     end if
 
-    ! 
        
   end subroutine DKECreateRhsVector
 

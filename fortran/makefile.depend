@@ -7,10 +7,10 @@ OBJ_FILES = perfect.o xGrid.o geometry.o writeHDF5Output.o \
 	profiles.o sparsify.o preallocateMatrix.o \
 	polynomialInterpolationMatrix.o grids.o moments.o \
         matlabOutput.o DKEMatrices.o DKERhs.o solveDKE.o \
-        quadpack/quadpack.a 
+        quadpack/quadpack.a sourcesConstraints.o
 
 # Dependencies:
-DKEMatrices.o: globalVariables.o grids.o indices.o sparsify.o
+DKEMatrices.o: globalVariables.o grids.o indices.o sparsify.o sourcesConstraints.o
 DKERhs.o: globalVariables.o grids.o
 geometry.o: globalVariables.o grids.o readHDF5Input.o
 grids.o: globalVariables.o indices.o polynomialDiffMatrices.o printToStdout.o xGrid.o readHDF5Input.o
@@ -20,8 +20,9 @@ moments.o: globalVariables.o grids.o writeHDF5Output.o
 perfect.o: globalVariables.o geometry.o printToStdout.o perfectVersion.h readInput.o solveDKE.o scan.o writeHDF5Output.o 
 preallocateMatrix.o: globalVariables.o
 printToStdout.o: globalVariables.o
-profiles.o: globalVariables.o grids.o readHDF5Input.o
+profiles.o: globalVariables.o grids.o readHDF5Input.o sourcesConstraints.o
 readInput.o: globalVariables.o
 scan.o: globalVariables.o
 solveDKE.o: DKEMatrices.o DKERhs.o globalVariables.o geometry.o profiles.o sparsify.o grids.o moments.o matlabOutput.o
 writeHDF5Output.o: globalVariables.o scan.o
+sourcesConstraints.o: globalVariables.o grids.o

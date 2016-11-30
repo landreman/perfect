@@ -168,33 +168,33 @@ contains
 
     ! Validate species parameters
 
-    numCharges = maxNumSpecies
-    numDensities = maxNumSpecies
-    numMasses = maxNumSpecies
-    numTemperatures = maxNumSpecies
+    numCharges = maxNspecies
+    numDensities = maxNspecies
+    numMasses = maxNspecies
+    numTemperatures = maxNspecies
 
-    do i=1,maxNumSpecies
+    do i=1,maxNspecies
        if (charges(i) == speciesNotInitialized) then
           numCharges = i-1
           exit
        end if
     end do
 
-    do i=1,maxNumSpecies
+    do i=1,maxNspecies
        if (masses(i) == speciesNotInitialized) then
           numMasses = i-1
           exit
        end if
     end do
 
-    do i=1,maxNumSpecies
+    do i=1,maxNspecies
        if (scalarNHats(i) == speciesNotInitialized) then
           numDensities = i-1
           exit
        end if
     end do
 
-    do i=1,maxNumSpecies
+    do i=1,maxNspecies
        if (scalarTHats(i) == speciesNotInitialized) then
           numTemperatures = i-1
           exit
@@ -216,7 +216,7 @@ contains
        stop
     end if
 
-    numSpecies = numCharges
+    Nspecies = numCharges
 
     if (.not. useIterativeSolver) then
       useIterativeBoundarySolver = .false.

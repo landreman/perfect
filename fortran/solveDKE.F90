@@ -92,12 +92,12 @@ contains
     ! It must fill the following arrays:
     ! PhiHat(Npsi)
     ! dPhiHatdpsi(Npsi)
-    ! THats(numSpecies,Npsi)
-    ! dTHatdpsis(numSpecies,Npsi)
-    ! nHats(numSpecies,Npsi)
-    ! dNHatdpsis(numSpecies,NPsi)
-    ! etaHats(numSpecies,Npsi)
-    ! detaHatdpsis(numSpecies,Npsi)
+    ! THats(Nspecies,Npsi)
+    ! dTHatdpsis(Nspecies,Npsi)
+    ! nHats(Nspecies,Npsi)
+    ! dNHatdpsis(Nspecies,NPsi)
+    ! etaHats(Nspecies,Npsi)
+    ! detaHatdpsis(Nspecies,Npsi)
     call initializeProfiles()
 
     ! Fill some arrays that can be computed from the radial physics profiles.
@@ -107,8 +107,8 @@ contains
     if (xDerivativeScheme==2 .and. localNpsi>0) then
        ! The localNpsi>0 test is included above to avoid problems with array dimensions of size 0
        ! in case the # of procs exceeds Npsi.
-       allocate(RosenbluthPotentialTerms(numSpecies,numSpecies,NL,Nx,Nx,localNpsi))
-       call computeRosenbluthPotentialResponse(Nx, x, xWeights, numSpecies, masses, &
+       allocate(RosenbluthPotentialTerms(Nspecies,Nspecies,NL,Nx,Nx,localNpsi))
+       call computeRosenbluthPotentialResponse(Nx, x, xWeights, Nspecies, masses, &
             THats(:,ipsiMin:ipsiMax), nHats(:,ipsiMin:ipsiMax), charges, NL, localNpsi, &
             RosenbluthPotentialTerms,.false.)
     end if
@@ -301,7 +301,7 @@ contains
        if (leftBoundaryScheme /= 2 .and. leftBoundaryScheme /= 3) then
          call VecGetArrayF90(solnLeft, solnArray, ierr)
          ipsi=1
-         do ispecies=1,numSpecies
+         do ispecies=1,Nspecies
             do itheta=1,Ntheta
                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                     / (psiAHat*charges(ispecies))
@@ -424,7 +424,7 @@ contains
        if (rightBoundaryScheme /= 2 .and. rightBoundaryScheme /= 3) then
          call VecGetArrayF90(solnRight, solnArray, ierr)
          ipsi = Npsi
-         do ispecies = 1,numSpecies
+         do ispecies = 1,Nspecies
             do itheta=1,Ntheta
                signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                     / (psiAHat*charges(ispecies))
@@ -497,7 +497,7 @@ contains
     else
       stop "Invalid option given to whichBoundary"
     end if
-    do ispecies=1,numSpecies
+    do ispecies=1,Nspecies
       ! Compute the density and 'second' moments (i.e. integrals of 1 and (x^2-3/2) times g) of the solution
       do itheta=1,Ntheta
         indices = [(getIndex(ispecies,ix,L,itheta,1), ix=1,Nx)] ! This line assumes min_x_for_L(0)=1.
@@ -520,7 +520,7 @@ contains
     end do
 
     !! ! Re-calculate density and pressure perturbation flux surface averages for debugging
-    !! do ispecies=1,numSpecies
+    !! do ispecies=1,Nspecies
     !!   densityFactors = Delta*4*pi*THats(ispecies,ipsi)*sqrtTHats(ispecies,ipsi) &
     !!            / (nHats(ispecies,ipsi)*masses(ispecies)*sqrt(masses(ispecies)))
     !!   pressureFactors = Delta*8*pi/(three*nHats(ispecies,ipsi)) * ((THats(ispecies,ipsi)/masses(ispecies)) ** (1.5d+0))

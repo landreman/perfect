@@ -474,8 +474,8 @@ module grids
     end if
 
     localDKEMatrixSize = Ntheta * sum(Nxi_for_x) 
-    localMatrixSize = localDKEMatrixSize * numSpecies
-    matrixSize = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies
+    localMatrixSize = localDKEMatrixSize * Nspecies
+    matrixSize = Npsi * localMatrixSize + NEnforcedPsi * Nsources * Nspecies
     if (noChargeSource == 1 .or. noChargeSource == 2 .or. noChargeSource == 3) then
        ! add an extra set of psi rows and cols for constraint on sources
        matrixSize = matrixSize + NEnforcedPsi

@@ -98,6 +98,7 @@ module globalVariables
   logical :: setTPrimeToBalanceHeatFlux
 
   integer :: Nsources = 2
+  integer :: NextraSources = 1
   
   integer :: sourcePoloidalVariation
   PetscScalar :: sourcePoloidalVariationStrength
@@ -132,13 +133,13 @@ module globalVariables
   ! ********************************************************
   ! ********************************************************
 
-  integer, parameter :: maxNumSpecies = 100
+  integer, parameter :: maxNspecies = 100
 
   integer, parameter :: speciesNotInitialized = -9999
 
-  integer :: numSpecies
+  integer :: Nspecies
 
-  PetscScalar, dimension(maxNumSpecies) :: charges, masses, scalarNHats, scalarTHats
+  PetscScalar, dimension(maxNspecies) :: charges, masses, scalarNHats, scalarTHats
 
   ! ********************************************************
   ! ********************************************************

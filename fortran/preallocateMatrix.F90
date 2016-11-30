@@ -10,13 +10,14 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   ! finalMatrix = 0 for preconditioner matrix, 1 for final matrix.
 
   use petscmat
-  use globalVariables, only: Nx, Nxi, Ntheta, Npsi, numSpecies, Nsources,matrixSize, localMatrixSize, &
+  use globalVariables, only: Nx, Nxi, Ntheta, Npsi, Nspecies, Nsources,matrixSize, localMatrixSize, &
        MPIComm, masterProcInSubComm, numProcsInSubComm, PETSCPreallocationStrategy, &
        psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
        preconditioner_species, preconditioner_x, preconditioner_x_min_L, &
        preconditioner_psi, preconditioner_theta, preconditioner_xi, &
        lowestEnforcedIpsi, highestEnforcedIpsi, NEnforcedPsi, &
        noChargeSource
+  use indices
 
   implicit none
 
@@ -26,7 +27,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   integer :: predictedNNZForEachRowOfTotalMatrix, tempInt
   integer, dimension(:), allocatable :: predictedNNZsForEachRow, predictedNNZsForEachRowDiagonal
   PetscErrorCode :: ierr
-  integer :: predictedNNZPerRow_DKE, i, itheta, ipsi, ispecies, ix, index, isources
+  integer :: predictedNNZPerRow_DKE, i, itheta, ipsi, ispecies, ix, index, isources, iextraSources
   integer :: firstRowThisProcOwns, lastRowThisProcOwns, numLocalRows, thisMatrixSize
 
   MPI_Comm :: MPICommToUse
@@ -163,19 +164,19 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
      ! Spectral collocation
      predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Nx*3-1          ! xdot*d/dx terms (dense in x, tridiagonal in L, -1 since we already counted the diagonal)
      if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
-       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Nx*(numSpecies-1) ! collision operator (dense in x, dense in species, -Nx since we already counted the terms diagonal in both x and species.)
+       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Nx*(Nspecies-1) ! collision operator (dense in x, dense in species, -Nx since we already counted the terms diagonal in both x and species.)
      end if
   case (1)
      ! 5 point stencil
      predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 5*3-1      ! xdot*d/dx terms (pentadiagonal in psi, tridiagonal in L, -1 since we already counted the diagonal)
      if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
-       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 5*(numSpecies-1) ! collision operator (pentadiagonal in x, dense in species, -5 since we already counted the terms diagonal in both x and species.)
+       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 5*(Nspecies-1) ! collision operator (pentadiagonal in x, dense in species, -5 since we already counted the terms diagonal in both x and species.)
      end if
 !!$  case (2)
 !!$     ! 3 point stencil, only used for preconditioner at the moment
 !!$     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*3-1      ! xdot*d/dx terms (tridiagonal in psi, tridiagonal in L, -1 since we already counted the diagonal)
 !!$     if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix
-!!$       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*(numSpecies-1) ! collision operator (tridiagonal in x, dense in species, -3 since we already counted the terms diagonal in both x and species.)
+!!$       predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 3*(Nspecies-1) ! collision operator (tridiagonal in x, dense in species, -3 since we already counted the terms diagonal in both x and species.)
 !!$     end if
   case (8)
      ! Drop everything off-diagonal in x for the preconditioner, so do nothing
@@ -199,19 +200,20 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   ! The rows for the constraints have more nonzeros:
   if (whichMatrix==0) then
      do isources = 1,Nsources
-        do ispecies = 1,numSpecies
+        do ispecies = 1,Nspecies
            do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
            
-              index = Npsi*localMatrixSize + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources
+              index = getIndexSources(isources,ispecies,ipsi)
               predictedNNZsForEachRow(index) = Ntheta*Nx + 1  !+1 for diagonal
            end do
         end do
      end do
 
      if (noChargeSource > 0) then
+        iextraSources = 1
         do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-           index = Npsi * localMatrixSize + NEnforcedPsi * Nsources * numSpecies + (ipsi-lowestEnforcedIpsi)
-           predictedNNZsForEachRow(index) = Npsi * numSpecies
+           index = getIndexExtraSources(iextraSources,ipsi)
+           predictedNNZsForEachRow(index) = Npsi * Nspecies
         end do
      end if
   end if

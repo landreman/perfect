@@ -7,6 +7,7 @@ module profiles
   use globalVariables
   use grids
   use readHDF5Input
+  use sourcesConstraints
 
   implicit none
 
@@ -24,12 +25,12 @@ contains
     ! Here we must fill the following arrays:
     ! PhiHat(Npsi)
     ! dPhiHatdpsi(Npsi)
-    ! THats(numSpecies,Npsi)
-    ! dTHatdpsis(numSpecies,Npsi)
-    ! nHats(numSpecies,Npsi)
-    ! dNHatdpsis(numSpecies,NPsi)
-    ! etaHats(numSpecies,Npsi)
-    ! detaHatdpsis(numSpecies,Npsi)
+    ! THats(Nspecies,Npsi)
+    ! dTHatdpsis(Nspecies,Npsi)
+    ! nHats(Nspecies,Npsi)
+    ! dNHatdpsis(Nspecies,NPsi)
+    ! etaHats(Nspecies,Npsi)
+    ! detaHatdpsis(Nspecies,Npsi)
 
     implicit none
 
@@ -55,36 +56,21 @@ contains
 
     allocate(PhiHat(Npsi))
     allocate(dPhiHatdpsi(Npsi))
-    allocate(THats(numSpecies,Npsi))
-    allocate(dTHatdpsis(numSpecies,Npsi))
-    allocate(etaHats(numSpecies,Npsi))
-    allocate(detaHatdpsis(numSpecies,Npsi))
-    allocate(nHats(numSpecies,Npsi))
-    allocate(dnHatdpsis(numSpecies,Npsi))
+    allocate(THats(Nspecies,Npsi))
+    allocate(dTHatdpsis(Nspecies,Npsi))
+    allocate(etaHats(Nspecies,Npsi))
+    allocate(detaHatdpsis(Nspecies,Npsi))
+    allocate(nHats(Nspecies,Npsi))
+    allocate(dnHatdpsis(Nspecies,Npsi))
     ! multiplies global terms
     allocate(globalTermMultiplier(Npsi))
     ! charge source
     allocate(chargeSource(NEnforcedPsi))
 
-    ! read in poloidal variation of sources
+    ! read in poloidal variation of sources and calculate FSA of it
     allocate(sourceThetaPart(Ntheta))
-    select case (sourcePoloidalVariation)
-    case (0)
-       sourceThetaPart = one
-    case (1)
-       do i=1,Ntheta
-          sourceThetaPart(i) = one + sourcePoloidalVariationStrength * cos(theta(i) + sourcePoloidalVariationPhase)           
-       end do
-    case default
-       print *,"Error! Invalid sourcePoloidalVariation."
-       stop
-    end select
-
-    ! calculate FSA of poloidal variation of sources
     allocate(sourceThetaPartFSA(NEnforcedPsi))
-    do i=lowestEnforcedIpsi,highestEnforcedIpsi
-       sourceThetaPartFSA(i - lowestEnforcedIpsi + 1) = dot_product(thetaWeights, sourceThetaPart/JHat(:,i)) / VPrimeHat(i)
-    end do
+    call initializeSourcesThetaPart(sourcePoloidalVariation,sourceThetaPart,sourceThetaPartFSA)
     
     select case (psiGridType)
     case(0)
@@ -768,7 +754,7 @@ contains
 
        ! For now, just use the same profiles for all species, scaled by the appropriate factors.
        ! Later we will want to set up experimental profiles for each species here.
-       do ispecies = 1,numSpecies
+       do ispecies = 1,Nspecies
           THats(ispecies,:) = THat(:)*scalarTHats(ispecies)
           dTHatdpsis(ispecies,:) = dTHatdpsi(:)*scalarTHats(ispecies)
           nHats(ispecies,:) = nHat(:)*scalarNHats(ispecies)
@@ -798,16 +784,16 @@ contains
     integer :: scheme
     integer :: LAPACKInfo
 
-    allocate(nuPrimeProfile(numSpecies,Npsi))
-    allocate(nuStarProfile(numSpecies,Npsi))
-    allocate(deltaN(numSpecies,Npsi))
-    allocate(deltaT(numSpecies,Npsi))
-    allocate(deltaEta(numSpecies,Npsi))
-    allocate(U(numSpecies,Npsi))
-    allocate(r(numSpecies,Npsi))
+    allocate(nuPrimeProfile(Nspecies,Npsi))
+    allocate(nuStarProfile(Nspecies,Npsi))
+    allocate(deltaN(Nspecies,Npsi))
+    allocate(deltaT(Nspecies,Npsi))
+    allocate(deltaEta(Nspecies,Npsi))
+    allocate(U(Nspecies,Npsi))
+    allocate(r(Nspecies,Npsi))
     allocate(rSingleSpecies(Npsi))
 
-    do ispecies = 1,numSpecies
+    do ispecies = 1,Nspecies
 
        do i=1,Npsi
           deltaT(ispecies,i) = abs(delta*sqrt(masses(ispecies))*IHat(i)/(psiAHatArray(i)*typicalB(i) &
@@ -872,34 +858,34 @@ contains
     end do
 
     deallocate(rSingleSpecies)
-    allocate(sqrtTHats(numSpecies,Npsi))
+    allocate(sqrtTHats(Nspecies,Npsi))
     sqrtTHats = sqrt(THats)
     
     if (noChargeSource > 0) then
        select case(noChargeSourceOption)
        case(0)
           ! momentum source
-          allocate(extraSourceSpeciesDependence(numSpecies))
-          extraSourceSpeciesDependence = masses(1:numSpecies)
+          allocate(extraSourceSpeciesDependence(Nspecies))
+          extraSourceSpeciesDependence = masses(1:Nspecies)
        case(1)
           ! momentum source
-          allocate(extraSourceSpeciesDependence(numSpecies))
+          allocate(extraSourceSpeciesDependence(Nspecies))
           extraSourceSpeciesDependence = zero
           extraSourceSpeciesDependence(1) = one
           ! TODO: perhaps try to infer main ion rather than just use first.
        case(2)
           ! momentum source
-          allocate(extraSourceSpeciesDependence(numSpecies))
+          allocate(extraSourceSpeciesDependence(Nspecies))
           extraSourceSpeciesDependence = masses*nHats(:,1)
        case(3)
           ! particle source
-          allocate(extraSourceSpeciesDependence(numSpecies))
-          extraSourceSpeciesDependence = masses(1:numSpecies)*nHats(:,1)
+          allocate(extraSourceSpeciesDependence(Nspecies))
+          extraSourceSpeciesDependence = masses(1:Nspecies)*nHats(:,1)
 	  ! scales with core (ipsi=1) concentration. 
 	  ! TODO: make it possible to have extra psi dependence here, to scale with local value of density, etc.
        case(4)
           ! particle source
-          allocate(extraSourceSpeciesDependence(numSpecies))
+          allocate(extraSourceSpeciesDependence(Nspecies))
           extraSourceSpeciesDependence = zero
           extraSourceSpeciesDependence(1) = one
 	  ! TODO: perhaps try to infer main ion rather than just use first.
