@@ -123,15 +123,8 @@ contains
 
        ! to calculate poloidal and toroidal flow and flow differentials
        allocate(tempPTflow(Npsi))
-
-       !
-       select case(noChargeSourceOption)
-
-       case(0,1,2,3,4)
-          allocate(noChargeSourceExtraSourceProfile(Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
-       case default
-          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4. Cannot read from solnArray."
-       end select
+       
+       allocate(extraSourceProfile(NextraSources,Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
        
        densityIntegralWeights = x*x
        flowIntegralWeights = x*x*x
@@ -166,21 +159,13 @@ contains
              end do
           end do
 
-          if (noChargeSource > 0) then
-             ! we will have some extra field to read out
-             select case(noChargeSourceOption)
-             case(0,1,2,3,4)
-                iextraSources = 1
-                do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
-                   noChargeSourceExtraSourceProfile(ispecies,ipsi - lowestEnforcedIpsi + 1) = &
-                        extraSourceSpeciesPart(ispecies)*solnArray(getIndexExtraSources(iextraSources,ipsi) + 1)
-                end do
-             case default
-                print *,"Error! Invalid noChargeSourceOption. Supported values are: 0,1,2,3,4. Cannot read from solnArray."
-             end select  
-          end if
+          do iextraSources = 1,NextraSources
+             do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
+                extraSourceProfile(iextraSources,ispecies,ipsi - lowestEnforcedIpsi + 1) = &
+                     extraSourceSpeciesPart(iextraSources,ispecies)*solnArray(getIndexExtraSources(iextraSources,ipsi) + 1)
+             end do
+          end do
           
-
           L = 0
           do ipsi=1,Npsi
              do itheta=1,Ntheta

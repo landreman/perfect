@@ -153,7 +153,10 @@ contains
     integer :: i, temp
     ! to make the writeVariable interface recognize slices of our source array
     PetscScalar, dimension(:,:), allocatable :: genericSourceProfile
+    PetscScalar, dimension(:), allocatable :: genericSpeciesDependence
     allocate(genericSourceProfile(Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+    allocate(genericSpeciesDependence(Nspecies))
+    
     
     if ((psiGridType == 1) .and. masterProcInSubComm) then
        call convertToPsiNDerivatives()
@@ -247,33 +250,33 @@ contains
             call writeVariable(genericSourceProfile,"unknownSourceProfile",runNum)
          end select
       end do
-      !call writeVariable(noChargeSource,"noChargeSource",runNum)
-      !call writeVariable(noChargeSourceOption,"noChargeSourceOption",runNum)
-
-      ! sourcesVStructure, sourcesThetaStructure
       
       do i = 1, NextraSources
+         genericSourceProfile = extraSourceProfile(i,:,:)
+         genericSpeciesDependence = extraSourceSpeciesPart(i,:)   
          select case(extraSourcesVStructure(i))
          case(1)
             ! particle source
-            !call writeVariable(noChargeSourceExtraSourceProfile,"particleExtraSourceProfile",runNum)
-            call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceParticleSourceProfile",runNum)
-            call writeVariable(extraSourceSpeciesPart,"noChargeParticleSourceSpeciesDependence",runNum)
+            !call writeVariable(extraSourceProfile,"particleExtraSourceProfile",runNum)
+            call writeVariable(genericSourceProfile,"noChargeSourceParticleSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"noChargeParticleSourceSpeciesDependence",runNum)
          case(2)
             ! heat source
-            !call writeVariable(noChargeSourceExtraSourceProfile,"heatExtraSourceProfile",runNum)
-            call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceHeatSourceProfile",runNum)
+            !call writeVariable(extraSourceProfile,"heatExtraSourceProfile",runNum)
+            call writeVariable(genericSourceProfile,"noChargeSourceHeatSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"noChargeHeatSourceSpeciesDependence",runNum)
          case(3)
             ! momentum source
-            !call writeVariable(noChargeSourceExtraSourceProfile,"momentumExtraSourceProfile",runNum)
-            call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
-            call writeVariable(extraSourceSpeciesPart,"momentumSourceSpeciesDependence",runNum)
+            !call writeVariable(extraSourceProfile,"momentumExtraSourceProfile",runNum)
+            call writeVariable(genericSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"momentumSourceSpeciesDependence",runNum)
          case default
             ! as of now unspecified source
             if (masterProcInSubComm) then
                print *,"Writing out source with unknown extraSourcesVStructure. This should not happen!"
             end if
-            call writeVariable(noChargeSourceExtraSourceProfile,"unknownExtraSourceProfile",runNum)
+            call writeVariable(genericSourceProfile,"unknownExtraSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"unknownSourceSpeciesDependence",runNum)
          end select
       end do
       

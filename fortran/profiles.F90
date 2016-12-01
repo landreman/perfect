@@ -53,7 +53,8 @@ contains
     PetscScalar, allocatable, dimension(:,:) :: TInterpolationRowVec
     PetscScalar, dimension(1) :: TAtPsiMid
     character(len=100) :: HDF5Groupname
-
+    PetscScalar, dimension(:), allocatable :: temp_RHS
+    
     allocate(PhiHat(Npsi))
     allocate(dPhiHatdpsi(Npsi))
     allocate(THats(Nspecies,Npsi))
@@ -115,42 +116,33 @@ contains
       allocate(sourceThetaPartFSA(Nsources,NEnforcedPsi))
       allocate(extraSourceThetaPart(NextraSources,Ntheta))
       allocate(extraSourceThetaPartFSA(NextraSources,NEnforcedPsi))
+      allocate(extraSourceSpeciesPart(NextraSources,Nspecies))
 
+      allocate(sourceConstraintsRHS(NextraSources,NEnforcedPsi))
       
-      select case (noChargeSource)
-      case(0)
-         ! no constraints enforced on particle source
-      case(1)
-         ! no charge source
-         chargeSource = zero
-      case(2)
-         ! read charge source from file
-         ! Create groupname to be read
-         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
-         ! Open input file
-         call openInputFile(chargeSourceFilename,HDF5Groupname)
-         
-         call readVariable(chargeSource, "chargeSource")
-         
-         call closeInputFile()
-
-      case(3)
-         ! read momentum source from file
-         ! Create groupname to be read
-         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
-         ! Open input file
-         call openInputFile(chargeSourceFilename,HDF5Groupname)
-         
-         call readVariable(chargeSource, "chargeSource")
-         
-         call closeInputFile()
+      do i = 1,NextraSources 
+         select case (RHSFromFile(i))
+         case(0)
+            ! no charge source
+            sourceConstraintsRHS(i,:) = zero
+         case(1)
+            ! read charge source from file
+            ! Create groupname to be read
+            allocate(temp_RHS(NEnforcedPsi))
+            write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+            ! Open input file
+            call openInputFile(sourceConstraintsFilenames(i),HDF5Groupname)
+            
+            call readVariable(temp_RHS, "chargeSource")
+            sourceConstraintsRHS(i,:) = temp_RHS
+            call closeInputFile()
       
-      case default
-         print *,"Error! Invalid setting for noChargeSource" 
-         stop
-
-      end select
-    
+         case default
+            print *,"Error! Invalid setting for noChargeSource" 
+            stop
+            
+         end select
+      end do
       
     if (profilesScheme .eq. 7) then
        ! Read in profiles from file
@@ -862,38 +854,6 @@ contains
     deallocate(rSingleSpecies)
     allocate(sqrtTHats(Nspecies,Npsi))
     sqrtTHats = sqrt(THats)
-
-
-    allocate(extraSourceSpeciesPart(Nspecies))
-    if (noChargeSource > 0) then
-       select case(noChargeSourceOption)
-       case(0)
-          ! momentum source
-          extraSourceSpeciesPart = masses(1:Nspecies)
-       case(1)
-          ! momentum source
-          extraSourceSpeciesPart = zero
-          extraSourceSpeciesPart(1) = one
-          ! TODO: perhaps try to infer main ion rather than just use first.
-       case(2)
-          ! momentum source
-          extraSourceSpeciesPart = masses*nHats(:,1)
-       case(3)
-          ! particle source
-          extraSourceSpeciesPart = masses(1:Nspecies)*nHats(:,1)
-	  ! scales with core (ipsi=1) concentration. 
-	  ! TODO: make it possible to have extra psi dependence here, to scale with local value of density, etc.
-       case(4)
-          ! particle source
-          extraSourceSpeciesPart = zero
-          extraSourceSpeciesPart(1) = one
-	  ! TODO: perhaps try to infer main ion rather than just use first.
-       case default
-          print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4."
-          stop
-       end select
-    end if
-
 
   end subroutine computeDerivedProfileQuantities
 

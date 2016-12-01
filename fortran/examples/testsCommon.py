@@ -68,6 +68,9 @@ def diffAll(absoluteTolerance):
     # so we ignore them and only report errors if they actually affect
     # the resulting flows
     ignoredVariables += ["pPerpTermInVp", "pPerpTermInVpBeforePsiDerivative"]
+
+    # these are control variables from older implementation of sources
+    ignoredVariables += ["noChargeSource","noChargeSourceOption"]
     for varname in origFile["run  1"]:
         if varname in ignoredVariables:
             continue

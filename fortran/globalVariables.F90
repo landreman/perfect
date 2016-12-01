@@ -138,8 +138,8 @@ character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
   PetscScalar, dimension(:,:), allocatable :: sourceThetaPart
   PetscScalar, dimension(:,:), allocatable :: sourceThetaPartFSA
 
-  PetscScalar, dimension(:), allocatable :: extraSourceSpeciesPart
-  
+  PetscScalar, dimension(:,:), allocatable :: extraSourceSpeciesPart
+  PetscScalar, dimension(:,:), allocatable :: sourceConstraintsRHS
   !PetscScalar, dimension(:,:), allocatable :: extraSourceSpeciesPart
   PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPart
   PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPartFSA 
@@ -150,7 +150,7 @@ character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
   PetscScalar, dimension(:), allocatable :: chargeSource
   integer :: noChargeSourceOption
   ! this is used to write the out the extra source
-  PetscScalar, dimension(:,:), allocatable :: noChargeSourceExtraSourceProfile
+  PetscScalar, dimension(:,:,:), allocatable :: extraSourceProfile
 
   ! ********************************************************
   ! ********************************************************

@@ -31,6 +31,7 @@ contains
     integer :: ispecies
     PetscScalar :: LFactor
     PetscScalar :: stuffToAdd
+    PetscScalar, dimension(:), allocatable :: this_sourceConstraintsRHS
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
     CHKERRQ(ierr)
     call VecSet(rhs, zero,ierr)
@@ -103,30 +104,24 @@ contains
        end do
     end do
 
-    if ((noChargeSource == 1) .or. (noChargeSource == 2)) then
-       iextraSources = 1
+    do iextraSources = 1,NextraSources
        ! Add the RHS of the relation between particle sources
        ! We do not care about boundaries except possibly through the enforced ipsi parameters.
+       select case(sourceConstraints(iextraSources))
+       case(0)
+          this_sourceConstraintsRHS = sourceConstraintsRHS(iextraSources,:) * Delta/(sqrtpi* abs(VPrimeHat) * psiAHat)
+       case(1)
+          this_sourceConstraintsRHS = sourceConstraintsRHS(iextraSources,:) * two * Delta/(sqrtpi* abs(VPrimeHat) * psiAHat)
+       case default
+          print *,"Error! Invalid sourceConstraints. Currently supported values are: 0,1."
+          stop
+       end select
        do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
           index = getIndexExtraSources(iextraSources,ipsi)
           ! prefactors needed to translate to source that gives psiN derivative of particleFlux output
-          call VecSetValue(rhs, index, chargeSource(ipsi) * Delta/(sqrtpi* abs(VPrimeHat(ipsi)) * psiAHat), INSERT_VALUES, ierr) 
+          call VecSetValue(rhs, index, this_sourceConstraintsRHS, INSERT_VALUES, ierr) 
        end do
-    end if
-
-    if (noChargeSource == 3) then
-       iextraSources = 1
-       ! Add the RHS to constrain momentum sources
-       ! We do not care about boundaries except possibly through the enforced ipsi parameters.
-       do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
-          index = getIndexExtraSources(iextraSources,ipsi)
-          ! prefactors needed to translate to source that gives psiN derivative of momentumFlux output
-          ! chargeSource is not a suitable name.
-          call VecSetValue(rhs, index, chargeSource(ipsi)* two*Delta/(sqrtpi* abs(VPrimeHat(ipsi)) * psiAHat), INSERT_VALUES, ierr)
-       end do
-    end if
-
-       
+    end do
   end subroutine DKECreateRhsVector
 
 end module DKERhs

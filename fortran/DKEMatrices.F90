@@ -1366,7 +1366,7 @@ contains
 
     do iextraSources = 1,NextraSources
        call initializeExtraSources(iextraSources,sourceXPart,L,&
-            extraSourceThetaPart(iextraSources,:),extraSourceThetaPartFSA(iextraSources,:),extraSourceSpeciesPart)
+            extraSourceThetaPart(iextraSources,:),extraSourceThetaPartFSA(iextraSources,:),extraSourceSpeciesPart(iextraSources,:))
           
        do ix=1,Nx         
           do ipsi=this_ipsiMin,this_ipsiMax
@@ -1382,8 +1382,8 @@ contains
                       rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
                       colIndex = getIndexExtraSources(iextraSources,ipsi)
                       call MatSetValueSparse(matrix, rowIndex, colIndex, &
-                           extraSourceSpeciesPart(ispecies)*extraSourceThetaPart(iextraSources,itheta)*sourceXPart(ix), &
-                           ADD_VALUES, ierr)
+                           extraSourceSpeciesPart(iextraSources,ispecies)*extraSourceThetaPart(iextraSources,itheta)* &
+                           sourceXPart(ix), ADD_VALUES, ierr)
                    end if
                 end do
              end do
