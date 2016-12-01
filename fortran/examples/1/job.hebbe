@@ -7,5 +7,5 @@
 #SBATCH -o output.stdout
 #SBATCH -e output.stderr
 
-mpirun -n 1 /c3se/users/bstefan/Hebbe/perfect/fortran/perfect 
+mpirun -n 1 ../../perfect
 # End script
