@@ -1311,7 +1311,6 @@ contains
     ! *******************************************************************************
 
     PetscErrorCode :: ierr
-    PetscScalar, dimension(:), allocatable :: this_sourceThetaPart,this_sourceThetaPartFSA
     PetscScalar, dimension(:), allocatable :: sourceXPart
   
     PetscScalar :: signOfPsiDot, xPartOfSource
@@ -1336,9 +1335,12 @@ contains
     this_ipsiMax = min(ipsiMax,highestEnforcedIpsi)
 
     allocate(sourceXPart(Nx))
+    
     do isources = 1,Nsources
+       !call initializeSourcesThetaPart(isources,sourceThetaPart(isource,:),sourceThetaPartFSA)
 
-       call initializeSourcesVPart(isources,sourceXPart,L)
+       !call initializeSourcesVPart(isources,sourceXPart,L)
+       call initializeSources(isources,sourceXPart,L,sourceThetaPart(isources,:),sourceThetaPartFSA(isources,:))
           
        do ix=1,Nx             
           do ipsi=this_ipsiMin,this_ipsiMax
@@ -1354,7 +1356,7 @@ contains
                       rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
                       colIndex = getIndexSources(isources,ispecies,ipsi)
                       call MatSetValueSparse(matrix, rowIndex, colIndex, &
-                           sourceThetaPart(itheta) * sourceXPart(ix), ADD_VALUES, ierr)
+                           sourceThetaPart(isources,itheta) * sourceXPart(ix), ADD_VALUES, ierr)
                    end if
                 end do
              end do
@@ -1362,28 +1364,9 @@ contains
        end do
     end do
 
-    if (noChargeSource == 1 .or. noChargeSource == 2 .or. noChargeSource == 3) then
-       iextraSources = 1
-       allocate(this_sourceThetaPart(Ntheta))
-       allocate(this_sourceThetaPartFSA(NEnforcedPsi))
-       
-       select case(noChargeSourceOption)
-       case(0,1,2)
-          
-          ! momentum source
-          ! Provides momentum but no particle,heat or energy-weighted momentum
-          call initializeSourcesVPart(3,sourceXPart,L)
-          call initializeSourcesThetaPart(sourcePoloidalVariation,this_sourceThetaPart,this_sourceThetaPartFSA)
-
-       case(3,4)
-          
-          ! particle source
-          ! Provides particles but no heat or momentum
-          call initializeSourcesVPart(1,sourceXPart,L)
-          call initializeSourcesThetaPart(mod(sourcePoloidalVariation+1,2),this_sourceThetaPart,this_sourceThetaPartFSA)	
-       case default
-       	  print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4."	 
-       end select
+    do iextraSources = 1,NextraSources
+       call initializeExtraSources(iextraSources,sourceXPart,L,&
+            extraSourceThetaPart(iextraSources,:),extraSourceThetaPartFSA(iextraSources,:),extraSourceSpeciesPart)
           
        do ix=1,Nx         
           do ipsi=this_ipsiMin,this_ipsiMax
@@ -1399,14 +1382,14 @@ contains
                       rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
                       colIndex = getIndexExtraSources(iextraSources,ipsi)
                       call MatSetValueSparse(matrix, rowIndex, colIndex, &
-                           extraSourceSpeciesDependence(ispecies)*this_sourceThetaPart(itheta)*sourceXPart(ix), ADD_VALUES, ierr)
+                           extraSourceSpeciesPart(ispecies)*extraSourceThetaPart(iextraSources,itheta)*sourceXPart(ix), &
+                           ADD_VALUES, ierr)
                    end if
                 end do
              end do
           end do
        end do
-       deallocate(this_sourceThetaPart)
-    end if
+    end do
 
     deallocate(sourceXPart)
 
@@ -1454,10 +1437,9 @@ contains
           end do
        end do
 
-       if (noChargeSource == 1 .or. noChargeSource == 2) then
+       do iextraSources = 1,NextraSources
           allocate(constraintPsiAndSpeciesPart(Nspecies,Npsi))
-          call initializeSourceConstraints(noChargeSource,constraintPsiAndSpeciesPart)
-          iextraSources = 1
+          call initializeSourceConstraints(iextraSources,constraintPsiAndSpeciesPart)
           isources = 1 ! particle sources only enters into this constraint
           do ispecies = 1,Nspecies
              do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
@@ -1468,25 +1450,27 @@ contains
                 CHKERRQ(ierr)
              end do
           end do
-       end if
-       
-       if (noChargeSource == 3) then
-          iextraSources = 1
-          allocate(constraintPsiAndSpeciesPart(Nspecies,Npsi))
-          call initializeSourceConstraints(noChargeSource,constraintPsiAndSpeciesPart)
+       end do
+
+       ! THIS CODE HAD CONSTRAINTS ON SOURCE CONSTRAINTS SOURCES
+       !
+       !if (noChargeSource == 3) then
+       !   iextraSources = 1
+       !   allocate(constraintPsiAndSpeciesPart(Nspecies,Npsi))
+       !   call initializeSourceConstraints(iextraSources,constraintPsiAndSpeciesPart)
           ! momentum sources only enters into this constraint
           ! this is reflected in the col-indices used, which should match
           ! the row-indices in the source subroutine
-          do ispecies = 1,Nspecies
-             do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
-                rowIndex = getIndexExtraSources(iextraSources,ipsi)
-                colIndex = getIndexExtraSources(iextraSources,ipsi)
-                call MatSetValueSparse(matrix, rowIndex, colIndex, constraintPsiAndSpeciesPart(ispecies,ipsi),&
-                     ADD_VALUES, ierr)
-                CHKERRQ(ierr)
-             end do
-          end do
-       end if
+       !   do ispecies = 1,Nspecies
+       !      do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
+       !         rowIndex = getIndexExtraSources(iextraSources,ipsi)
+       !         colIndex = getIndexExtraSources(iextraSources,ipsi)
+       !         call MatSetValueSparse(matrix, rowIndex, colIndex, constraintPsiAndSpeciesPart(ispecies,ipsi),&
+       !              ADD_VALUES, ierr)
+       !         CHKERRQ(ierr)
+       !      end do
+       !   end do
+       !end if
        
        deallocate(colIndices)
        deallocate(constraintXAndThetaPart)

@@ -173,7 +173,7 @@ contains
                 iextraSources = 1
                 do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
                    noChargeSourceExtraSourceProfile(ispecies,ipsi - lowestEnforcedIpsi + 1) = &
-                        extraSourceSpeciesDependence(ispecies)*solnArray(getIndexExtraSources(iextraSources,ipsi) + 1)
+                        extraSourceSpeciesPart(ispecies)*solnArray(getIndexExtraSources(iextraSources,ipsi) + 1)
                 end do
              case default
                 print *,"Error! Invalid noChargeSourceOption. Supported values are: 0,1,2,3,4. Cannot read from solnArray."

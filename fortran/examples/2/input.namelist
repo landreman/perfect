@@ -134,6 +134,46 @@
   ! 0 = Sources are constant in theta
   ! 1 = Sources vary as (1 + cos(theta))
 
+! options for g constraints and corresponding source 
+  ! vectors of any number of entries, including no entries (empty line)
+  gConstraints = 1 2
+  ! 1: <delta n> = 0
+  ! 2: <delta p> = 0
+  sourcesVStructure = 1 2
+  ! 1: particle source
+  ! 2: heat source
+  ! 3: momentum source
+  sourcesThetaStructure = 0 0
+  ! 0: Sources are constant in theta
+  ! 1: Sources vary as (1 + A * cos(theta + phase))
+
+  ! constraints on sources themselves and options for resulting extra sources
+  ! vectors of any number of entrie2s, including no entries (empty line)
+  sourceConstraints = 
+  ! 0: specify total charge source
+  ! 1: specify total momentum sources
+  RHSFromFile = 
+  ! 0: RHS is zero
+  ! 1: RHS is read from file below
+  sourceConstraintsFilenames = 
+  ! array of names of h5files specifying RHS of constraint. 
+  extraSourcesVStructure = 
+  ! 1: particle source
+  ! 2: heat source
+  ! 3: momentum source
+  extraSourcesThetaStructure = 
+  ! 0: Sources are constant in theta
+  ! 1: Sources vary as (1 + A * cos(theta + phase))
+  extraSourcesSpeciesStructure = 
+  
+  ! additional sources not arising from constraints
+  ! vectors of any number of entries, including no entries (empty line)
+  miscSources = 
+  ! 0: -[g(xi) + g(-xi)]
+  ! 1: Eq (55) of Landreman 2012
+  miscSourcesStrength =
+! any real numbers, specifies constant to multiply above expressions with
+
 !  makeLocalApproximation = .true.
   makeLocalApproximation = .false.
   ! If makeLocalApproximation is set to true, the conventional radially local

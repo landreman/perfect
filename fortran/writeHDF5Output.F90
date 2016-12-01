@@ -150,7 +150,7 @@ contains
     implicit none
 
     integer, intent(in) :: runNum
-    integer :: temp
+    integer :: i, temp
     ! to make the writeVariable interface recognize slices of our source array
     PetscScalar, dimension(:,:), allocatable :: genericSourceProfile
     allocate(genericSourceProfile(Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
@@ -218,44 +218,65 @@ contains
       call writeVariable(sourcePoloidalVariationPhase,"sourcePoloidalVariationPhase",runNum)
       ! todo: implement an array of strings with source names
       ! in parts of code specifying velocity space structure of sources
-      do temp = 1,Nsources
-         select case(temp)
+      do i = 1,Nsources
+         select case(sourcesVStructure(i))
          case(1)
             ! particle source
             if (masterProcInSubComm) then
-               genericSourceProfile = sourceProfile(temp,:,:)
+               genericSourceProfile = sourceProfile(i,:,:)
             end if
             call writeVariable(genericSourceProfile,"particleSourceProfile",runNum)
          case(2)
             ! heat source
             if (masterProcInSubComm) then
-               genericSourceProfile = sourceProfile(temp,:,:)
+               genericSourceProfile = sourceProfile(i,:,:)
             end if
             call writeVariable(genericSourceProfile,"heatSourceProfile",runNum)
+         case(3)
+            ! momentum source
+            if (masterProcInSubComm) then
+               genericSourceProfile = sourceProfile(i,:,:)
+            end if
+            call writeVariable(genericSourceProfile,"momentumSourceProfile",runNum)
          case default
             ! as of now unspecified source
             if (masterProcInSubComm) then
-               print *,"Writing source with isource > 2. This should not happen!"
-               genericSourceProfile = sourceProfile(temp,:,:)
+               print *,"Writing out source with unknown sourcesVStructure. This should not happen!"
+               genericSourceProfile = sourceProfile(i,:,:)
             end if
             call writeVariable(genericSourceProfile,"unknownSourceProfile",runNum)
          end select
       end do
-      call writeVariable(noChargeSource,"noChargeSource",runNum)
-      call writeVariable(noChargeSourceOption,"noChargeSourceOption",runNum)
+      !call writeVariable(noChargeSource,"noChargeSource",runNum)
+      !call writeVariable(noChargeSourceOption,"noChargeSourceOption",runNum)
+
+      ! sourcesVStructure, sourcesThetaStructure
       
-      if (noChargeSource > 0) then
-         select case(noChargeSourceOption)
-         case(0,1,2)
-            call writeVariable(extraSourceSpeciesDependence,"momentumSourceSpeciesDependence",runNum)
-            call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
-         case(3,4)
-            call writeVariable(extraSourceSpeciesDependence,"noChargeParticleSourceSpeciesDependence",runNum)
+      do i = 1, NextraSources
+         select case(extraSourcesVStructure(i))
+         case(1)
+            ! particle source
+            !call writeVariable(noChargeSourceExtraSourceProfile,"particleExtraSourceProfile",runNum)
             call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceParticleSourceProfile",runNum)
+            call writeVariable(extraSourceSpeciesPart,"noChargeParticleSourceSpeciesDependence",runNum)
+         case(2)
+            ! heat source
+            !call writeVariable(noChargeSourceExtraSourceProfile,"heatExtraSourceProfile",runNum)
+            call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceHeatSourceProfile",runNum)
+         case(3)
+            ! momentum source
+            !call writeVariable(noChargeSourceExtraSourceProfile,"momentumExtraSourceProfile",runNum)
+            call writeVariable(noChargeSourceExtraSourceProfile,"noChargeSourceMomentumSourceProfile",runNum)
+            call writeVariable(extraSourceSpeciesPart,"momentumSourceSpeciesDependence",runNum)
          case default
-            print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3. Will not write extra to output."
+            ! as of now unspecified source
+            if (masterProcInSubComm) then
+               print *,"Writing out source with unknown extraSourcesVStructure. This should not happen!"
+            end if
+            call writeVariable(noChargeSourceExtraSourceProfile,"unknownExtraSourceProfile",runNum)
          end select
-      end if
+      end do
+      
       call writeVariable(VPrimeHat,"VPrimeHat",runNum)
       call writeVariable(FSABHat2,"FSABHat2",runNum)
       call writeVariable(U,"U",runNum)

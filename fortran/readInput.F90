@@ -13,6 +13,7 @@ contains
     character(len=*), intent(in) :: filename
     integer :: fileUnit, didFileAccessWork
     integer :: numMasses, numCharges, numDensities, numTemperatures, i
+    integer :: NsourcesTemp
 
     namelist / flowControl / programMode, saveMatlabOutput, outputScheme, MatlabOutputFilename, &
          outputFilename, parallelizeOverScan, solveSystem
@@ -21,7 +22,7 @@ contains
          Miller_kappa, Miller_delta, Miller_s_delta, Miller_s_kappa, Miller_dRdr, Miller_q
 
     namelist / speciesParameters / masses, charges, scalarNHats, scalarTHats
-    
+
     namelist / physicsParameters / nu_r, profilesScheme, profilesFilename, &
          makeLocalApproximation, desiredU, desiredUMin, desiredUMax, desiredUNumRuns, &
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
@@ -31,7 +32,11 @@ contains
          Delta, omega, psiAHat, psiMid,  &
          exponent, setTPrimeToBalanceHeatFlux, &
          includeCollisionOperator, includeddpsiTerm, &
-         leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme
+         leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme, &
+         gConstraints, sourcesVStructure, sourcesThetaStructure, &
+         sourceConstraints, RHSFromFile, sourceConstraintsFilenames, &
+         extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
+         miscSources, miscSourcesStrength
 
     namelist / resolutionParameters / forceOddNtheta, &
          NpsiPerDiameter, NpsiMaxFactor, NpsiMinFactor, NpsiNumRuns, &
@@ -62,6 +67,20 @@ contains
     charges = speciesNotInitialized
     scalarNHats = speciesNotInitialized
     scalarTHats = speciesNotInitialized
+
+    gConstraints = sourcesNotInitialized
+    sourcesVStructure = sourcesNotInitialized
+    sourcesThetaStructure = sourcesNotInitialized
+    sourceConstraints = sourcesNotInitialized
+    RHSFromFile = sourcesNotInitialized
+    do i=1,maxNsources
+       sourceConstraintsFilenames = filenameNotInitialized
+    end do
+    extraSourcesVStructure = sourcesNotInitialized
+    extraSourcesThetaStructure = sourcesNotInitialized
+    extraSourcesSpeciesStructure = sourcesNotInitialized
+    miscSources = sourcesNotInitialized
+    miscSourcesStrength = sourcesNotInitialized
 
     fileUnit=11
     open(unit=fileUnit, file=filename,    action="read", status="old", iostat=didFileAccessWork)
@@ -109,7 +128,7 @@ contains
 
        ! include collision operator by default
        includeCollisionOperator= .true.
-       
+
        read(fileUnit, nml=physicsParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
@@ -120,14 +139,14 @@ contains
           print *,"Error: If left or right boundary uses periodic boundary conditions , both boundaries must us periodic."
           stop
        end if
-       
+
        if (masterProc) then
           print *,"Successfully read parameters from physicsParameters namelist in ", filename, "."
        end if
 
        ! default shift of theta grid
        thetaGridShift = 0.0
-       
+
        read(fileUnit, nml=resolutionParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
           print *,"Proc ",myRank,": Error!  I was able to open the file ", filename, &
@@ -148,7 +167,7 @@ contains
                " but not read data from the otherNumericalParameters namelist in it."
           stop
        end if
-       
+
        if (masterProc) then
           print *,"Successfully read parameters from otherNumericalParameters namelist in ", filename, "."
        end if
@@ -219,7 +238,138 @@ contains
     Nspecies = numCharges
 
     if (.not. useIterativeSolver) then
-      useIterativeBoundarySolver = .false.
+       useIterativeBoundarySolver = .false.
+    end if
+
+    ! Validate sources input
+    Nsources = maxNsources
+    do i=1,maxNsources
+       if (gConstraints(i) == sourcesNotInitialized) then
+          Nsources = i-1
+          exit
+       end if
+    end do
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (sourcesVStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= Nsources) then
+       print *,"Error: number of sourcesVStructure differs from the number of constraints."
+       stop
+    end if
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (sourcesThetaStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= Nsources) then
+       print *,"Error: number of sourcesThetaStructure differs from the number of constraints."
+       stop
+    end if
+
+    NextraSources = maxNsources
+    do i=1,maxNsources
+       if (sourceConstraints(i) == sourcesNotInitialized) then
+          NextraSources = i-1
+          exit
+       end if
+    end do
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (RHSFromFile(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NextraSources) then
+       print *,"Error: number of RHSFromFile differs from the number of extra sources."
+       stop
+    end if
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (sourceConstraintsFilenames(i) == filenameNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NextraSources) then
+       print *,"Error: number of sourceConstraintsFilenames differs from the number of extra sources."
+       stop
+    end if
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (extraSourcesVStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NextraSources) then
+       print *,"Error: number of extraSourcesVStructure differs from the number of extra sources."
+       stop
+    end if
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (extraSourcesThetaStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NextraSources) then
+       print *,"Error: number of extraSourcesThetaStructure differs from the number of extra sources."
+       stop
+    end if
+
+    
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (extraSourcesSpeciesStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NextraSources) then
+       print *,"Error: number of extraSourcesSpeciesStructure differs from the number of extra sources."
+       stop
+    end if
+
+
+    NmiscSources = maxNsources
+    do i=1,maxNsources
+       if (miscSources(i) == sourcesNotInitialized) then
+          NmiscSources = i-1
+          exit
+       end if
+    end do
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (miscSourcesStrength(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NmiscSources) then
+       print *,"Error: number of miscSourcesStrength differs from the number of misc sources."
+       stop
     end if
 
     ! Other input validation
@@ -235,13 +385,13 @@ contains
        print *,"and 1 corresponds to shifting the grid an entire gridpoint (2pi/(Ntheta+1))."
        stop
     end if
-    
+
     if (psiGridType .eq. 1) then
        ! Check psiAHatFilename is set
        if (.not. len(psiAHatFilename)>=0) then
           print *,"If psiGridType==1 then psiAHatFilename must be set."
           stop
-       end if       
+       end if
     end if
 
     if (useGlobalTermMultiplier .eq. 1) then
@@ -249,7 +399,7 @@ contains
        if (.not. len(globalTermMultiplierFilename)>=0) then
           print *,"If useGlobalTermMultiplier==1 then globalTermMultiplierFilename must be set."
           stop
-       end if       
+       end if
     end if
 
     if (noChargeSource == 2 .or. noChargeSource == 3) then
@@ -257,10 +407,28 @@ contains
        if (.not. len(chargeSourceFilename)>=0) then
           print *,"If noChargeSource==2 or 3 then chargeSourceFilename must be set."
           stop
-       end if       
+       end if
     end if
 
     
+    if (printReadInDebug == 1) then
+       print *,"# sources: ",Nsources
+       print *, gConstraints(1:Nsources)
+       print *, sourcesVStructure(1:Nsources)
+       print *, sourcesThetaStructure(1:Nsources)
+
+       print *,"# extra sources: ",NextraSources 
+       print *, sourceConstraints(1:NextraSources)
+       print *, RHSFromFile(1:NextraSources)
+       print *, sourceConstraintsFilenames(1:NextraSources)
+       print *, extraSourcesVStructure(1:NextraSources)
+       print *, extraSourcesThetaStructure(1:NextraSources)
+       print *, extraSourcesSpeciesStructure(1:NextraSources)
+
+       print *,"# misc sources: ",NmiscSources
+       print *, miscSources(1:NmiscSources)
+       print *, miscSourcesStrength(1:NmiscSources)
+    end if
   end subroutine readNamelistInput
 
 end module readInput

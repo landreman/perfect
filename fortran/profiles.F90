@@ -66,12 +66,7 @@ contains
     allocate(globalTermMultiplier(Npsi))
     ! charge source
     allocate(chargeSource(NEnforcedPsi))
-
-    ! read in poloidal variation of sources and calculate FSA of it
-    allocate(sourceThetaPart(Ntheta))
-    allocate(sourceThetaPartFSA(NEnforcedPsi))
-    call initializeSourcesThetaPart(sourcePoloidalVariation,sourceThetaPart,sourceThetaPartFSA)
-    
+   
     select case (psiGridType)
     case(0)
        ! uniform grid
@@ -115,6 +110,13 @@ contains
 
       end select
 
+      !!!!!!! TODO MOVE TO SOURCE INITIALIZATION
+      allocate(sourceThetaPart(Nsources,Ntheta))
+      allocate(sourceThetaPartFSA(Nsources,NEnforcedPsi))
+      allocate(extraSourceThetaPart(NextraSources,Ntheta))
+      allocate(extraSourceThetaPartFSA(NextraSources,NEnforcedPsi))
+
+      
       select case (noChargeSource)
       case(0)
          ! no constraints enforced on particle source
@@ -860,34 +862,31 @@ contains
     deallocate(rSingleSpecies)
     allocate(sqrtTHats(Nspecies,Npsi))
     sqrtTHats = sqrt(THats)
-    
+
+
+    allocate(extraSourceSpeciesPart(Nspecies))
     if (noChargeSource > 0) then
        select case(noChargeSourceOption)
        case(0)
           ! momentum source
-          allocate(extraSourceSpeciesDependence(Nspecies))
-          extraSourceSpeciesDependence = masses(1:Nspecies)
+          extraSourceSpeciesPart = masses(1:Nspecies)
        case(1)
           ! momentum source
-          allocate(extraSourceSpeciesDependence(Nspecies))
-          extraSourceSpeciesDependence = zero
-          extraSourceSpeciesDependence(1) = one
+          extraSourceSpeciesPart = zero
+          extraSourceSpeciesPart(1) = one
           ! TODO: perhaps try to infer main ion rather than just use first.
        case(2)
           ! momentum source
-          allocate(extraSourceSpeciesDependence(Nspecies))
-          extraSourceSpeciesDependence = masses*nHats(:,1)
+          extraSourceSpeciesPart = masses*nHats(:,1)
        case(3)
           ! particle source
-          allocate(extraSourceSpeciesDependence(Nspecies))
-          extraSourceSpeciesDependence = masses(1:Nspecies)*nHats(:,1)
+          extraSourceSpeciesPart = masses(1:Nspecies)*nHats(:,1)
 	  ! scales with core (ipsi=1) concentration. 
 	  ! TODO: make it possible to have extra psi dependence here, to scale with local value of density, etc.
        case(4)
           ! particle source
-          allocate(extraSourceSpeciesDependence(Nspecies))
-          extraSourceSpeciesDependence = zero
-          extraSourceSpeciesDependence(1) = one
+          extraSourceSpeciesPart = zero
+          extraSourceSpeciesPart(1) = one
 	  ! TODO: perhaps try to infer main ion rather than just use first.
        case default
           print *,"Error! Invalid noChargeSourceOption. Currently supported values are: 0,1,2,3,4."

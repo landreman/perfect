@@ -97,25 +97,6 @@ module globalVariables
 
   logical :: setTPrimeToBalanceHeatFlux
 
-  integer :: Nsources = 2
-  integer :: NextraSources = 1
-  
-  integer :: sourcePoloidalVariation
-  PetscScalar :: sourcePoloidalVariationStrength
-  PetscScalar :: sourcePoloidalVariationPhase
-  PetscScalar, dimension(:), allocatable :: sourceThetaPart
-  PetscScalar, dimension(:), allocatable :: sourceThetaPartFSA 
-  
-
-  integer :: noChargeSource
-  ! the following 3 variables are used for noChargeSource > 0
-  character(len=100) :: chargeSourceFilename
-  PetscScalar, dimension(:), allocatable :: chargeSource
-  integer :: noChargeSourceOption
-  PetscScalar, dimension(:), allocatable :: extraSourceSpeciesDependence
-  ! this is used to write the out the extra source
-  PetscScalar, dimension(:,:), allocatable :: noChargeSourceExtraSourceProfile
-
   logical :: makeLocalApproximation
 
   logical :: includeCollisionOperator
@@ -124,6 +105,52 @@ module globalVariables
 
   PetscScalar :: leftBoundaryShift=0, rightBoundaryShift=0
   integer :: leftBoundaryScheme=1, rightBoundaryScheme=1
+
+  ! ********************************************************
+  ! ********************************************************
+  !
+  ! Source quantities
+  !
+  ! ********************************************************
+  ! ********************************************************
+
+  integer, parameter :: printReadInDebug = 1
+  
+  integer, parameter :: maxNsources = 5
+  
+  integer, parameter :: sourcesNotInitialized = -9998
+  character(len=0), parameter :: filenameNotInitialized= ''
+
+  integer :: Nsources = 2
+  integer :: NextraSources = 1
+  integer :: NmiscSources = 0
+
+  integer, dimension(maxNsources) :: gConstraints, sourcesVStructure, sourcesThetaStructure,&
+       sourceConstraints, RHSFromFile, extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
+       miscSources
+  PetscScalar, dimension(maxNsources) :: miscSourcesStrength
+character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
+  
+  integer :: sourcePoloidalVariation
+  PetscScalar :: sourcePoloidalVariationStrength
+  PetscScalar :: sourcePoloidalVariationPhase
+
+  PetscScalar, dimension(:,:), allocatable :: sourceThetaPart
+  PetscScalar, dimension(:,:), allocatable :: sourceThetaPartFSA
+
+  PetscScalar, dimension(:), allocatable :: extraSourceSpeciesPart
+  
+  !PetscScalar, dimension(:,:), allocatable :: extraSourceSpeciesPart
+  PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPart
+  PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPartFSA 
+
+  integer :: noChargeSource
+  ! the following 3 variables are used for noChargeSource > 0
+  character(len=100) :: chargeSourceFilename
+  PetscScalar, dimension(:), allocatable :: chargeSource
+  integer :: noChargeSourceOption
+  ! this is used to write the out the extra source
+  PetscScalar, dimension(:,:), allocatable :: noChargeSourceExtraSourceProfile
 
   ! ********************************************************
   ! ********************************************************
