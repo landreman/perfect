@@ -388,6 +388,12 @@ contains
                ! Only add pressure perturbation and density perturbation terms if we include global effects
                ! In the local limit they are O(delta^2) so cannot be consistently included
                pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
+             else
+               ! When making local approximation, does not make sense to include psi-derivatives which are ordered small for local
+               ! approximation. In particular, psi-derivatives break when Npsi<5.
+               pPerpTermInVp(ispecies,itheta,:) = 0d0
+             endif
+
                toroidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:) 
                poloidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:)
 

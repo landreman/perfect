@@ -819,23 +819,27 @@ contains
     allocate(Psi_Chandra(Nx))
     allocate(nuDHat(numSpecies, Nx))
 
-    allocate(M21(NxPotentials, Nx))
-    allocate(M32(NxPotentials, NxPotentials))
-    allocate(M22BackslashM21(NxPotentials, Nx))
-    allocate(M33BackslashM32(NxPotentials, NxPotentials))
-    allocate(M22BackslashM21s(NL,NxPotentials, Nx))
-    allocate(M33BackslashM32s(NL,NxPotentials, NxPotentials))
-    allocate(LaplacianTimesX2WithoutL(NxPotentials, NxPotentials))
-    allocate(M11(Nx,Nx))
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      allocate(M21(NxPotentials, Nx))
+      allocate(M32(NxPotentials, NxPotentials))
+      allocate(M22BackslashM21(NxPotentials, Nx))
+      allocate(M33BackslashM32(NxPotentials, NxPotentials))
+      allocate(M22BackslashM21s(NL,NxPotentials, Nx))
+      allocate(M33BackslashM32s(NL,NxPotentials, NxPotentials))
+      allocate(LaplacianTimesX2WithoutL(NxPotentials, NxPotentials))
 
-    allocate(M12(Nx,NxPotentials))
-    allocate(M13(Nx,NxPotentials))
-    allocate(M22(NxPotentials,NxPotentials))
-    allocate(M33(NxPotentials,NxPotentials))
+      allocate(M12(Nx,NxPotentials))
+      allocate(M13(Nx,NxPotentials))
+      allocate(M22(NxPotentials,NxPotentials))
+      allocate(M33(NxPotentials,NxPotentials))
+
+      allocate(potentialsToFInterpolationMatrix(Nx, NxPotentials))
+    endif
+
+    allocate(M11(Nx,Nx))
 
     allocate(KWithoutThetaPart(Nx,Nx))
     allocate(fToFInterpolationMatrix(Nx,Nx))
-    allocate(potentialsToFInterpolationMatrix(Nx, NxPotentials))
     allocate(CECD(numSpecies, numSpecies, Nx, Nx))
 
     allocate(IPIV(NxPotentials))
@@ -847,8 +851,10 @@ contains
 
     allocate(rowIndices(Nx))
     allocate(colIndices(Nx))
-    allocate(tempMatrix(Nx, NxPotentials))
-    allocate(tempMatrix2(NxPotentials, NxPotentials))
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      allocate(tempMatrix(Nx, NxPotentials))
+      allocate(tempMatrix2(NxPotentials, NxPotentials))
+    endif
 
 
     if (whichMatrix==0 .and. preconditioner_x==5) then
@@ -864,79 +870,83 @@ contains
        d2dx2ToUse = d2dx2
     end if
 
-    ! First assemble rows 2 and 3 of the block linear system, since they
-    ! are independent of psi and independent of species.
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      ! Matrices that are only needed if using the old Rosenbluth potential scheme
 
-    M32 = zero
-    M21 = 4*pi*regridPolynomialToUniform
-    do i=2,NxPotentials-1
-       M21(i,:) = M21(i,:)*xPotentials(i)*xPotentials(i)
-       M32(i,i) = -2*xPotentials(i)*xPotentials(i)
-    end do
-    M21(1,:)=zero
-    M21(NxPotentials,:)=zero
-    M32(1,:)=zero
-    M32(NxPotentials,:)=zero
-    do i=1,NxPotentials
-       LaplacianTimesX2WithoutL(i,:) = xPotentials(i)*xPotentials(i)*d2dx2Potentials(i,:) &
-            + 2 * xPotentials(i) * ddxPotentials(i,:)
-    end do
+      ! First assemble rows 2 and 3 of the block linear system, since they
+      ! are independent of psi and independent of species.
 
-    do L=0,(NL-1)
-       M22 = LaplacianTimesX2WithoutL
-       do i=1,NxPotentials
-          M22(i,i) = M22(i,i) - L*(L+1)
-       end do
+      M32 = zero
+      M21 = 4*pi*regridPolynomialToUniform
+      do i=2,NxPotentials-1
+         M21(i,:) = M21(i,:)*xPotentials(i)*xPotentials(i)
+         M32(i,i) = -2*xPotentials(i)*xPotentials(i)
+      end do
+      M21(1,:)=zero
+      M21(NxPotentials,:)=zero
+      M32(1,:)=zero
+      M32(NxPotentials,:)=zero
+      do i=1,NxPotentials
+         LaplacianTimesX2WithoutL(i,:) = xPotentials(i)*xPotentials(i)*d2dx2Potentials(i,:) &
+              + 2 * xPotentials(i) * ddxPotentials(i,:)
+      end do
 
-       ! Add Dirichlet or Neumann boundary condition for potentials at x=0:
-       if (L==0) then
-          M22(1,:)=ddxPotentials(1,:)
-       else
-          M22(1,:) = 0
-          M22(1,1) = 1
-       end if
-       M33 = M22;
+      do L=0,(NL-1)
+         M22 = LaplacianTimesX2WithoutL
+         do i=1,NxPotentials
+            M22(i,i) = M22(i,i) - L*(L+1)
+         end do
 
-       ! Add Robin boundary condition for potentials at x=xMax:
-       M22(NxPotentials,:) = xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
-       M22(NxPotentials,NxPotentials) = M22(NxPotentials,NxPotentials) + L+1
+         ! Add Dirichlet or Neumann boundary condition for potentials at x=0:
+         if (L==0) then
+            M22(1,:)=ddxPotentials(1,:)
+         else
+            M22(1,:) = 0
+            M22(1,1) = 1
+         end if
+         M33 = M22;
 
-       ! Boundary condition for G:
-       M33(NxPotentials,:) = xMaxNotTooSmall*xMaxNotTooSmall*d2dx2Potentials(NxPotentials,:) &
-            + (2*L+1)*xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
-       M33(NxPotentials,NxPotentials) = M33(NxPotentials,NxPotentials) + (L*L-1)
+         ! Add Robin boundary condition for potentials at x=xMax:
+         M22(NxPotentials,:) = xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
+         M22(NxPotentials,NxPotentials) = M22(NxPotentials,NxPotentials) + L+1
 
-       if (L /= 0) then
-          M22(NxPotentials,1)=0
-          M33(NxPotentials,1)=0
-       end if
+         ! Boundary condition for G:
+         M33(NxPotentials,:) = xMaxNotTooSmall*xMaxNotTooSmall*d2dx2Potentials(NxPotentials,:) &
+              + (2*L+1)*xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
+         M33(NxPotentials,NxPotentials) = M33(NxPotentials,NxPotentials) + (L*L-1)
 
-       ! Call LAPACK subroutine DGESV to solve a linear system
-       ! Note: this subroutine changes M22 and M33!
-       M22BackslashM21 = M21  ! This will be overwritten by LAPACK.
+         if (L /= 0) then
+            M22(NxPotentials,1)=0
+            M33(NxPotentials,1)=0
+         end if
+
+         ! Call LAPACK subroutine DGESV to solve a linear system
+         ! Note: this subroutine changes M22 and M33!
+         M22BackslashM21 = M21  ! This will be overwritten by LAPACK.
 #if defined(PETSC_USE_REAL_SINGLE)
-       call SGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
+         call SGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
 #else
-       call DGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
+         call DGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
 #endif
-       if (LAPACKInfo /= 0) then
-          print *, "Error in LAPACK call: info = ", LAPACKInfo
-          stop
-       end if
-       M33BackslashM32 = M32  ! This will be overwritten by LAPACK.
+         if (LAPACKInfo /= 0) then
+            print *, "Error in LAPACK call: info = ", LAPACKInfo
+            stop
+         end if
+         M33BackslashM32 = M32  ! This will be overwritten by LAPACK.
 #if defined(PETSC_USE_REAL_SINGLE)
-       call SGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
+         call SGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
 #else
-       call DGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
+         call DGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
 #endif
-       if (LAPACKInfo /= 0) then
-          print *, "Error in LAPACK call: info = ", LAPACKInfo
-          stop
-       end if
+         if (LAPACKInfo /= 0) then
+            print *, "Error in LAPACK call: info = ", LAPACKInfo
+            stop
+         end if
 
-       M33BackslashM32s(L+1,:,:) = M33BackslashM32
-       M22BackslashM21s(L+1,:,:) = M22BackslashM21
-    end do
+         M33BackslashM32s(L+1,:,:) = M33BackslashM32
+         M22BackslashM21s(L+1,:,:) = M22BackslashM21
+      end do
+    end if
 
     do ipsi = ipsiMin, ipsiMax
 
@@ -1210,8 +1220,10 @@ contains
 
     deallocate(rowIndices)
     deallocate(colIndices)
-    deallocate(tempMatrix)
-    deallocate(tempMatrix2)
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      deallocate(tempMatrix)
+      deallocate(tempMatrix2)
+    endif
 
     deallocate(xb)
     deallocate(expxb2)
@@ -1219,23 +1231,27 @@ contains
     deallocate(Psi_Chandra)
     deallocate(nuDHat)
 
-    deallocate(M21)
-    deallocate(M32)
-    deallocate(M22BackslashM21)
-    deallocate(M33BackslashM32)
-    deallocate(M22BackslashM21s)
-    deallocate(M33BackslashM32s)
-    deallocate(LaplacianTimesX2WithoutL)
-    deallocate(M11)
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      deallocate(M21)
+      deallocate(M32)
+      deallocate(M22BackslashM21)
+      deallocate(M33BackslashM32)
+      deallocate(M22BackslashM21s)
+      deallocate(M33BackslashM32s)
+      deallocate(LaplacianTimesX2WithoutL)
 
-    deallocate(M12)
-    deallocate(M13)
-    deallocate(M22)
-    deallocate(M33)
+      deallocate(M12)
+      deallocate(M13)
+      deallocate(M22)
+      deallocate(M33)
+
+      deallocate(potentialsToFInterpolationMatrix)
+    endif
+
+    deallocate(M11)
 
     deallocate(KWithoutThetaPart)
     deallocate(fToFInterpolationMatrix)
-    deallocate(potentialsToFInterpolationMatrix)
     deallocate(CECD)
 
     deallocate(IPIV)

@@ -197,7 +197,7 @@ module grids
       scheme = 2
       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
       ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
-         
+        
       select case (psiDerivativeScheme)
       case (1)
          ! centered finite differences, 3-point stencil
