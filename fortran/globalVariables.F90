@@ -129,9 +129,8 @@ module globalVariables
        sourceConstraints, RHSFromFile, extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
        miscSources
   PetscScalar, dimension(maxNsources) :: miscSourcesStrength
-character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
-  
-  integer :: sourcePoloidalVariation
+  character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
+
   PetscScalar :: sourcePoloidalVariationStrength
   PetscScalar :: sourcePoloidalVariationPhase
 
@@ -144,11 +143,8 @@ character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
   PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPart
   PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPartFSA 
 
-  integer :: noChargeSource
-  ! the following 3 variables are used for noChargeSource > 0
-  character(len=100) :: chargeSourceFilename
-  PetscScalar, dimension(:), allocatable :: chargeSource
-  integer :: noChargeSourceOption
+  ! this is used to write the out the source
+  PetscScalar, dimension(:,:,:), allocatable :: sourceProfile
   ! this is used to write the out the extra source
   PetscScalar, dimension(:,:,:), allocatable :: extraSourceProfile
 
@@ -300,8 +296,7 @@ character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
   PetscScalar, dimension(:,:), allocatable :: BHat, BPHat, BTHat, JHat, RHat, dBHatdtheta, dBHatdpsi
   PetscScalar, dimension(:), allocatable :: IHat, dIHatdpsi, dPhiHatdpsi, PhiHat
   PetscScalar, dimension(:,:), allocatable :: THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis
-  PetscScalar, dimension(:,:,:), allocatable :: sourceProfile
-!  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation
+  !  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation
   PetscScalar, dimension(:), allocatable :: VPrimeHat, FSABHat2, typicalB
   PetscScalar, dimension(:,:,:), allocatable :: flow, kPar, densityPerturbation, pressurePerturbation
   PetscScalar, dimension(:,:,:), allocatable :: pPerpTermInVp,pPerpTermInVpBeforePsiDerivative

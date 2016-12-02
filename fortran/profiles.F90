@@ -65,9 +65,7 @@ contains
     allocate(dnHatdpsis(Nspecies,Npsi))
     ! multiplies global terms
     allocate(globalTermMultiplier(Npsi))
-    ! charge source
-    allocate(chargeSource(NEnforcedPsi))
-   
+    
     select case (psiGridType)
     case(0)
        ! uniform grid
@@ -138,7 +136,7 @@ contains
             call closeInputFile()
       
          case default
-            print *,"Error! Invalid setting for noChargeSource" 
+            print *,"Error! Invalid setting for RHSFromFile. Suppoted values: 0,1." 
             stop
             
          end select

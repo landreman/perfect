@@ -70,7 +70,7 @@ def diffAll(absoluteTolerance):
     ignoredVariables += ["pPerpTermInVp", "pPerpTermInVpBeforePsiDerivative"]
 
     # these are control variables from older implementation of sources
-    ignoredVariables += ["noChargeSource","noChargeSourceOption"]
+    ignoredVariables += ["noChargeSource","noChargeSourceOption","sourcePoloidalVariation"]
     for varname in origFile["run  1"]:
         if varname in ignoredVariables:
             continue

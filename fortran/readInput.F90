@@ -26,9 +26,8 @@ contains
     namelist / physicsParameters / nu_r, profilesScheme, profilesFilename, &
          makeLocalApproximation, desiredU, desiredUMin, desiredUMax, desiredUNumRuns, &
          desiredFWHMInRhoTheta, dTHatdpsiScalar, &
-         detaHatdpsiScalar, sourcePoloidalVariation, &
+         detaHatdpsiScalar, &
          sourcePoloidalVariationStrength, sourcePoloidalVariationPhase, &
-         noChargeSource, chargeSourceFilename, noChargeSourceOption, &
          Delta, omega, psiAHat, psiMid,  &
          exponent, setTPrimeToBalanceHeatFlux, &
          includeCollisionOperator, includeddpsiTerm, &
@@ -121,10 +120,6 @@ contains
        ! Default phase and poloidal variation
        sourcePoloidalVariationStrength = 1.0
        sourcePoloidalVariationPhase = 0.0
-
-       ! Default option for enforcing no charge sources
-       noChargeSource = 0
-       noChargeSourceOption = 0
 
        ! include collision operator by default
        includeCollisionOperator= .true.
@@ -402,15 +397,6 @@ contains
        end if
     end if
 
-    if (noChargeSource == 2 .or. noChargeSource == 3) then
-       ! Check if chargeSourceFilename is set
-       if (.not. len(chargeSourceFilename)>=0) then
-          print *,"If noChargeSource==2 or 3 then chargeSourceFilename must be set."
-          stop
-       end if
-    end if
-
-    
     if (printReadInDebug == 1) then
        print *,"# sources: ",Nsources
        print *, gConstraints(1:Nsources)

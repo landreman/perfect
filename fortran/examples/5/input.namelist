@@ -147,22 +147,13 @@
 !  setTPrimeToBalanceHeatFlux = .true.
   setTPrimeToBalanceHeatFlux = .false.
 
-  sourcePoloidalVariation = 0
+  
   ! 0 = Sources are constant in theta
   ! 1 = Sources vary as (1 + cos(theta))
   ! The following parameters change the amplitude and phase of the cosine
   ! in sourcePoloidalVariation = 1
   ! sourcePoloidalVariationStrength = 1.0
   ! sourcePoloidalVariationPhase = 0.0
-
-noChargeSource = 1
-  ! 0: sum_a Z_a S_a = 0 is not enforced. (Default)
-  ! 1: sum_a Z_a S_a = 0 is enforced. A new unknown is introduced to make the system solvable, see option below.
- 
- noChargeSourceOption = 3
-  ! This option is used if noChargeSource = 1.
-  ! 0: one momentum source field S_m is solved for. Species momentum field assumed to scale as S_{ma} = \hat{m}_a S_m.
-  ! 1: one momentum source field S_m is solved for. Only first species has a momentum source. TODO: make it select species based on charge and density (to identify main ion).
 
 ! options for g constraints and corresponding source 
   ! vectors of any number of entries, including no entries (empty line)

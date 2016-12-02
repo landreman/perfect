@@ -15,8 +15,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
        psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
        preconditioner_species, preconditioner_x, preconditioner_x_min_L, &
        preconditioner_psi, preconditioner_theta, preconditioner_xi, &
-       lowestEnforcedIpsi, highestEnforcedIpsi, NEnforcedPsi, &
-       noChargeSource
+       lowestEnforcedIpsi, highestEnforcedIpsi, NEnforcedPsi
   use indices
 
   implicit none
@@ -184,10 +183,10 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
      stop "Invalid xDerivativeScheme"
   end select
 
-  if (whichMatrix==0 .and. noChargeSource > 0) then
+  if (whichMatrix==0) then
      ! We add an extra source on each row
      ! but we should really add one just for each L=1 row.
-     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + 1
+     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + NextraSources
   end if
   
   ! PETSc gets angry if you request more nonzeros than the matrix size:
@@ -209,13 +208,12 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
         end do
      end do
 
-     if (noChargeSource > 0) then
-        iextraSources = 1
+     do iextraSources = 1, NextraSources
         do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
            index = getIndexExtraSources(iextraSources,ipsi)
            predictedNNZsForEachRow(index) = Npsi * Nspecies
         end do
-     end if
+     end do
   end if
 
   

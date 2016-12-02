@@ -216,7 +216,6 @@ contains
       call writeVariable(elapsedTime,"elapsed time (s)",runNum)
       call writeVariable(NpsiSourcelessLeft,"NpsiSourcelessLeft",runNum)
       call writeVariable(NpsiSourcelessRight,"NpsiSourcelessRight",runNum)
-      call writeVariable(sourcePoloidalVariation,"sourcePoloidalVariation",runNum)
       call writeVariable(sourcePoloidalVariationStrength,"sourcePoloidalVariationStrength",runNum)
       call writeVariable(sourcePoloidalVariationPhase,"sourcePoloidalVariationPhase",runNum)
       ! todo: implement an array of strings with source names

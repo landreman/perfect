@@ -130,7 +130,7 @@
   setTPrimeToBalanceHeatFlux = .true.
 !  setTPrimeToBalanceHeatFlux = .false.
 
-  sourcePoloidalVariation = 0
+  
   ! 0 = Sources are constant in theta
   ! 1 = Sources vary as (1 + cos(theta))
 ! options for g constraints and corresponding source 

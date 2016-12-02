@@ -147,7 +147,7 @@
 !  setTPrimeToBalanceHeatFlux = .true.
   setTPrimeToBalanceHeatFlux = .false.
 
-  sourcePoloidalVariation = 0
+  
   ! 0 = Sources are constant in theta
   ! 1 = Sources vary as (1 + cos(theta))
   ! The following parameters change the amplitude and phase of the cosine
