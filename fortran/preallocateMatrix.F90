@@ -120,13 +120,13 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
 
   ! Set predictedNNZPerRow_DKE to the expected number of nonzeros in a row of the kinetic equation block:
 
-  ! We probably only add sources here since L=0 i sorted here?
   if (finalMatrix==0 .and. preconditioner_xi==1) then
+    ! Assumes each source only gives a non-zero for one L? 
     predictedNNZPerRow_DKE = 3 & ! d/dxi term is tridiagonal for the preconditioner
-                            + Nsources  ! particle and heat sources
+                            + Nsources + NextraSources  
   else
     predictedNNZPerRow_DKE = 5 & ! d/dxi term is pentadiagonal
-                            + Nsources  ! particle and heat sources
+                            + Nsources + NextraSources  
   end if
 
   select case (thisThetaDerivativeScheme)
@@ -183,12 +183,6 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
      stop "Invalid xDerivativeScheme"
   end select
 
-  if (whichMatrix==0) then
-     ! We add an extra source on each row
-     ! but we should really add one just for each L=1 row.
-     predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + NextraSources
-  end if
-  
   ! PETSc gets angry if you request more nonzeros than the matrix size:
   if (predictedNNZPerRow_DKE > thisMatrixSize) then
      predictedNNZPerRow_DKE = thisMatrixSize
@@ -202,7 +196,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
         do ispecies = 1,Nspecies
            do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
            
-              index = getIndexSources(isources,ispecies,ipsi)
+              index = Npsi*localMatrixSize + (ipsi-lowestEnforcedIpsi)*Nspecies*Nsources + (ispecies-1)*Nsources + isources
               predictedNNZsForEachRow(index) = Ntheta*Nx + 1  !+1 for diagonal
            end do
         end do
@@ -211,12 +205,11 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
      do iextraSources = 1, NextraSources
         do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
            index = getIndexExtraSources(iextraSources,ipsi)
-           predictedNNZsForEachRow(index) = Npsi * Nspecies
+           ! Would be more accurate to use non-zero species structure element
+           predictedNNZsForEachRow(index) = Nspecies*Ntheta*Nx + 1 
         end do
      end do
   end if
-
-  
 
   predictedNNZsForEachRowDiagonal = predictedNNZsForEachRow
   
@@ -282,7 +275,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   
 
   ! If any mallocs are required during matrix assembly, do not generate an error:
-  call MatSetOption(matrix, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE, ierr)
+  !call MatSetOption(matrix, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE, ierr)
   
   !if (masterProcInSubComm) then
   !   print *,"Done with preallocation for whichMatrix = ",whichMatrix

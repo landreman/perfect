@@ -115,6 +115,7 @@ module globalVariables
   ! ********************************************************
 
   integer, parameter :: printReadInDebug = 1
+  ! integer, parameter :: printMatrixDebug = 1 ! use PETSc's -mat_view instead
   
   integer, parameter :: maxNsources = 5
   
@@ -124,6 +125,8 @@ module globalVariables
   integer :: Nsources = 2
   integer :: NextraSources = 1
   integer :: NmiscSources = 0
+
+  integer :: iparticleSource, imomentumSource, iheatSource
 
   integer, dimension(maxNsources) :: gConstraints, sourcesVStructure, sourcesThetaStructure,&
        sourceConstraints, RHSFromFile, extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &

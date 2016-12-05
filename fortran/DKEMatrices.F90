@@ -1405,7 +1405,6 @@ contains
     PetscScalar, dimension(:), allocatable :: constraintXAndThetaPart
     PetscScalar, dimension(:), allocatable :: constraintXPart
     PetscScalar, dimension(:,:), allocatable :: constraintPsiAndSpeciesPart
-    ! the following constraint is only use to enforce noChargeSources
     
     integer, dimension(:), allocatable :: rowIndices, colIndices
     integer :: ix, itheta, ipsi, L
@@ -1439,8 +1438,7 @@ contains
 
        do iextraSources = 1,NextraSources
           allocate(constraintPsiAndSpeciesPart(Nspecies,Npsi))
-          call initializeSourceConstraints(iextraSources,constraintPsiAndSpeciesPart)
-          isources = 1 ! particle sources only enters into this constraint
+          call initializeSourceConstraints(iextraSources,constraintPsiAndSpeciesPart,isources)
           do ispecies = 1,Nspecies
              do ipsi = lowestEnforcedIpsi, highestEnforcedIpsi
                 rowIndex = getIndexExtraSources(iextraSources,ipsi)
@@ -1536,6 +1534,14 @@ contains
        end if
     end if
     call PetscTime(time1, ierr)
+
+    ! Does not actually print matrix.
+    ! Use PETSc's -mat_view instead
+    !
+    ! if (printMatrixDebug == 1) then
+    !    print *,"Printing matrix ", whichMatrix, "..."
+    !    print *,matrix
+    ! end if
 
   end subroutine finalizeMatrices
 

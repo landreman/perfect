@@ -75,6 +75,11 @@ contains
     do i=1,maxNsources
        sourceConstraintsFilenames = filenameNotInitialized
     end do
+    ! used to enforce constraints on particular source type
+    iparticleSource = sourcesNotInitialized
+    imomentumSource = sourcesNotInitialized
+    iheatSource = sourcesNotInitialized
+    
     extraSourcesVStructure = sourcesNotInitialized
     extraSourcesThetaStructure = sourcesNotInitialized
     extraSourcesSpeciesStructure = sourcesNotInitialized
