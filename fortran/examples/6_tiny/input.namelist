@@ -15,7 +15,7 @@
 
   outputFilename = "perfectOutput.h5"
 
-  outputScheme = 1
+  outputScheme = 2
   ! Options for outputScheme:
   ! 0 = Do not save any HDF5 file.
   ! 1 = Do save an HDF5 file with the program inputs and outputs, but do not include the distribution function.
@@ -23,7 +23,7 @@
 
   ! If the following switch is set to true, a Matlab m-file is created which
   ! stores the matrix, right-hand side, and solution vector.  If an iterative solver is used,
-  ! the preconditioner matrix is also saved.
+  ! the preconditioner matrix is also saved. Note: writing this file takes a long time.
 !  saveMatlabOutput = .true.
   saveMatlabOutput = .false.
 
@@ -35,8 +35,8 @@
   ! If the parameter below is false, the linear system will not actually be solved.
   ! Sometimes it is useful to run the code without solving the system in order to quickly
   ! output profiles or for debugging.
-  solveSystem = .true.
-!   solveSystem = .false.
+    solveSystem = .true.
+  !  solveSystem = .false.
 /
 
 &geometryParameters
@@ -45,7 +45,7 @@
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! 'epsil' is the inverse aspect ratio:
-  epsil = 0.3d+0
+  epsil = 0.263d+0
  
   geometryToUse = 1
   ! Options for geometryToUse:
@@ -65,14 +65,16 @@
   !
   ! 3: Interface to EFIT, including radial variation.
   !    (Not yet implemented.)
- 
+  ! 
+  ! 4: Reads geometry from an HDF5 file specified below.
+  geometryFilename = "input.geometry.h5"
   ! Miller parameters: (these are only used when geometryToUse = 1.)
-  Miller_kappa = 1.66
-  Miller_delta = 0.416
-  Miller_s_delta = 1.37
-  Miller_s_kappa = 0.70
-  Miller_dRdr = -0.354
-  Miller_q = 3
+  Miller_kappa = 1.58
+  Miller_delta = 0.24
+  Miller_s_delta = 0.845
+  Miller_s_kappa = 0.479
+  Miller_dRdr = -0.14
+  Miller_q = 3.5
   ! The inverse aspect ratio epsil is also used for Miller geometry.
   
 /
@@ -82,15 +84,16 @@
   ! Species parameters
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!  charges = 1
-!  masses = 1
-!  scalarNHats = 1
-!  scalarTHats = 1
+  ! D N e
+  charges = 1.0 2.0 -1.0
+  masses = 1.0 1.98356580243 0.000271933691768
+  scalarNHats = 0.72 0.04 1
+  scalarTHats = 1 1 1 
 
-  charges = 1 -1
-  masses = 1 2.72d-4
-  scalarNHats = 1 1
-  scalarTHats = 1 1
+!  charges = 1 6 -1
+!  masses = 1 6 0.00027
+!  scalarNHats = 1 0.01 1.06
+!  scalarTHats = 1 1 1
 
 /
 
@@ -99,23 +102,36 @@
   ! Physics parameters:
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  desiredU = 0.5d+0
-  desiredUMin = 0
-  desiredUMax = 1
-  desiredUNumRuns = 16
+  desiredU = 0.2d+0
+  desiredUMin = 0.5
+  desiredUMax = 16
+  desiredUNumRuns = 0
 
   desiredFWHMInRhoTheta = 2
-  dTHatdpsiScalar = -0.3d+0
-  detaHatdpsiScalar = -1
+  dTHatdpsiScalar = -20.98
+  detaHatdpsiScalar = 0
 
-  Delta = 0.0006d+0
-  omega = 0.0014d+0
-  psiAHat = 0.03d+0
-  nu_r = 0.1d+0
+  ! delta = 0.00193d+0
+  ! omega = 0.000967d+0
+  ! psiAHat = 0.0359d+0
+  !   nu_r = 0.0139d+0
 
-  psiMid = 0.9d+0
+  ! Formulas in Matts normalization documentation with TBar 1keV in J
+  Delta = 0.000584784980554
+  ! ePhiBar is 1keV in J. 
+  omega = 0.000292392490277
 
-  profilesScheme = 4
+  ! psiAHat = epsil^2/q
+  psiAHat = 0.0116993706357
+  ! nu_r = nu'/q nHat/THat^2 . If hats are 1 this nu_r gives  nu' = 0.05.
+  ! Also, nu*=nu'/epsil^(3/2) = 50 for epsil=0.01
+  nu_r = 0.0284363818839
+
+
+  psiMid = 0.974636979785
+  ! From psimid_MATLAB - psiInnerExtender_MATLAB/2
+
+  profilesScheme = 7
   ! 0 = simplistic profiles with no radial variation in magnetic quantities.
   ! 1 = more complicated profiles
   ! 2 = profiles for comparison to analytic theory
@@ -123,17 +139,16 @@
   ! 4 = Profiles with constant analytic plateau-regime heat flux according to the new (corrected) theory, Gaussian U
   ! 5 = Profiles with constant analytic plateau-regime heat flux according to the new (corrected) theory, flat U
   ! 6 = Profiles with constant n^(exponent) * (dT/dpsi), Gaussian U
-  ! 7 = Read in experimental profiles. (Not yet implemented)
+  ! 7 = Read in (experimental?) profiles.
+  profilesFilename = "input.profiles.h5" ! if(profilesScheme == 7) then get profiles from this file
 
   exponent = 2
 
-  setTPrimeToBalanceHeatFlux = .true.
-!  setTPrimeToBalanceHeatFlux = .false.
-
+!  setTPrimeToBalanceHeatFlux = .true.
+  setTPrimeToBalanceHeatFlux = .false.
+  sourcePoloidalVariationStrength = 1.0
+  sourcePoloidalVariationPhase = 0.52360
   
-  ! 0 = Sources are constant in theta
-  ! 1 = Sources vary as (1 + cos(theta))
-
 ! options for g constraints and corresponding source 
   ! vectors of any number of entries, including no entries (empty line)
   gConstraints = 1 2
@@ -149,22 +164,22 @@
 
   ! constraints on sources themselves and options for resulting extra sources
   ! vectors of any number of entrie2s, including no entries (empty line)
-  sourceConstraints = 
+  sourceConstraints = 0
   ! 0: specify total charge source
   ! 1: specify total momentum sources
-  RHSFromFile = 
+  RHSFromFile = 0
   ! 0: RHS is zero
   ! 1: RHS is read from file below
-  sourceConstraintsFilenames = 
+  sourceConstraintsFilenames = "no" 
   ! array of names of h5files specifying RHS of constraint. 
-  extraSourcesVStructure = 
+  extraSourcesVStructure = 3
   ! 1: particle source
   ! 2: heat source
   ! 3: momentum source
-  extraSourcesThetaStructure = 
+  extraSourcesThetaStructure = 0
   ! 0: Sources are constant in theta
   ! 1: Sources vary as (1 + A * cos(theta + phase))
-  extraSourcesSpeciesStructure = 
+  extraSourcesSpeciesStructure = 1
   
   ! additional sources not arising from constraints
   ! vectors of any number of entries, including no entries (empty line)
@@ -182,14 +197,15 @@
   includeddpsiTerm = .true.
 !  includeddpsiTerm = .false.
 
-  leftBoundaryShift = 0
-  rightBoundaryShift = 0
+  leftBoundaryShift = 0.0
+  rightBoundaryShift = 0.0
+  !Shifts the lower (left) and upper (right) boundary so that it is not centered around psiMid. Unlike the MATLAB version, positive values shift to higher psi for both left and right.
 
   !Options for leftBoundaryScheme and rightBoundaryScheme:
   ! 0: Impose f_1 = 0
   ! 1: Impose the local solution for f_1.
-  leftBoundaryScheme = 2
-  rightBoundaryScheme = 2
+  leftBoundaryScheme = 1
+  rightBoundaryScheme = 1
 /
 
 &resolutionParameters
@@ -210,18 +226,20 @@
   ! If you don't want to scan a variable in a convergence scan, set the associated
   ! xxxNumRuns parameter to 0.
   
-  ! This value, when multiplied by the range of normalized psi included in the simulation,
+   ! This value, when multiplied by the range of normalized psi included in the simulation,
   ! gives the number of grid points in the radial direction.
   ! Memory and time requirements DO depend strongly on this parameter.
-  NpsiPerDiameter = 100
+  NpsiPerDiameter = 20
   NpsiMinFactor = 0.75
   NpsiMaxFactor = 1.5
   NpsiNumRuns = 0
 
-  psiDiameter = 0.25d+0
+  psiDiameter = 0.253630202149
   psiDiameterMinFactor = 1
   psiDiameterMaxFactor = 1.5
   psiDiameterNumRuns = 0
+  !From psiDiameter = psiDiameter_MATLAB +  psiInnerExtender_MATLAB
+
 
   widthExtender = 0d+0
   widthExtenderMin = -0.03d+0
@@ -230,10 +248,10 @@
 
   ! Number of grid points in the poloidal direction.
   ! Memory and time requirements DO depend strongly on this parameter.
-  Ntheta = 11
+  Ntheta = 5
   NthetaMinFactor = 0.7
   NthetaMaxFactor = 1.6
-  NthetaNumRuns = 0
+  NthetaNumRuns = 3
 
   ! Number of Legendre polynomials used to represent the distribution function.
   ! Memory and time requirements DO depend strongly on this parameter.
@@ -241,10 +259,10 @@
   ! the collisionality. At high collisionality, this parameter can be as low
   ! as ~ 5. At low collisionality, this parameter may need to be many 10s or
   ! even > 100 for convergence.
-  Nxi = 9
+  Nxi = 4
   NxiMinFactor = 0.5
   NxiMaxFactor = 1.5
-  NxiNumRuns = 0
+  NxiNumRuns = 3
   
   ! Number of Legendre polynomials used to represent the Rosenbluth
   ! potentials. Except in exceptional circumstances, this number should be 4.
@@ -252,13 +270,13 @@
   NL = 4
   NLMinFactor = 1
   NLMaxFactor = 2
-  NLNumRuns = 0
+  NLNumRuns = 2
   
   ! Number of grid points in energy used to represent the distribution function.
   ! Memory and time requirements DO depend strongly on this parameter.
   ! This parameter almost always needs to be at least 5.
   ! Usually a value in the range 5-8 is plenty for convergence.
-  Nx = 6
+  Nx = 5
   NxMinFactor = 0.6
   NxMaxFactor = 2.5
   NxNumRuns = 10
@@ -268,7 +286,7 @@
   NxPotentialsPerVth = 30d+0
   NxPotentialsPerVthMinFactor = 1
   NxPotentialsPerVthMaxFactor = 4
-  NxPotentialsPerVthNumRuns = 0
+  NxPotentialsPerVthNumRuns = 4
   
   ! Maximum normalized speed for the Rosenbluth potential grid.
   ! Memory and time requirements do NOT depend strongly on this parameter.
@@ -276,7 +294,7 @@
   xMax = 5.0d+0
   xMaxMinFactor = 0.5
   xMaxMaxFactor = 2
-  xMaxNumRuns = 0
+  xMaxNumRuns = 3
 
   xMaxForDistribution = 4d+0
 
@@ -305,12 +323,17 @@
   ! Other numerical parameters:
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  
-  psiGridType = 0
-  ! 0 = Homogenous grid in psi with spacing as specified above
-  ! 1 = inhomogenous grid in psi. Inhomogenous grid obtained by mapping from psi' to psi, where grid is homogenous in psi'. All other inputs quantities intepreted as being given in psi', dpsi/dpsi' specified in file below
+  psiGridType = 1
   psiAHatFilename = "psiAHat.h5"
 
+  useGlobalTermMultiplier = 1
+  ! 0 = no multiplier is used
+  ! 1 = the global term is multiplied with a function of internal grid, given in the following file
+  globalTermMultiplierFilename = "globalTermMultiplier.h5"
+  
+
+
+  Nxi_for_x_option=1
 
   psiDerivativeScheme = 2
   ! This parameter should be 2 except in extraordinary circumstances.
@@ -325,12 +348,11 @@
   ! 1 = Uniform grid, centered finite differences, 3-point stencil
   ! 2 = Uniform grid, centered finite differences, 5-point stencil
 
-  xDerivativeScheme = 2
-  ! This parameter should almost always be 2.
+  xDerivativeScheme = 0
+  ! This parameter should almost always be 0.
   ! Options for xDerivativeScheme:
-  ! 0 = Gaussian grid, polynomial spectral collocation, old method for Rosenbluth potentials
+  ! 0 = Gaussian grid, polynomial spectral collocation
   ! 1 = Uniform grid, centered finite differences, 5-point stencil
-  ! 2 = Gaussian grid, polynomial spectral collocation, new better method for Rosenbluth potentials
 
   ! Amount by which to scale the polynomial speed (x) grid:
   ! (Use 1 unless you know what you are doing.)
@@ -351,14 +373,14 @@
   useIterativeSolver = .true.
 !  useIterativeSolver = .false.
 
-  ! If 'useIterativeBoundarySolver' is set to false, PETSc's built-in sparse direct solver
+ ! If 'useIterativeBoundarySolver' is set to false, PETSc's built-in sparse direct solver
   ! will be used for the boundaries when useIterativeSolver is true (if useIterativeSolver is
   ! false the direct solver will be used for both main system and the boundaries, regardless of
   ! the value of useIterativeBoundarySlover). The direct solver is faster for small problems and
   ! always yields a solution. For large problems, the iterative solver may be faster, but it may
   ! not always converge.
 
-  useIterativeBoundarySolver = .true.
+   useIterativeBoundarySolver = .true.
   !  useIterativeBoundarySolver = .false.
 
   whichParallelSolverToFactorPreconditioner = 1
@@ -371,7 +393,6 @@
   ! Otherwise, matrices are not distributed across processors, so the PETSc built-in serial sparse
   ! direct solver is used to factor the preconditioner.
 
-  Nxi_for_x_option=0
 /
 
 &preconditionerOptions

@@ -213,7 +213,7 @@
   ! This value, when multiplied by the range of normalized psi included in the simulation,
   ! gives the number of grid points in the radial direction.
   ! Memory and time requirements DO depend strongly on this parameter.
-  NpsiPerDiameter = 100
+  NpsiPerDiameter = 10
   NpsiMinFactor = 0.75
   NpsiMaxFactor = 1.5
   NpsiNumRuns = 0
@@ -230,7 +230,7 @@
 
   ! Number of grid points in the poloidal direction.
   ! Memory and time requirements DO depend strongly on this parameter.
-  Ntheta = 11
+  Ntheta = 5
   NthetaMinFactor = 0.7
   NthetaMaxFactor = 1.6
   NthetaNumRuns = 0
@@ -241,7 +241,7 @@
   ! the collisionality. At high collisionality, this parameter can be as low
   ! as ~ 5. At low collisionality, this parameter may need to be many 10s or
   ! even > 100 for convergence.
-  Nxi = 9
+  Nxi = 3
   NxiMinFactor = 0.5
   NxiMaxFactor = 1.5
   NxiNumRuns = 0
@@ -249,7 +249,7 @@
   ! Number of Legendre polynomials used to represent the Rosenbluth
   ! potentials. Except in exceptional circumstances, this number should be 4.
   ! Memory and time requirements do NOT depend strongly on this parameter.
-  NL = 4
+  NL = 3
   NLMinFactor = 1
   NLMaxFactor = 2
   NLNumRuns = 0
@@ -258,7 +258,7 @@
   ! Memory and time requirements DO depend strongly on this parameter.
   ! This parameter almost always needs to be at least 5.
   ! Usually a value in the range 5-8 is plenty for convergence.
-  Nx = 6
+  Nx = 5
   NxMinFactor = 0.6
   NxMaxFactor = 2.5
   NxNumRuns = 10
