@@ -224,7 +224,8 @@ module grids
 
     if (Nxi <4) then
       !Sanity check
-      stop "Nxi is less than 4; we need at least 4 Legendre polynomials to calculate all the moments we want. (L=3 is needed for the momentum flux)."
+      stop "Nxi is less than 4; we need at least 4 Legendre polynomials to calculate all the moments we want. &
+           (L=3 is needed for the momentum flux)."
     end if
 
     ! *******************************************************************************

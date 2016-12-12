@@ -5,6 +5,7 @@ module sparsify
   ! values are only added when they exceed a small positive threshhold. This threshholding
   ! prevents zero entries from being added to the nonzero structure of the matrix, increasing
   ! sparsity.
+  use globalVariables, only: threshholdForInclusion
 
   implicit none
 
@@ -14,8 +15,6 @@ module sparsify
 #else
 #include <petsc/finclude/petscmatdef.h>
 #endif
-
-  PetscScalar :: threshholdForInclusion = 1d-12
 
 contains
 

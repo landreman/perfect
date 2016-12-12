@@ -260,6 +260,7 @@ module globalVariables
 
 
   PetscScalar :: thresh
+  PetscScalar :: threshholdForInclusion
 
   PetscScalar :: xScaleFactor = 1
 

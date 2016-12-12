@@ -51,7 +51,7 @@ contains
          xMaxForDistribution, NxUniform, NxiUniform, xUniformMax, &
          thetaGridShift
 
-    namelist / otherNumericalParameters / thresh, xScaleFactor, &
+    namelist / otherNumericalParameters / thresh, threshholdForInclusion, xScaleFactor, &
          useIterativeSolver, useIterativeBoundarySolver, &
          psiDerivativeScheme, thetaDerivativeScheme, xDerivativeScheme, &
          psiGridType, psiAHatFilename, NpsiSourcelessRight, NpsiSourcelessLeft, &
@@ -159,7 +159,9 @@ contains
 
        NpsiSourcelessLeft = 0
        NpsiSourcelessRight = 0
-       useGlobalTermMultiplier = 0       
+       useGlobalTermMultiplier = 0
+
+       threshholdForInclusion = 1d-12 ! old default
 
        read(fileUnit, nml=otherNumericalParameters, iostat=didFileAccessWork)
        if (didFileAccessWork /= 0) then
