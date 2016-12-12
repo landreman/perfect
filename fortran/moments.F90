@@ -169,7 +169,7 @@ contains
           L = 0
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+	        indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
                 densityPerturbation(ispecies,itheta,ipsi) = dot_product(xWeights, densityIntegralWeights * solnArray(indices+1)) &
                      * densityFactors(ipsi)
@@ -197,7 +197,7 @@ contains
           L = 1
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+	        indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
                 flow(ispecies,itheta,ipsi) = dot_product(xWeights, flowIntegralWeights * solnArray(indices+1)) &
                      * flowFactors(ipsi)
@@ -211,7 +211,7 @@ contains
           L = 2
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+	     	indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
                 particleFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = particleFluxBeforeThetaIntegral(ispecies,itheta,ipsi) &
                      + (four/15) * particleFluxFactors(ipsi) &
@@ -236,7 +236,7 @@ contains
           L = 3
           do ipsi=1,Npsi
              do itheta=1,Ntheta
-                indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+	        indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
                 momentumFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = momentumFluxBeforeThetaIntegral(ispecies,itheta,ipsi) &
                      + (four/35) * momentumFluxFactors(ipsi) &
@@ -387,7 +387,7 @@ contains
          
          do ispecies=1,Nspecies
             do ipsi = 1,Npsi
-               indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
+	       indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
                solnAtL(1:min_x_for_L(L)-1) = 0d0
                solnAtL(min_x_for_L(L):Nx) = solnArray(indices+1)
 
@@ -540,7 +540,7 @@ contains
           
           L = 0
           do itheta=1,Ntheta
-             indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+	     indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
              this_densityPerturbation(ispecies,itheta) = dot_product(xWeights, densityIntegralWeights * solnArray(indices+1)) &
                   * densityFactors
@@ -561,7 +561,7 @@ contains
 
           L = 1
           do itheta=1,Ntheta
-             indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+	     indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
              this_flow(ispecies,itheta) = dot_product(xWeights, flowIntegralWeights * solnArray(indices+1)) &
                   * flowFactors
@@ -572,7 +572,7 @@ contains
 
           L = 2
           do itheta=1,Ntheta
-             indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+	     indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
              this_particleFluxBeforeThetaIntegral(ispecies,itheta) = this_particleFluxBeforeThetaIntegral(ispecies,itheta) &
                   + (four/15) * particleFluxFactors &
@@ -590,7 +590,7 @@ contains
 
           L = 3
           do itheta=1,Ntheta
-             indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+	     indices = [(getIndex(ispecies,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
 
              this_momentumFluxBeforeThetaIntegral(ispecies,itheta) = this_momentumFluxBeforeThetaIntegral(ispecies,itheta) &
                   + (four/35) * momentumFluxFactors &
@@ -695,7 +695,7 @@ contains
          end if
          
          do ispecies=1,Nspecies
-            indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
+	    indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
             solnAtL(1:min_x_for_L(L)-1) = 0d0
             solnAtL(min_x_for_L(L):Nx) = solnArray(indices+1)
 

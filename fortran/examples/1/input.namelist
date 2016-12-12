@@ -136,10 +136,10 @@
 
   ! options for g constraints and corresponding source 
   ! vectors of any number of entries, including no entries (empty line)
-  gConstraints = 1 2
+  gConstraints = 2 1
   ! 1: <delta n> = 0
   ! 2: <delta p> = 0
-  sourcesVStructure = 1 2
+  sourcesVStructure = 2 1
   ! 1: particle source
   ! 2: heat source
   ! 3: momentum source
@@ -149,29 +149,29 @@
 
   ! constraints on sources themselves and options for resulting extra sources
   ! vectors of any number of entrie2s, including no entries (empty line)
-  sourceConstraints = 
+  ! sourceConstraints = 
   ! 0: specify total charge source
   ! 1: specify total momentum sources
-  RHSFromFile = 
+  ! RHSFromFile = 
   ! 0: RHS is zero
   ! 1: RHS is read from file below
-  sourceConstraintsFilenames = 
+  ! sourceConstraintsFilenames = 
   ! array of names of h5files specifying RHS of constraint. 
-  extraSourcesVStructure = 
+  ! extraSourcesVStructure = 
   ! 1: particle source
   ! 2: heat source
   ! 3: momentum source
-  extraSourcesThetaStructure = 
+  ! extraSourcesThetaStructure = 
   ! 0: Sources are constant in theta
   ! 1: Sources vary as (1 + A * cos(theta + phase))
-  extraSourcesSpeciesStructure = 
+  ! extraSourcesSpeciesStructure = 
   
   ! additional sources not arising from constraints
   ! vectors of any number of entries, including no entries (empty line)
-  miscSources = 
+  ! miscSources = 
   ! 0: -[g(xi) + g(-xi)]
   ! 1: Eq (55) of Landreman 2012
-  miscSourcesStrength = 
+  ! miscSourcesStrength = 
 ! any real numbers, specifies constant to multiply above expressions with
 
   makeLocalApproximation = .true.

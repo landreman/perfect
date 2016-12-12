@@ -32,6 +32,7 @@ contains
     PetscScalar :: LFactor
     PetscScalar :: stuffToAdd
     PetscScalar, dimension(:), allocatable :: this_sourceConstraintsRHS
+    allocate(this_sourceConstraintsRHS(NEnforcedPsi))
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
     CHKERRQ(ierr)
     call VecSet(rhs, zero,ierr)
@@ -118,8 +119,7 @@ contains
        end select
        do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
           index = getIndexExtraSources(iextraSources,ipsi)
-          ! prefactors needed to translate to source that gives psiN derivative of particleFlux output
-          call VecSetValue(rhs, index, this_sourceConstraintsRHS, INSERT_VALUES, ierr) 
+          call VecSetValue(rhs, index, this_sourceConstraintsRHS(ipsi), INSERT_VALUES, ierr) 
        end do
     end do
   end subroutine DKECreateRhsVector

@@ -2,9 +2,9 @@
 
 #SBATCH -A C3SE2016-1-10
 #SBATCH -p hebbe
-#SBATCH -J perfect_test_6
+#SBATCH -J 6_test_perfect
 #SBATCH -N 2
-#SBATCH -t 0:02:00
+#SBATCH -t 0:05:00
 #SBATCH -o out.txt
 #SBATCH -e err.txt
 
@@ -14,8 +14,8 @@ export I_MPI_USE_DYNAMIC_CONNECTIONS=0
 export I_MPI_PMI_LIBRARY=/usr/lib64/libpmi.so
 
 
-#srun -n 22 -m arbitrary -w "${nodearray[0]},${nodearray[0]},${nodearray[1]},${nodearray[1]},${nodearray[2]},${nodearray[2]},${nodearray[3]},${nodearray[3]},${nodearray[4]},${nodearray[4]},${nodearray[4]},${nodearray[5]},${nodearray[5]},${nodearray[6]},${nodearray[6]},${nodearray[6]},${nodearray[7]},${nodearray[7]},${nodearray[7]},${nodearray[8]},${nodearray[8]},${nodearray[8]}" /c3se/users/bstefan/Hebbe/perfect/fortran/perfect
+#srun -n 22 -m arbitrary -w "${nodearray[0]},${nodearray[0]},${nodearray[1]},${nodearray[1]},${nodearray[2]},${nodearray[2]},${nodearray[3]},${nodearray[3]},${nodearray[4]},${nodearray[4]},${nodearray[4]},${nodearray[5]},${nodearray[5]},${nodearray[6]},${nodearray[6]},${nodearray[6]},${nodearray[7]},${nodearray[7]},${nodearray[7]},${nodearray[8]},${nodearray[8]},${nodearray[8]}" ../../perfect
 
-srun -n 2 /c3se/users/bstefan/Hebbe/perfect/fortran/perfect
+srun -n 2 ../../perfect
 
 # End script

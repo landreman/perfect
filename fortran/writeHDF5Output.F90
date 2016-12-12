@@ -251,14 +251,16 @@ contains
       end do
       
       do i = 1, NextraSources
-         genericSourceProfile = extraSourceProfile(i,:,:)
-         genericSpeciesDependence = extraSourceSpeciesPart(i,:)   
+      	 if(masterProcInSubComm) then
+            genericSourceProfile = extraSourceProfile(i,:,:)
+            genericSpeciesDependence = extraSourceSpeciesPart(i,:)   
+         end if
          select case(extraSourcesVStructure(i))
          case(1)
             ! particle source
             !call writeVariable(extraSourceProfile,"particleExtraSourceProfile",runNum)
-            call writeVariable(genericSourceProfile,"noChargeSourceParticleSourceProfile",runNum)
-            call writeVariable(genericSpeciesDependence,"noChargeParticleSourceSpeciesDependence",runNum)
+	    call writeVariable(genericSourceProfile,"noChargeSourceParticleSourceProfile",runNum)
+	    call writeVariable(genericSpeciesDependence,"noChargeParticleSourceSpeciesDependence",runNum)
          case(2)
             ! heat source
             !call writeVariable(extraSourceProfile,"heatExtraSourceProfile",runNum)

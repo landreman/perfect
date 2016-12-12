@@ -75,6 +75,7 @@ profile_params={"Tped_"+species[eI]:Tped_e,"dTCoredx_"+species[eI]:dTCoredx_e,"d
                 "Tped_"+species[zI]:Tped_z,"dTCoredx_"+species[zI]:dTCoredx_z,"dTpeddx_"+species[zI]:dTpeddx_z,"dTSOLdx_"+species[zI]:dTSOLdx_z,"TScale_"+species[mI]:TScale_z,
                 "nped_"+species[mI]:nped_i,"dnCoredx_"+species[mI]:dnCoredx_i,"dnpeddx_"+species[mI]:dnpeddx_i,"dnSOLdx_"+species[mI]:dnSOLdx_i,"nScale_"+species[mI]:nScale_i,
                 "nonuniform":True, "grid_type":"Int_arctan","transition_length":0.025,"pedestal_grid_density":0.9,
+                "multiplier_transition_shift":0.04,"multiplier_edge_value":1.0,"multiplier_transition_length":1.0/200.0
                 }
 
 Z=2

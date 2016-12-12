@@ -120,7 +120,7 @@ module globalVariables
   integer, parameter :: maxNsources = 5
   
   integer, parameter :: sourcesNotInitialized = -9998
-  character(len=0), parameter :: filenameNotInitialized= ''
+  character(len=1), parameter :: filenameNotInitialized= ' '
 
   integer :: Nsources = 2
   integer :: NextraSources = 1
