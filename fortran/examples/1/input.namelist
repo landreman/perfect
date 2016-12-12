@@ -136,10 +136,10 @@
 
   ! options for g constraints and corresponding source 
   ! vectors of any number of entries, including no entries (empty line)
-  gConstraints = 2 1
+  gConstraints = 1 2
   ! 1: <delta n> = 0
   ! 2: <delta p> = 0
-  sourcesVStructure = 2 1
+  sourcesVStructure = 1 2
   ! 1: particle source
   ! 2: heat source
   ! 3: momentum source
