@@ -325,6 +325,7 @@
 
   psiGridType = 1
   psiAHatFilename = "psiAHat.h5"
+threshholdForInclusion = 0.0
 
   useGlobalTermMultiplier = 1
   ! 0 = no multiplier is used

@@ -304,12 +304,12 @@
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Other numerical parameters:
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
   psiGridType = 0
   ! 0 = Homogenous grid in psi with spacing as specified above
   ! 1 = inhomogenous grid in psi. Inhomogenous grid obtained by mapping from psi' to psi, where grid is homogenous in psi'. All other inputs quantities intepreted as being given in psi', dpsi/dpsi' specified in file below
   psiAHatFilename = "psiAHat.h5"
+
+  threshholdForInclusion = 0.0
 
 
   psiDerivativeScheme = 2
