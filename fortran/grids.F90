@@ -347,6 +347,15 @@ module grids
        deallocate(dgdx)
        deallocate(d2gdx2)
        
+    case (3)
+       ! Polynomial spectral collocation with point at x=0
+       pointAtX0 = .true.
+       call makeXGrid(Nx, x, xWeights, .true.)
+       xWeights = xWeights / exp(-x*x)
+       x = x * xScaleFactor
+       xWeights = xWeights * xScaleFactor
+       call makeXPolynomialDiffMatrices(x,ddx,d2dx2)
+       
     case default
        print *,"Error! Invalid setting for xDerivativeScheme"
        stop

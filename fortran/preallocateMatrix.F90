@@ -156,8 +156,8 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
      end select
   end if
 
-  select case (xDerivativeScheme)
-  case (0,2)
+  select case (thisXDerivativeScheme)
+  case (0,2,3)
      ! Spectral collocation
      predictedNNZPerRow_DKE = predictedNNZPerRow_DKE + Nx*3-1          ! xdot*d/dx terms (dense in x, tridiagonal in L, -1 since we already counted the diagonal)
      if (.not. (finalMatrix==0 .and. preconditioner_species==1) ) then ! if we are building the preconditioner and preconditioner_species=1 then no collisional coupling in the matrix

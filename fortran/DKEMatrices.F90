@@ -45,7 +45,7 @@ contains
     PetscScalar :: signOfPsiDot
     logical :: makeLocalApproximationOriginal
     logical, intent(in) :: upwinding
-    integer :: i, j, ix, itheta, ipsi, L, index
+    !integer :: i, j, ix, itheta, ipsi, L, index
     integer :: scheme
     integer :: whichMatrix, whichMatrixMin
     integer, dimension(:), allocatable :: rowIndices, colIndices
@@ -106,6 +106,11 @@ contains
        ! Put a 1 on the matrix diagonal where appropriate to enforce the radial boundary condition
        ! *******************************************************************************
        call radialBoundaryConditionDiagonal()
+
+       ! *******************************************************************************
+       ! Enforce boundary condition at x=0 if needed (if there is a point there)
+       ! *******************************************************************************
+       call xBoundaryCondition(whichMatrix)
 
        ! *******************************************************************************
        ! Add sources:
@@ -208,7 +213,7 @@ contains
     PetscScalar, dimension(:,:), allocatable :: thetaPartMatrix
     PetscScalar, dimension(:,:), allocatable :: thetaPartOfStreamingTerm
     integer, dimension(:), allocatable :: localRowIndices, localColIndices, globalRowIndices, globalColIndices
-    integer :: i, ix, itheta, ipsi, L
+    integer :: i, ix, itheta, ipsi, L, ixMin
     integer :: ispecies
     integer :: rowIndexArray(1)
     PetscScalar :: signOfPsiDot
@@ -217,6 +222,12 @@ contains
        ddthetaToUse = ddtheta
     else
        ddthetaToUse = ddtheta_preconditioner
+    end if
+
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
     end if
 
     allocate(thetaPartOfMirrorTerm(Ntheta))
@@ -236,7 +247,7 @@ contains
              thetaPartOfStreamingTerm(itheta,:) = JHat(itheta,ipsi)*sqrtTHats(ispecies,ipsi) &
                   / BHat(itheta,ipsi)*ddthetaToUse(itheta,:)
           end do
-          do ix=1,Nx
+          do ix=ixMin,Nx
              do L=0,Nxi_for_x(ix)-1
                 localRowIndices = [(getIndex(ispecies,ix,L,itheta,1), itheta=1,Ntheta)]
                 globalRowIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
@@ -361,10 +372,16 @@ contains
     PetscScalar, dimension(:,:), allocatable :: spatialPartOfStreamingTermDiagonal3
     PetscScalar, dimension(:,:), allocatable :: spatialPartOfStreamingTermOffDiagonal
     integer, dimension(:), allocatable :: rowIndices, colIndices
-    integer :: i, ix, itheta, ipsi, L
+    integer :: i, ix, itheta, ipsi, L, ixMin
     integer :: ispecies
     PetscScalar :: signOfPsiDot
     PetscScalar :: sqrtMass
+
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
+    end if
 
     if (.not. makeLocalApproximation) then
 
@@ -405,7 +422,7 @@ contains
                     * (IHat(ipsi)/(two*BHat(itheta,ipsi))*dBHatdpsi(itheta,ipsi) - dIHatdpsi(ipsi)) &
                     * ddthetaToUse(itheta,:)
             end do
-            do ix=1,Nx
+            do ix=ixMin,Nx
                thetaPartOfMirrorTerm = sqrt(masses(ispecies))*(omega*dPhiHatdpsi(ipsi)*IHat(ipsi) &
                     + delta*x2(ix)*THats(ispecies,ipsi)/charges(ispecies)*dIHatdpsi(ipsi)) &
                     * JHat(:,ipsi)*dBHatdtheta(:,ipsi) / (two*psiAHatArray(ipsi)*(BHat(:,ipsi) ** 3))
@@ -548,7 +565,7 @@ contains
     integer :: rowIndex, colIndex
     PetscScalar, dimension(:,:), allocatable :: xPartOfXDot
     PetscScalar, dimension(:), allocatable :: diagonalOfXDot
-    integer :: ix, itheta, ipsi, L, ell, ix_row, ix_col
+    integer :: ix, itheta, ipsi, L, ell, ix_row, ix_col, ixMin
     integer :: ispecies
     integer :: keepXCoupling
     PetscScalar :: xDotFactor, LFactor
@@ -560,6 +577,12 @@ contains
     end if
     ! When keepXCoupling==1, keep the full x coupling.
     ! When keepXCoupling==0, drop everything off-diagonal in x.
+
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
+    end if
 
     if (.not. makeLocalApproximation) then
 
@@ -593,9 +616,9 @@ contains
                       ! Term that is diagonal in L:
                       LFactor = two*(3*L*L+3*L-2)/((two*L+3)*(2*L-1))*xDotFactor
                       ell = L
-                      do ix_col=min_x_for_L(ell),Nx
+                      do ix_col=max(ixMin,min_x_for_L(ell)),Nx
                          colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
-                         do ix_row=min_x_for_L(L),Nx
+                         do ix_row=max(ixMin,min_x_for_L(L)),Nx
                             rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
                             call MatSetValueSparse(matrix, rowIndex, colIndex, &
                                  LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
@@ -607,9 +630,9 @@ contains
                          if (L<(Nxi-2)) then
                             ell = L+2
                             LFactor = (L+1)*(L+2)/((two*L+5)*(2*L+3))*xDotFactor
-                            do ix_col=min_x_for_L(ell),Nx
+                            do ix_col=max(ixMin,min_x_for_L(ell)),Nx
                                colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
-                               do ix_row=min_x_for_L(L),Nx
+                               do ix_row=max(ixMin,min_x_for_L(L)),Nx
                                   rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
                                   call MatSetValueSparse(matrix, rowIndex, colIndex, &
                                        LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
@@ -621,9 +644,9 @@ contains
                          if (L>1) then
                             ell = L-2
                             LFactor = L*(L-1)/((two*L-3)*(2*L-1))*xDotFactor
-                            do ix_col=min_x_for_L(ell),Nx
+                            do ix_col=max(ixMin,min_x_for_L(ell)),Nx
                                colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
-                               do ix_row=min_x_for_L(L),Nx                            
+                               do ix_row=max(ixMin,min_x_for_L(L)),Nx                            
                                   rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
                                   call MatSetValueSparse(matrix, rowIndex, colIndex, &
                                        LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
@@ -657,11 +680,17 @@ contains
     PetscScalar, dimension(:,:), allocatable :: ddpsiToUse
     PetscScalar, dimension(:,:), allocatable :: localddpsiToUse, everythingButLInPsiDot
     integer :: ipsiMinInterior, ipsiMaxInterior, ell
-    integer :: i, ix, itheta, ipsi, L
+    integer :: i, ix, itheta, ipsi, L, ixMin
     integer :: ispecies
     logical :: includeddpsiTermThisTime
     integer :: ipsiMinForThisTheta, ipsiMaxForThisTheta, NpsiToUse
     PetscScalar :: LFactor
+
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
+    end if
 
     includeddpsiTermThisTime = includeddpsiTerm
     if (makeLocalApproximation) then
@@ -732,7 +761,7 @@ contains
              !else
              !   localddpsiToUse = localddpsiRightInterior
              !end if
-             do ix = 1, Nx
+             do ix = ixMin, Nx
                 do ipsi=1,NpsiToUse
                    ! Build everythingButLInPsiDot as the transpose of what it would normally be
                    ! because of the difference between Fortran and Petsc convention.
@@ -806,7 +835,7 @@ contains
     PetscScalar :: temp, temp1, temp2, speciesFactor, speciesFactor2
     PetscScalar :: signOfPsiDot
     PetscScalar :: T32, sqrt_m
-    integer :: i, j, ix, ix_row, ix_col, itheta, ipsi, L
+    integer :: i, j, ix, ix_row, ix_col, itheta, ipsi, L, ixMin, ixMinCol
     integer :: rowIndex, colIndex
     integer :: iSpeciesA, iSpeciesB
     integer :: scheme
@@ -856,6 +885,11 @@ contains
       allocate(tempMatrix2(NxPotentials, NxPotentials))
     endif
 
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
+    end if
 
     if (whichMatrix==0 .and. preconditioner_x==5) then
        ! For other preconditioner_x values, the simplified x derivative
@@ -988,8 +1022,8 @@ contains
                      expxb2, fToFInterpolationMatrix)
              else
                 fToFInterpolationMatrix = zero
-                do i=1,Nx
-                   fToFInterpolationMatrix(i, i) = one
+                do ix=1,Nx
+                   fToFInterpolationMatrix(ix, ix) = one
                 end do
              end if
 
@@ -1038,6 +1072,12 @@ contains
        ! *****************************************************************
 
        do L=0, Nxi-1
+          if (L>0 .and. pointAtX0) then
+             ixMinCol = 2
+          else
+             ixMinCol = 1
+          end if
+
           !print *,"Adding L=",L
           do iSpeciesA = 1,numSpecies
              sqrt_m = sqrt(masses(iSpeciesA))
@@ -1047,8 +1087,8 @@ contains
                    ! Build M11
                    M11 = -nu_r * CECD(iSpeciesA, iSpeciesB,:,:)
                    if (iSpeciesA == iSpeciesB) then
-                      do i=1,Nx
-                         M11(i,i) = M11(i,i) - nu_r * (-oneHalf*nuDHat(iSpeciesA,i)*L*(L+1))
+                      do ix=1,Nx
+                         M11(ix,ix) = M11(ix,ix) - nu_r * (-oneHalf*nuDHat(iSpeciesA,ix)*L*(L+1))
                       end do
                    end if
 
@@ -1056,12 +1096,12 @@ contains
                    !   if (.false.) then
                       ! Add Rosenbluth potential terms.
 
-                      if (xDerivativeScheme==2) then
+                      if (xDerivativeScheme==2 .or. xDerivativeScheme==3) then
                          ! New scheme for the Rosenbluth potential terms.
-                         do i=1,Nx
+                         do ix=1,Nx
                             ! The DKE normalization in perfect has an extra sqrt(m) compared to the normalization in SFINCS. Add the factor here:
-                            M11(i, :) = M11(i,:) &
-                                 - nu_r * sqrt_m * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,i,:,ipsi-ipsiMin+1) 
+                            M11(ix, :) = M11(ix,:) &
+                                 - nu_r * sqrt_m * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,ix,:,ipsi-ipsiMin+1) 
                          end do
 
                          KWithoutThetaPart = M11
@@ -1083,8 +1123,8 @@ contains
                               * THats(iSpeciesB,ipsi)*masses(iSpeciesA)/(THats(iSpeciesA,ipsi)*masses(iSpeciesB))
                          
                          tempMatrix = matmul(potentialsToFInterpolationMatrix, d2dx2Potentials)
-                         do i=1,Nx
-                            M13(i, :) = speciesFactor*expx2(i)*x2(i)*tempMatrix(i,:)
+                         do ix=1,Nx
+                            M13(ix, :) = speciesFactor*expx2(ix)*x2(ix)*tempMatrix(ix,:)
                          end do
                          
                          ! Build M12:
@@ -1098,8 +1138,8 @@ contains
                             tempMatrix2(i,i) = tempMatrix2(i,i) + one
                          end do
                          tempMatrix = matmul(potentialsToFInterpolationMatrix, tempMatrix2)
-                         do i=1,Nx
-                            M12(i,:) = -speciesFactor*expx2(i)*tempMatrix(i,:)
+                         do ix=1,Nx
+                            M12(ix,:) = -speciesFactor*expx2(ix)*tempMatrix(ix,:)
                          end do
                          
                          ! Possibly add Dirichlet boundary condition for potentials at x=0:
@@ -1175,9 +1215,9 @@ contains
                          ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                          ! so impose the kinetic equation here.
 
-                         do ix_row=min_x_for_L(L),Nx
+                         do ix_row=max(ixMin,min_x_for_L(L)),Nx
                            rowIndex = getIndex(iSpeciesA,ix_row,L,itheta,ipsi)
-                           do ix_col=min_x_for_L(L),Nx
+                           do ix_col=max(ixMinCol,min_x_for_L(L)),Nx
                              colIndex = getIndex(iSpeciesB,ix_col,L,itheta,ipsi)
                              call MatSetValueSparse(matrix, rowIndex, colIndex, &
                                   KWithoutThetaPart(ix_row,ix_col), ADD_VALUES, ierr)
@@ -1314,6 +1354,53 @@ contains
     end if
 
   end subroutine radialBoundaryConditionDiagonal
+
+  subroutine xBoundaryCondition(whichMatrix)
+
+    ! *******************************************************************************
+    ! Enforce boundary condition at x=0 if needed (if there is a point there)
+    ! *******************************************************************************
+
+    PetscErrorCode :: ierr
+    integer :: ix, L, itheta, ipsi, index, ix_row, ix_col, rowIndex, colIndex, ispecies
+    integer, intent(in) :: whichMatrix
+
+    if (pointAtX0) then
+       ! For L > 0 modes, impose f=0 at x=0:
+       ix = 1
+       do ipsi = ipsiMin,ipsiMax
+          do L = 1,(Nxi_for_x(ix)-1)
+             do itheta = 1,Ntheta
+                do ispecies = 1,numSpecies
+                   index = getIndex(ispecies,ix,L,itheta,ipsi)
+                   call MatSetValue(matrix, index, index, one, ADD_VALUES, ierr)
+                end do
+             end do
+          end do
+       end do
+
+       ! For L=0 mode, impose regularity (df/dx=0) at x=0:
+       L=0
+       if (whichMatrix==0 .and. L >= preconditioner_x_min_L) then
+          ddxToUse = ddxPreconditioner
+       else
+          ddxToUse = ddx
+       end if
+       ix_row = 1
+       do ipsi = ipsiMin,ipsiMax
+          do itheta = 1,Ntheta
+             do ispecies = 1,numSpecies
+                rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
+                do ix_col = 1,Nx
+                   colIndex = getIndex(ispecies,ix_col,L,itheta,ipsi)
+                   call MatSetValueSparse(matrix, rowIndex, colIndex, ddxToUse(ix_row,ix_col), ADD_VALUES, ierr)
+                end do
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine xBoundaryCondition
 
   subroutine sources()
 
