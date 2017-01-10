@@ -54,6 +54,7 @@ contains
     PetscScalar, dimension(1) :: TAtPsiMid
     character(len=100) :: HDF5Groupname
     PetscScalar, dimension(:), allocatable :: temp_RHS
+    PetscScalar, dimension(:,:), allocatable :: temp_constantSourceProfile
     
     allocate(PhiHat(Npsi))
     allocate(dPhiHatdpsi(Npsi))
@@ -118,6 +119,8 @@ contains
 
       allocate(sourceConstraintsRHS(NextraSources,NEnforcedPsi))
       
+      allocate(constantSourceProfile(NconstantSources,Nspecies,Npsi))
+      
       do i = 1,NextraSources 
          select case (RHSFromFile(i))
          case(0)
@@ -134,12 +137,27 @@ contains
             call readVariable(temp_RHS, "chargeSource")
             sourceConstraintsRHS(i,:) = temp_RHS
             call closeInputFile()
+            deallocate(temp_RHS)
       
          case default
             print *,"Error! Invalid setting for RHSFromFile. Suppoted values: 0,1." 
             stop
             
          end select
+      end do
+
+      do i = 1,NconstantSources 
+         ! read charge source from file
+         allocate(temp_constantSourceProfile(Nspecies,Npsi))
+         ! Create groupname to be read
+         write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+         ! Open input file
+         call openInputFile(constantSourcesFilenames(i),HDF5Groupname)
+         ! Read constant source
+         call readVariable(temp_constantSourceProfile, "constantSource")
+         constantSourceProfile(i,:,:) = temp_constantSourceProfile
+         call closeInputFile()
+         deallocate(temp_constantSourceProfile)
       end do
       
     if (profilesScheme .eq. 7) then

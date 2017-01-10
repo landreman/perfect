@@ -274,5 +274,82 @@ contains
 
   end subroutine initializeExtraSourcesSpeciesPart
 
+  !
+  ! INITIALIZE CONSTANT SOURCES
+  !
+
+  subroutine initializeConstantSources(isources,sourceXPart,L,sourceThetaPart)
+
+    ! Here we must calculate the following variables:
+    ! sourceXPart(Nx)
+    ! sourceThetaPart(Ntheta)
+    ! L
+
+    integer, intent(in) :: isources
+    PetscScalar, dimension (:), intent(out) :: sourceXPart, sourceThetaPart
+    integer, intent(out) :: L
+
+    call initializeConstantSourcesVPart(isources,sourceXPart,L)
+    
+    call initializeConstantSourcesThetaPart(isources,sourceThetaPart)
+    
+  end subroutine initializeConstantSources
+
+  subroutine initializeConstantSourcesVPart(isources,sourceXPart,L)
+    integer, intent(in) :: isources
+    PetscScalar, intent(out) :: sourceXPart(:)
+    integer, intent(out) :: L
+    select case(constantSourcesVStructure(isources))
+    case(1)
+       ! iconstantparticleSource = isources
+       L = 0
+       sourceXPart = (x2-5/two)*exp(-x2)
+       
+    case(2)
+       ! iconstantheatSource = isources
+       L = 0
+       sourceXPart = (x2-3/two)*exp(-x2)
+
+    case(3)
+       ! iconstantmomentumSource = isources
+       L = 1
+       sourceXPart = x*(x2-7/two)*exp(-x2)
+       
+    case default
+       print *,"Error! Invalid sourcesVStructure. 1,2,3 implemented"
+       stop
+    end select
+
+    
+  end subroutine initializeConstantSourcesVPart
+  
+  subroutine initializeConstantSourcesThetaPart(isources,sourceThetaPart)
+    integer, intent(in) :: isources
+    PetscScalar, intent(out) :: sourceThetaPart(:)
+    integer i
+
+    select case(constantSourcesThetaStructure(isources))
+    case (0)
+       do i = 1,Ntheta
+          sourceThetaPart(i) = one
+       end do
+    case (1)
+       do i=1,Ntheta
+          sourceThetaPart(i) = one + sourcePoloidalVariationStrength * cos(theta(i) + sourcePoloidalVariationPhase)           
+       end do
+    case default
+       print *,"Error! Invalid sourcesThetaStructure. 0,1 implemented"
+       stop
+    end select
+
+    ! FSA of theta structure
+    !do i=1,Npsi
+    !   sourceThetaPartFSA(i) = dot_product(thetaWeights, sourceThetaPart/JHat(:,i)) / VPrimeHat(i)
+    ! end do
+
+
+  end subroutine initializeConstantSourcesThetaPart
+
+
   
 end module

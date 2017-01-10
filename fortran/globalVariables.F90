@@ -125,14 +125,17 @@ module globalVariables
   integer :: Nsources = 2
   integer :: NextraSources = 1
   integer :: NmiscSources = 0
+  integer :: NconstantSources = 0
 
   integer :: iparticleSource, imomentumSource, iheatSource
 
   integer, dimension(maxNsources) :: gConstraints, sourcesVStructure, sourcesThetaStructure,&
        sourceConstraints, RHSFromFile, extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
-       miscSources
+       miscSources, &
+       constantSourcesVStructure, constantSourcesThetaStructure
   PetscScalar, dimension(maxNsources) :: miscSourcesStrength
   character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
+  character (len=100), dimension(maxNsources) :: constantSourcesFilenames
 
   PetscScalar :: sourcePoloidalVariationStrength
   PetscScalar :: sourcePoloidalVariationPhase
@@ -144,7 +147,10 @@ module globalVariables
   PetscScalar, dimension(:,:), allocatable :: sourceConstraintsRHS
   !PetscScalar, dimension(:,:), allocatable :: extraSourceSpeciesPart
   PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPart
-  PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPartFSA 
+  PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPartFSA
+
+  PetscScalar, dimension(:,:,:), allocatable :: constantSourceProfile
+
 
   ! this is used to write the out the source
   PetscScalar, dimension(:,:,:), allocatable :: sourceProfile

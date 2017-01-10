@@ -185,7 +185,10 @@
   ! extraSourcesThetaStructure =
   ! 0: Sources are constant in theta
   ! 1: Sources vary as (1 + A * cos(theta + phase))
-  ! extraSourcesSpeciesStructure = 
+  ! extraSourcesSpeciesStructure =
+  ! 0: mHat
+  ! 1: first species only
+  ! 2: mHat * nHat(1)
   
   ! additional sources not arising from constraints
   ! vectors of any number of entries, including no entries (empty line)
@@ -194,6 +197,14 @@
   ! 1: Eq (55) of Landreman 2012
   ! miscSourcesStrength =
   ! any real numbers, specifies constant to multiply above expressions with
+
+  ! constant sources imposed externally
+  ! useful for imposing smoothened sources from previous solution
+  ! constantSourcesVStructure = 3
+  ! 1: particle source
+  ! 2: heat source
+  ! 3: momentum source
+  ! constantSourcesFilenames = "chargeSource.h5"
 
 
 !  makeLocalApproximation = .true.

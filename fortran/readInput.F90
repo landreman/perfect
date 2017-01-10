@@ -35,7 +35,8 @@ contains
          gConstraints, sourcesVStructure, sourcesThetaStructure, &
          sourceConstraints, RHSFromFile, sourceConstraintsFilenames, &
          extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
-         miscSources, miscSourcesStrength
+         miscSources, miscSourcesStrength, &
+         constantSourcesVStructure, constantSourcesThetaStructure, constantSourcesFilenames
 
     namelist / resolutionParameters / forceOddNtheta, &
          NpsiPerDiameter, NpsiMaxFactor, NpsiMinFactor, NpsiNumRuns, &
@@ -72,9 +73,7 @@ contains
     sourcesThetaStructure = sourcesNotInitialized
     sourceConstraints = sourcesNotInitialized
     RHSFromFile = sourcesNotInitialized
-    do i=1,maxNsources
-       sourceConstraintsFilenames = filenameNotInitialized
-    end do
+    
     ! used to enforce constraints on particular source type
     iparticleSource = sourcesNotInitialized
     imomentumSource = sourcesNotInitialized
@@ -85,6 +84,13 @@ contains
     extraSourcesSpeciesStructure = sourcesNotInitialized
     miscSources = sourcesNotInitialized
     miscSourcesStrength = sourcesNotInitialized
+    constantSourcesVStructure = sourcesNotInitialized
+    constantSourcesThetaStructure = sourcesNotInitialized
+
+    do i=1,maxNsources
+       sourceConstraintsFilenames = filenameNotInitialized
+       constantSourcesFilenames = filenameNotInitialized
+    end do
 
     fileUnit=11
     open(unit=fileUnit, file=filename,    action="read", status="old", iostat=didFileAccessWork)
@@ -374,6 +380,40 @@ contains
        stop
     end if
 
+    NconstantSources = maxNsources
+    do i=1,maxNsources
+       if (constantSourcesVStructure(i) == sourcesNotInitialized) then
+          NconstantSources = i-1
+          exit
+       end if
+    end do
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (constantSourcesThetaStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NconstantSources) then
+       print *,"Error: number of constantSourcesThetaStructure differs from the number of constant sources."
+       stop
+    end if
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (constantSourcesFilenames(i) == filenameNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NconstantSources) then
+       print *,"Error: number of constantSourcesFilenames differs from the number of constant sources."
+       stop
+    end if
+
     ! Other input validation
 
     if (outputScheme < 0 .or. outputScheme > 2) then
@@ -421,6 +461,10 @@ contains
        print *,"# misc sources: ",NmiscSources
        print *, miscSources(1:NmiscSources)
        print *, miscSourcesStrength(1:NmiscSources)
+
+       print *,"# constant sources: ",NconstantSources
+       print *, constantSourcesVStructure(1:NconstantSources)
+       print *, constantSourcesFilenames(1:NconstantSources)
     end if
   end subroutine readNamelistInput
 

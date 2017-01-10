@@ -280,6 +280,33 @@ contains
             call writeVariable(genericSpeciesDependence,"unknownSourceSpeciesDependence",runNum)
          end select
       end do
+
+      do i = 1, NconstantSources
+      	 if(masterProcInSubComm) then
+            genericSourceProfile = constantSourceProfile(i,:,:)
+         end if
+         select case(constantSourcesVStructure(i))
+         case(1)
+            ! particle source
+            !call writeVariable(extraSourceProfile,"particleExtraSourceProfile",runNum)
+	    call writeVariable(genericSourceProfile,"constantSourceParticleSourceProfile",runNum)
+         case(2)
+            ! heat source
+            !call writeVariable(extraSourceProfile,"heatExtraSourceProfile",runNum)
+            call writeVariable(genericSourceProfile,"constantSourceHeatSourceProfile",runNum)
+         case(3)
+            ! momentum source
+            !call writeVariable(extraSourceProfile,"momentumExtraSourceProfile",runNum)
+            call writeVariable(genericSourceProfile,"constantSourceMomentumSourceProfile",runNum)
+         case default
+            ! as of now unspecified source
+            if (masterProcInSubComm) then
+               print *,"Writing out source with unknown constantSourcesVStructure. This should not happen!"
+            end if
+            call writeVariable(genericSourceProfile,"unknownExtraSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"unknownSourceSpeciesDependence",runNum)
+         end select
+      end do
       
       call writeVariable(VPrimeHat,"VPrimeHat",runNum)
       call writeVariable(FSABHat2,"FSABHat2",runNum)

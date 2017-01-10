@@ -2,6 +2,7 @@ module DKERhs
 
   use globalVariables
   use grids
+  use sourcesConstraints
   !use petscksp
 
 #include "PETScVersions.F90"
@@ -31,8 +32,9 @@ contains
     integer :: ispecies
     PetscScalar :: LFactor
     PetscScalar :: stuffToAdd
-    PetscScalar, dimension(:), allocatable :: this_sourceConstraintsRHS
-    allocate(this_sourceConstraintsRHS(NEnforcedPsi))
+    PetscScalar, dimension(:), allocatable :: this_sourceConstraintsRHS, &
+         constantSourceXPart, constantSourceThetaPart
+
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
     CHKERRQ(ierr)
     call VecSet(rhs, zero,ierr)
@@ -70,33 +72,33 @@ contains
                 L = 0
                 LFactor = 4/three
                 index = getIndex(ispecies,ix,L,itheta,ipsi)
-                !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                call VecSetValue(rhs, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
+                !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
+                call VecSetValue(rhs, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 index = getIndex(ispecies,ix,L,itheta,1)
                 if (ipsi==1) then
                    ! This is the left boundary
-                   !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                   call VecSetValue(rhsLeft, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
+                   !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
+                   call VecSetValue(rhsLeft, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 elseif (ipsi==Npsi) then
                    ! This is the right boundary
-                   !call VecSetValues(rhsRight, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                   call VecSetValue(rhsRight, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
+                   !call VecSetValues(rhsRight, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
+                   call VecSetValue(rhsRight, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 end if
 
                 L = 2
                 LFactor = 2/three
                 index = getIndex(ispecies,ix,L,itheta,ipsi)
-                !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                call VecSetValue(rhs, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
+                !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
+                call VecSetValue(rhs, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 index = getIndex(ispecies,ix,L,itheta,1)
                 if (ipsi==1) then
                    ! This is the left boundary
-                   !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                   call VecSetValue(rhsLeft, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
+                   !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
+                   call VecSetValue(rhsLeft, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 elseif (ipsi==Npsi) then
                    ! This is the right boundary
-                   !call VecSetValues(rhsRight, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
-                   call VecSetValue(rhsRight, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
+                   !call VecSetValues(rhsRight, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
+                   call VecSetValue(rhsRight, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 end if
                 CHKERRQ(ierr)
 
@@ -105,6 +107,10 @@ contains
        end do
     end do
 
+    if (NextraSources > 0) then
+       allocate(this_sourceConstraintsRHS(NEnforcedPsi))
+    end if
+    
     do iextraSources = 1,NextraSources
        ! Add the RHS of the relation between particle sources
        ! We do not care about boundaries except possibly through the enforced ipsi parameters.
@@ -119,9 +125,44 @@ contains
        end select
        do ipsi =lowestEnforcedIpsi, highestEnforcedIpsi
           index = getIndexExtraSources(iextraSources,ipsi)
-          call VecSetValue(rhs, index, this_sourceConstraintsRHS(ipsi), INSERT_VALUES, ierr) 
+          call VecSetValue(rhs, index, this_sourceConstraintsRHS(ipsi), ADD_VALUES, ierr) 
        end do
     end do
+
+    if (NconstantSources > 0) then
+       allocate(constantSourceXPart(Nx))
+       allocate(constantSourceThetaPart(Ntheta))
+    end if
+    
+    do iextraSources = 1,NconstantSources
+       ! Add constant sources to the RHS
+       ! We do not care about boundaries except possibly through the enforced ipsi parameters. Boundaries will be overwritten later to enforce boundary conditions.
+       call initializeConstantSources(iextraSources,constantSourceXPart,L,constantSourceThetaPart)
+           
+       do ispecies = 1, Nspecies
+          do ipsi = ipsiMin, ipsiMax
+             do itheta = 1, Ntheta
+                do ix = 1, Nx  
+                   index = getIndex(ispecies,ix,L,itheta,ipsi)
+                   !minus sign since we have moved the sources to the RHS
+                   call VecSetValue(rhs, index, -constantSourceThetaPart(itheta) * constantSourceXPart(ix) &
+                        * constantSourceProfile(iextraSources,ispecies,ipsi), ADD_VALUES, ierr)
+                end do
+             end do
+          end do
+       end do
+    end do
+
+    
+
+    ! Assemble the rhs vector here, since we will insert values later
+    ! (ADD_VALUE and INSERT_VALUE cannot be used without assembling first)
+    call VecAssemblyBegin(rhs, ierr)
+    CHKERRQ(ierr)
+    call VecAssemblyEnd(rhs, ierr)
+    CHKERRQ(ierr)
+    
+    
   end subroutine DKECreateRhsVector
 
 end module DKERhs
