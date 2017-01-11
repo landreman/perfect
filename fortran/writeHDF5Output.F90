@@ -276,10 +276,42 @@ contains
             if (masterProcInSubComm) then
                print *,"Writing out source with unknown extraSourcesVStructure. This should not happen!"
             end if
-            call writeVariable(genericSourceProfile,"unknownExtraSourceProfile",runNum)
-            call writeVariable(genericSpeciesDependence,"unknownSourceSpeciesDependence",runNum)
+            call writeVariable(genericSourceProfile,"noChargeUnknownSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"noChargeUnknownSourceSpeciesDependence",runNum)
          end select
       end do
+
+      do i = 1, NspeciesIndepSources
+      	 if(masterProcInSubComm) then
+            genericSourceProfile = speciesIndepSourceProfile(i,:,:)
+            genericSpeciesDependence = speciesIndepSourceSpeciesPart(i,:)   
+         end if
+         select case(speciesIndepSourcesVStructure(i))
+         case(1)
+            ! particle source
+            !call writeVariable(extraSourceProfile,"particleExtraSourceProfile",runNum)
+	    call writeVariable(genericSourceProfile,"speciesIndepSourceParticleSourceProfile",runNum)
+	    call writeVariable(genericSpeciesDependence,"speciesIndepParticleSourceSpeciesDependence",runNum)
+         case(2)
+            ! heat source
+            !call writeVariable(extraSourceProfile,"heatExtraSourceProfile",runNum)
+            call writeVariable(genericSourceProfile,"speciesIndepSourceHeatSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"speciesIndepHeatSourceSpeciesDependence",runNum)
+         case(3)
+            ! momentum source
+            !call writeVariable(extraSourceProfile,"momentumExtraSourceProfile",runNum)
+            call writeVariable(genericSourceProfile,"speciesIndepSourceMomentumSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"speciesIndepMomentumSourceSpeciesDependence",runNum)
+         case default
+            ! as of now unspecified source
+            if (masterProcInSubComm) then
+               print *,"Writing out source with unknown extraSourcesVStructure. This should not happen!"
+            end if
+            call writeVariable(genericSourceProfile,"speciesIndepUnknownSourceProfile",runNum)
+            call writeVariable(genericSpeciesDependence,"speciesIndepUnknownSourceSpeciesDependence",runNum)
+         end select
+      end do
+
 
       do i = 1, NconstantSources
       	 if(masterProcInSubComm) then

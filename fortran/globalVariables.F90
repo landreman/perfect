@@ -123,16 +123,19 @@ module globalVariables
   character(len=1), parameter :: filenameNotInitialized= ' '
 
   integer :: Nsources = 2
-  integer :: NextraSources = 1
+  integer :: NextraSources = 0
   integer :: NmiscSources = 0
   integer :: NconstantSources = 0
+  integer :: NspeciesIndepSources = 0
 
   integer :: iparticleSource, imomentumSource, iheatSource
 
   integer, dimension(maxNsources) :: gConstraints, sourcesVStructure, sourcesThetaStructure,&
        sourceConstraints, RHSFromFile, extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
        miscSources, &
-       constantSourcesVStructure, constantSourcesThetaStructure
+       constantSourcesVStructure, constantSourcesThetaStructure, &
+       speciesIndepGConstraints, speciesIndepSourcesVStructure, speciesIndepSourcesThetaStructure, &
+       speciesIndepSourcesSpeciesStructure
   PetscScalar, dimension(maxNsources) :: miscSourcesStrength
   character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
   character (len=100), dimension(maxNsources) :: constantSourcesFilenames
@@ -143,9 +146,12 @@ module globalVariables
   PetscScalar, dimension(:,:), allocatable :: sourceThetaPart
   PetscScalar, dimension(:,:), allocatable :: sourceThetaPartFSA
 
+  PetscScalar, dimension(:,:), allocatable :: speciesIndepSourceSpeciesPart
+  PetscScalar, dimension(:,:), allocatable :: speciesIndepSourceThetaPart
+  PetscScalar, dimension(:,:), allocatable :: speciesIndepSourceThetaPartFSA
+
   PetscScalar, dimension(:,:), allocatable :: extraSourceSpeciesPart
   PetscScalar, dimension(:,:), allocatable :: sourceConstraintsRHS
-  !PetscScalar, dimension(:,:), allocatable :: extraSourceSpeciesPart
   PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPart
   PetscScalar, dimension(:,:), allocatable :: extraSourceThetaPartFSA
 
@@ -156,6 +162,8 @@ module globalVariables
   PetscScalar, dimension(:,:,:), allocatable :: sourceProfile
   ! this is used to write the out the extra source
   PetscScalar, dimension(:,:,:), allocatable :: extraSourceProfile
+  ! this is used to write the out the speciesIndep source
+  PetscScalar, dimension(:,:,:), allocatable :: speciesIndepSourceProfile
 
   ! ********************************************************
   ! ********************************************************

@@ -123,10 +123,10 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   if (finalMatrix==0 .and. preconditioner_xi==1) then
     ! Assumes each source only gives a non-zero for one L? 
     predictedNNZPerRow_DKE = 3 & ! d/dxi term is tridiagonal for the preconditioner
-                            + Nsources + NextraSources  
+                            + Nsources + NextraSources + 2*NspeciesIndepSources 
   else
     predictedNNZPerRow_DKE = 5 & ! d/dxi term is pentadiagonal
-                            + Nsources + NextraSources  
+                            + Nsources + NextraSources + 2*NspeciesIndepSources 
   end if
 
   select case (thisThetaDerivativeScheme)
@@ -209,6 +209,15 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
            predictedNNZsForEachRow(index) = Nspecies*Ntheta*Nx + 1 
         end do
      end do
+
+     do iextraSources = 1, NspeciesIndepSources
+        do ipsi = 1, Npsi
+           index = getIndexSpeciesIndepSources(iextraSources,ipsi)
+           ! Would be more accurate to use non-zero species structure element
+           ! factor "2" is from NL
+           predictedNNZsForEachRow(index) = 2*Nspecies*Ntheta*Nx + 1
+        end do
+     end do
   end if
 
   predictedNNZsForEachRowDiagonal = predictedNNZsForEachRow
@@ -275,7 +284,7 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   
 
   ! If any mallocs are required during matrix assembly, do not generate an error:
-  !call MatSetOption(matrix, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE, ierr)
+  call MatSetOption(matrix, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE, ierr)
   
   !if (masterProcInSubComm) then
   !   print *,"Done with preallocation for whichMatrix = ",whichMatrix

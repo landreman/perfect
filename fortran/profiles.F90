@@ -116,10 +116,15 @@ contains
       allocate(extraSourceThetaPart(NextraSources,Ntheta))
       allocate(extraSourceThetaPartFSA(NextraSources,NEnforcedPsi))
       allocate(extraSourceSpeciesPart(NextraSources,Nspecies))
+      
 
       allocate(sourceConstraintsRHS(NextraSources,NEnforcedPsi))
       
       allocate(constantSourceProfile(NconstantSources,Nspecies,Npsi))
+
+      allocate(speciesIndepSourceThetaPart(NspeciesIndepSources,Ntheta))
+      allocate(speciesIndepSourceThetaPartFSA(NspeciesIndepSources,NEnforcedPsi))
+      allocate(speciesIndepSourceSpeciesPart(NspeciesIndepSources,Nspecies))
       
       do i = 1,NextraSources 
          select case (RHSFromFile(i))

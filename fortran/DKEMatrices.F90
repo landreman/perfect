@@ -1315,7 +1315,7 @@ contains
   
     PetscScalar :: signOfPsiDot, xPartOfSource
     integer :: i, ix, itheta, ipsi, L
-    integer :: ispecies, isources, iextraSources
+    integer :: ispecies, isources, iextraSources, ispeciesIndepSources
     integer :: rowIndex, colIndex
     integer :: this_ipsiMin,this_ipsiMax
 
@@ -1364,6 +1364,34 @@ contains
        end do
     end do
 
+    do ispeciesIndepSources = 1,NspeciesIndepSources
+       call initializeSpeciesIndepSources(ispeciesIndepSources,sourceXPart,L,&
+            speciesIndepSourceThetaPart(ispeciesIndepSources,:),speciesIndepSourceThetaPartFSA(ispeciesIndepSources,:),&
+            speciesIndepSourceSpeciesPart(ispeciesIndepSources,:))
+       do ix=1,Nx         
+          do ipsi=this_ipsiMin,this_ipsiMax
+             do ispecies = 1,Nspecies
+                do itheta=1,Ntheta
+                   signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
+                        / (psiAHat*charges(ispecies))
+                   if ((ipsi > 1 .and. ipsi < Npsi) .or. (leftBoundaryScheme == 3)&
+                        .or. (ipsi == 1 .and. (signOfPsiDot < -thresh .or. leftBoundaryScheme == 2)) &
+                        .or. (ipsi == Npsi .and. (signOfPsiDot > thresh .or. rightBoundaryScheme == 2))) then 
+                      ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
+                      ! so impose the kinetic equation here.
+                      rowIndex = getIndex(ispecies,ix,L,itheta,ipsi)
+                      colIndex = getIndexSpeciesIndepSources(ispeciesIndepSources,ipsi)
+                      call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                           speciesIndepSourceSpeciesPart(ispeciesIndepSources,ispecies) &
+                           * speciesIndepSourceThetaPart(ispeciesIndepSources,itheta) &
+                           * sourceXPart(ix), ADD_VALUES, ierr)
+                   end if
+                end do
+             end do
+          end do
+       end do
+    end do
+
     do iextraSources = 1,NextraSources
        call initializeExtraSources(iextraSources,sourceXPart,L,&
             extraSourceThetaPart(iextraSources,:),extraSourceThetaPartFSA(iextraSources,:),extraSourceSpeciesPart(iextraSources,:))
@@ -1404,11 +1432,13 @@ contains
     PetscErrorCode :: ierr
     PetscScalar, dimension(:), allocatable :: constraintXAndThetaPart
     PetscScalar, dimension(:), allocatable :: constraintXPart
-    PetscScalar, dimension(:,:), allocatable :: constraintPsiAndSpeciesPart
+    PetscScalar, dimension(:,:), allocatable :: constraintPsiAndSpeciesPart, constraintXandLPart
+    PetscScalar, dimension(:,:), allocatable :: constraintPsiAndThetaPart
     
     integer, dimension(:), allocatable :: rowIndices, colIndices
-    integer :: ix, itheta, ipsi, L
-    integer :: ispecies, isources,iextraSources
+    integer :: ix, itheta, ipsi, L, iL
+    integer, dimension(:), allocatable :: Larray
+    integer :: ispecies, isources,iextraSources, ispeciesIndepSources
     integer :: rowIndexArray(1)
     integer :: rowIndex, colIndex
 
@@ -1418,6 +1448,7 @@ contains
        allocate(colIndices(Ntheta))
        allocate(constraintXAndThetaPart(Ntheta))
        allocate(constraintXPart(Nx))
+       allocate(constraintPsiAndThetaPart(Ntheta,Npsi))
 
        do isources = 1,Nsources
           call initializeDeltaFConstraints(isources,constraintXPart,L)
@@ -1434,6 +1465,32 @@ contains
                 end do
              end do
           end do
+       end do
+
+       do ispeciesIndepSources = 1,NspeciesIndepSources
+          ! allocate(constraintPsiAndSpeciesPart(Nspecies,Npsi))
+          ! allocate(constraintXandLPart(NL,Nx))
+          ! allocate(constraintPsiAndThetaPart(Ntheta,Npsi))
+          ! allocate(L(NL))
+          call initializeSpeciesIndepDeltaFConstraints(ispeciesIndepSources,constraintXandLPart,Larray,&
+               constraintPsiAndSpeciesPart,constraintPsiAndThetaPart)
+          do ipsi = 1, Npsi
+             rowIndex = getIndexSpeciesIndepSources(ispeciesIndepSources,ipsi)
+             do ix = 1, Nx
+                do ispecies = 1,Nspecies
+                   do iL = lbound(Larray,1), ubound(Larray,1)
+                      do itheta = 1,Ntheta
+                         colIndex = getIndex(ispecies,ix,Larray(iL),itheta,ipsi)
+                         !print *,colIndex
+                         call MatSetValueSparse(matrix, rowIndex, colIndex, &
+                              constraintPsiAndSpeciesPart(ispecies,ipsi)*constraintXandLPart(iL,ix) &
+                              * constraintPsiAndThetaPart(itheta,ipsi),ADD_VALUES, ierr)
+                         CHKERRQ(ierr)
+                      end do
+                   end do
+                end do
+             end do
+          end do    
        end do
 
        do iextraSources = 1,NextraSources

@@ -44,7 +44,7 @@ contains
     PetscScalar, dimension(:), allocatable :: solnAtL
     integer, dimension(:), allocatable :: indices
     integer :: ix, itheta, ipsi, L, index
-    integer :: ispecies, isources, iextraSources
+    integer :: ispecies, isources, iextraSources, ispeciesIndepSources
     integer :: ixi
 
     PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,signBP
@@ -125,6 +125,7 @@ contains
        allocate(tempPTflow(Npsi))
        
        allocate(extraSourceProfile(NextraSources,Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
+       allocate(speciesIndepSourceProfile(NspeciesIndepSources,Nspecies,Npsi))
        
        densityIntegralWeights = x*x
        flowIntegralWeights = x*x*x
@@ -163,6 +164,14 @@ contains
              do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
                 extraSourceProfile(iextraSources,ispecies,ipsi - lowestEnforcedIpsi + 1) = &
                      extraSourceSpeciesPart(iextraSources,ispecies)*solnArray(getIndexExtraSources(iextraSources,ipsi) + 1)
+             end do
+          end do
+
+          do ispeciesIndepSources = 1,NspeciesIndepSources
+             do ipsi=1,Npsi
+                speciesIndepSourceProfile(ispeciesIndepSources,ispecies,ipsi - lowestEnforcedIpsi + 1) = &
+                     speciesIndepSourceSpeciesPart(ispeciesIndepSources,ispecies) &
+                     * solnArray(getIndexSpeciesIndepSources(ispeciesIndepSources,ipsi) + 1)
              end do
           end do
           

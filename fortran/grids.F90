@@ -482,6 +482,7 @@ module grids
     localMatrixSize = localDKEMatrixSize * Nspecies
     matrixSize = Npsi * localMatrixSize + NEnforcedPsi * Nsources * Nspecies   
     matrixSize = matrixSize + NextraSources*NEnforcedPsi
+    matrixSize = matrixSize + NspeciesIndepSources*Npsi
     if (masterProcInSubComm) then
        print *,"[",myCommunicatorIndex,"] The matrix is ",matrixSize,"x",matrixSize," elements."
     end if
