@@ -155,7 +155,7 @@
   ! sourcePoloidalVariationStrength = 1.0
   ! sourcePoloidalVariationPhase = 0.0
 
-! options for g constraints and corresponding source 
+  ! options for g constraints and corresponding source 
   ! vectors of any number of entries, including no entries (empty line)
   gConstraints = 1 2 
   ! 1: <delta n> = 0
@@ -168,8 +168,29 @@
   ! 0: Sources are constant in theta
   ! 1: Sources vary as (1 + A * cos(theta + phase))
 
-  ! constraints on sources themselves and options for resulting extra sources
-  ! vectors of any number of entrie2s, including no entries (empty line)
+  ! species independent constraints on g
+  ! and options for resulting extra sources.
+  ! vectors of any number of entries, including no entries (empty line)
+  ! speciesIndepGConstraints = 1
+  ! 1: j_r = 0
+  ! speciesIndepSourcesVStructure = 3
+  ! 1: particle source
+  ! 2: heat source
+  ! 3: momentum source
+  ! speciesIndepSourcesThetaStructure = 0
+  ! 0: Sources are constant in theta
+  ! 1: Sources vary as (1 + A * cos(theta + phase))
+  ! speciesIndepSourcesSpeciesStructure = 2
+  ! 0: mHat
+  ! 1: first species only
+  ! 2: mHat * nHat(1)
+  ! 3: mHat**(3./2.) * nHat(1)/Z
+  ! 4: mHat * nHat(1)/Z
+  
+
+  ! constraints on sources themselves
+  ! and options for resulting extra sources
+  ! vectors of any number of entries, including no entries (empty line)
   ! sourceConstraints = 
   ! 0: specify total charge source
   ! 1: specify total momentum sources
@@ -189,7 +210,9 @@
   ! 0: mHat
   ! 1: first species only
   ! 2: mHat * nHat(1)
-  
+  ! 3: mHat**(3./2.) * nHat(1)/Z
+  ! 4: mHat * nHat(1)/Z
+
   ! additional sources not arising from constraints
   ! vectors of any number of entries, including no entries (empty line)
   ! miscSources = 
@@ -205,7 +228,6 @@
   ! 2: heat source
   ! 3: momentum source
   ! constantSourcesFilenames = "chargeSource.h5"
-
 
 !  makeLocalApproximation = .true.
   makeLocalApproximation = .false.

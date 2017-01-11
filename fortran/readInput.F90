@@ -35,6 +35,8 @@ contains
          gConstraints, sourcesVStructure, sourcesThetaStructure, &
          sourceConstraints, RHSFromFile, sourceConstraintsFilenames, &
          extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
+         speciesIndepGConstraints, speciesIndepSourcesVStructure, speciesIndepSourcesThetaStructure, &
+         speciesIndepSourcesSpeciesStructure, &
          miscSources, miscSourcesStrength, &
          constantSourcesVStructure, constantSourcesThetaStructure, constantSourcesFilenames
 
@@ -71,9 +73,14 @@ contains
     gConstraints = sourcesNotInitialized
     sourcesVStructure = sourcesNotInitialized
     sourcesThetaStructure = sourcesNotInitialized
+
+    speciesIndepGConstraints = sourcesNotInitialized
+    speciesIndepSourcesVStructure = sourcesNotInitialized
+    speciesIndepSourcesThetaStructure = sourcesNotInitialized
+    speciesIndepSourcesSpeciesStructure = sourcesNotInitialized
+
     sourceConstraints = sourcesNotInitialized
-    RHSFromFile = sourcesNotInitialized
-    
+    RHSFromFile = sourcesNotInitialized 
     ! used to enforce constraints on particular source type
     iparticleSource = sourcesNotInitialized
     imomentumSource = sourcesNotInitialized
@@ -284,6 +291,53 @@ contains
        stop
     end if
 
+    NspeciesIndepSources = maxNsources
+    do i=1,maxNsources
+       if (speciesIndepGConstraints(i) == sourcesNotInitialized) then
+          NspeciesIndepSources = i-1
+          exit
+       end if
+    end do
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (speciesIndepSourcesVStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NspeciesIndepSources) then
+       print *,"Error: number of speciesIndepSourcesVStructure differs from the number of species independent sources."
+       stop
+    end if
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (speciesIndepSourcesThetaStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NspeciesIndepSources) then
+       print *,"Error: number of speciesIndepSourcesThetaStructure differs from the number of species independent sources."
+       stop
+    end if
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (speciesIndepSourcesSpeciesStructure(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NspeciesIndepSources) then
+       print *,"Error: number of speciesIndepSourcesSpeciesStructure differs from the number of species independent sources."
+       stop
+    end if
+
     NextraSources = maxNsources
     do i=1,maxNsources
        if (sourceConstraints(i) == sourcesNotInitialized) then
@@ -449,6 +503,12 @@ contains
        print *, gConstraints(1:Nsources)
        print *, sourcesVStructure(1:Nsources)
        print *, sourcesThetaStructure(1:Nsources)
+
+       print *,"# species independent sources: ",NspeciesIndepSources
+       print *, speciesIndepGConstraints(1:NspeciesIndepSources)
+       print *, speciesIndepSourcesVStructure(1:NspeciesIndepSources)
+       print *, speciesIndepSourcesThetaStructure(1:NspeciesIndepSources)
+       print *, speciesIndepSourcesSpeciesStructure(1:NspeciesIndepSources)
 
        print *,"# extra sources: ",NextraSources 
        print *, sourceConstraints(1:NextraSources)

@@ -97,9 +97,18 @@ contains
     ! indices of extra, species independent, sources from constraint on sources
     integer,intent(in) :: iExtraSources,ipsi
     getIndexExtraSources = &
-         Npsi * localMatrixSize + NEnforcedPsi * Nsources * Nspecies + (ipsi - lowestEnforcedIpsi)*NextraSources &
-         + (iExtraSources - 1)
+         Npsi * localMatrixSize + NEnforcedPsi * Nsources * Nspecies &
+         + (ipsi - lowestEnforcedIpsi) * NextraSources + (iExtraSources - 1)
 
-end function getIndexExtraSources
+  end function getIndexExtraSources
+
+  integer function getIndexSpeciesIndepSources(iSpeciesIndepSources,ipsi)
+    ! indices of species independent sources from constraint on g
+    integer,intent(in) :: iSpeciesIndepSources,ipsi
+    getIndexSpeciesIndepSources = &
+         Npsi * localMatrixSize + NEnforcedPsi * Nsources * Nspecies + NEnforcedPsi * NextraSources &
+         + (ipsi - 1) * NspeciesIndepSources + (iSpeciesIndepSources - 1)
+
+  end function getIndexSpeciesIndepSources
 
 end module indices
