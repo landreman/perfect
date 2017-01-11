@@ -319,7 +319,7 @@ contains
        			 * nHats(:,1)/charges(1:Nspecies)
     
     case default
-       print *,"Error! Invalid extraSourcesSpeciesStructure. Currently supported values are: 0,1,2,3."
+       print *,"Error! Invalid extraSourcesSpeciesStructure. Currently supported values are: 0,1,2,3,4."
        stop
     end select
 
@@ -497,8 +497,11 @@ contains
        sourceSpeciesPart = masses(1:Nspecies)*nHats(:,1)
     case(3)
        sourceSpeciesPart = nHats(:,1)*masses(1:Nspecies)**(1.5)/charges(1:Nspecies)
+   case(4)
+       sourceSpeciesPart = masses(1:Nspecies) &
+       			 * nHats(:,1)/charges(1:Nspecies) 
     case default
-       print *,"Error! Invalid speciesIndepSourcesSpeciesStructure. Currently supported values are: 0,1,2,3."
+       print *,"Error! Invalid speciesIndepSourcesSpeciesStructure. Currently supported values are: 0,1,2,3,4."
        stop
     end select
 
