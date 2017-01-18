@@ -498,7 +498,7 @@ contains
        end if
     end if
 
-    if (printReadInDebug == 1) then
+    if ((printReadInDebug == 1) .and.  masterProc) then
        print *,"# sources: ",Nsources
        print *, gConstraints(1:Nsources)
        print *, sourcesVStructure(1:Nsources)
