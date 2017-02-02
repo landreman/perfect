@@ -31,7 +31,8 @@ contains
          Delta, omega, psiAHat, psiMid,  &
          exponent, setTPrimeToBalanceHeatFlux, &
          includeCollisionOperator, includeddpsiTerm, &
-         leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme, &
+         leftBoundaryShift, rightBoundaryShift, &
+         boundaryScheme, leftBoundaryScheme, rightBoundaryScheme, &
          gConstraints, sourcesVStructure, sourcesThetaStructure, &
          sourceConstraints, RHSFromFile, sourceConstraintsFilenames, &
          extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
@@ -148,11 +149,7 @@ contains
                " but not read data from the physicsParameters namelist in it."
           stop
        end if
-       if (((leftBoundaryScheme .eq. 3) .or. (rightBoundaryScheme .eq. 3)) .and.  (leftBoundaryScheme /= rightBoundaryScheme)) then
-          print *,"Error: If left or right boundary uses periodic boundary conditions , both boundaries must us periodic."
-          stop
-       end if
-
+       
        if (masterProc) then
           print *,"Successfully read parameters from physicsParameters namelist in ", filename, "."
        end if

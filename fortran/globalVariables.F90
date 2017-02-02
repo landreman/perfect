@@ -104,7 +104,7 @@ module globalVariables
   logical :: includeddpsiTerm
 
   PetscScalar :: leftBoundaryShift=0, rightBoundaryShift=0
-  integer :: leftBoundaryScheme=1, rightBoundaryScheme=1
+  integer :: boundaryScheme=0, leftBoundaryScheme=1, rightBoundaryScheme=1
 
   ! ********************************************************
   ! ********************************************************

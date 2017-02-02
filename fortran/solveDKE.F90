@@ -290,15 +290,13 @@ contains
           call applyBoundaryConstraints(solnLeft, "inner")
        case (2)
           ! Don't do anything
-       case (3)
-          ! Don't do anything
        case default
           print *,"Error! Invalid setting for leftBoundaryScheme"
           stop
        end select
 
        ! Where trajectories enter the domain, copy solnLeft to the global rhs:
-       if (leftBoundaryScheme /= 2 .and. leftBoundaryScheme /= 3) then
+       if (leftBoundaryScheme /= 2 .and. boundaryScheme /= 3 .and. boundaryScheme /= 2) then
          call VecGetArrayF90(solnLeft, solnArray, ierr)
          ipsi=1
          do ispecies=1,Nspecies
@@ -413,15 +411,13 @@ contains
           call applyBoundaryConstraints(solnRight, "outer")
        case (2)
           ! Don't do anything
-       case (3)
-          ! Don't do anything
        case default
           print *,"Error! Invalid setting for rightBoundaryScheme"
           stop
        end select
 
        ! Where trajectories enter the domain, copy solnRight to the global rhs:
-       if (rightBoundaryScheme /= 2 .and. rightBoundaryScheme /= 3) then
+       if (rightBoundaryScheme /= 2 .and. boundaryScheme /= 3 .and. boundaryScheme /= 1) then
          call VecGetArrayF90(solnRight, solnArray, ierr)
          ipsi = Npsi
          do ispecies = 1,Nspecies

@@ -166,6 +166,14 @@
   ! Shifts the lower (left) and upper (right) boundary so that it is not centered around psiMid.
   ! Unlike the MATLAB version, positive values shift to higher psi for both the left and right boundary.
 
+  
+  !Options for leftBoundaryScheme and rightBoundaryScheme:
+  ! 0: Impose left and right boundary conditions, depending on dotPsi
+  ! 1: Impose left boundary conditions everywhere
+  ! 2: Impose left boundary conditions everywhere
+  ! 3: Periodic boundary conditions
+  boundaryScheme = 0
+
 
   !Options for leftBoundaryScheme and rightBoundaryScheme:
   ! 0: Impose f_1 = 0

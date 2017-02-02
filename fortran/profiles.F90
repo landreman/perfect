@@ -837,7 +837,7 @@ contains
 
          ! Re-create ddpsi_accurate, since it is over-written in the loop.
          ! centered finite differences, no upwinding, 5-point stencil
-         if(leftBoundaryScheme /= 3) then
+         if(boundaryScheme /= 3) then
             ! non-periodic
             scheme = 12
          else

@@ -171,7 +171,7 @@ module grids
          stop
       end if
       ! centered finite differences, no upwinding, 3-point stencil
-      if (leftBoundaryScheme == 3) then
+      if (boundaryScheme == 3) then
          !perioid domain
          scheme = 0
       else
@@ -184,7 +184,7 @@ module grids
       select case (psiDerivativeScheme)
       case (1)
          ! centered finite differences, 3-point stencil
-         if (leftBoundaryScheme == 3) then
+         if (boundaryScheme == 3) then
             ! periodic domain
             scheme = 0
          else
@@ -194,7 +194,7 @@ module grids
          call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiLeft, d2dpsi2)
       case (2)
          ! centered finite differences, 5-point stencil
-         if (leftBoundaryScheme == 3) then
+         if (boundaryScheme == 3) then
             ! periodic domain
             scheme = 10
          else

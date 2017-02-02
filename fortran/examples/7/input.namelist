@@ -206,11 +206,12 @@
   rightBoundaryShift = 0.0
   !Shifts the lower (left) and upper (right) boundary so that it is not centered around psiMid. Unlike the MATLAB version, positive values shift to higher psi for both left and right.
 
+  boundaryScheme = 3
   !Options for leftBoundaryScheme and rightBoundaryScheme:
   ! 0: Impose f_1 = 0
   ! 1: Impose the local solution for f_1.
-  leftBoundaryScheme = 3
-  rightBoundaryScheme = 3
+  leftBoundaryScheme = 0
+  rightBoundaryScheme = 0
 /
 
 &resolutionParameters
