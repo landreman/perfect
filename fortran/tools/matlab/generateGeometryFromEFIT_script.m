@@ -143,7 +143,7 @@ end
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, as, R0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff);
+[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, ZData, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';
@@ -155,6 +155,7 @@ thetaForBFilter(end)=[];
 BPModes = zeros(NThetaFilter, Npsi);
 JModes = zeros(NThetaFilter, Npsi);
 RModes = zeros(NThetaFilter, Npsi);
+ZModes = zeros(NThetaFilter, Npsi);
 for psiIndex = 1:Npsi
   %temp = interp1(thetaData{psiIndex}, BData{psiIndex}/B0, thetaForBFilter, 'spline');
   temp = interp1(thetaData{psiIndex}, BPData{psiIndex}, thetaForBFilter, 'spline');
@@ -165,6 +166,8 @@ for psiIndex = 1:Npsi
   %temp = interp1(thetaData{psiIndex}, RData{psiIndex}/B0, thetaForBFilter, 'spline');
   temp = interp1(thetaData{psiIndex}, RData{psiIndex}, thetaForBFilter, 'spline');
   RModes(:,psiIndex) = fft(temp)/NThetaFilter;
+  temp = interp1(thetaData{psiIndex}, ZData{psiIndex}, thetaForBFilter, 'spline');
+  ZModes(:,psiIndex) = fft(temp)/NThetaFilter;
 end
 
 epsilon = as/R0;
@@ -176,11 +179,13 @@ fprintf('Inverse aspect ratio derived from EFIT equilibrium: %g to %g\n',min(eps
 BPHat_beforeSmoothing = ones(Ntheta,1) * BPModes(1,:);
 JHat_beforeSmoothing = ones(Ntheta,1) * JModes(1,:);
 RHat_beforeSmoothing = ones(Ntheta,1) * RModes(1,:);
+ZHat_beforeSmoothing = ones(Ntheta,1) * ZModes(1,:);
 keepUpDownAsymmetry = 1; % This variable should be either 1 or 0.
 for m=1:numFourierModesInThetaToKeepInEFITGeometry
   BPHat_beforeSmoothing = BPHat_beforeSmoothing + 2*cos(m*theta)*real(BPModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(BPModes(m+1,:));
   JHat_beforeSmoothing = JHat_beforeSmoothing + 2*cos(m*theta)*real(JModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(JModes(m+1,:));
   RHat_beforeSmoothing = RHat_beforeSmoothing + 2*cos(m*theta)*real(RModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(RModes(m+1,:));
+  ZHat_beforeSmoothing = ZHat_beforeSmoothing + 2*cos(m*theta)*real(ZModes(m+1,:)) - keepUpDownAsymmetry*2*sin(m*theta)*imag(ZModes(m+1,:));
 end
 
 if smoothInPsi
@@ -188,6 +193,7 @@ if smoothInPsi
   BPHat = zeros(Ntheta,Npsi);
   JHat = zeros(Ntheta,Npsi);
   RHat = zeros(Ntheta,Npsi);
+  ZHat = zeros(Ntheta,Npsi);
   dBHatDPsi = zeros(Ntheta,Npsi);
   for itheta = 1:Ntheta
     if Npsi >= 5
@@ -229,11 +235,22 @@ if smoothInPsi
     else
       error('Invalid Npsi, must be 1 or greater than 5')
     end
+
+    if Npsi >= 5
+      [p,S,mu] = polyfit(psi, ZHat_beforeSmoothing(itheta,:), polynomialFitDegreeForSmoothingEFITInPsi);
+      [y,~]= polyval(p,psi,S,mu);
+      ZHat(itheta,:) = y;
+    elseif Npsi == 1
+      ZHat(itheta,:) = ZHat_beforeSmoothing(itheta,:);
+    else
+      error('Invalid Npsi, must be 1 or greater than 5')
+    end
   end
 else
   BPHat = BPHat_beforeSmoothing;
   JHat = JHat_beforeSmoothing;
   RHat = RHat_beforeSmoothing;
+  ZHat = ZHat_beforeSmoothing;
   %dBHatDPsi = zeros(Ntheta,Npsi);
   %if Npsi >= 5
   %  for itheta = 1:Ntheta
@@ -290,10 +307,14 @@ h5create(geometryFilePath,strcat(group,'dIHatdpsi'),[Npsi])
 h5write(geometryFilePath,strcat(group,'dIHatdpsi'),dIHatdpsi)
 % Write extra stuff into geometry files that is not used by PERFECT, but may be useful elsewhere
 hdf5write(geometryFilePath, strcat(group,'R0'), R0, 'WriteMode', 'append')
+hdf5write(geometryFilePath, strcat(group,'Z0'), Z0, 'WriteMode', 'append')
 h5create(geometryFilePath,strcat(group,'epsilon'),[Npsi])
 h5write(geometryFilePath,strcat(group,'epsilon'),epsilon)
 h5create(geometryFilePath,strcat(group,'RHat'),[Ntheta,Npsi])
 h5write(geometryFilePath,strcat(group,'RHat'),RHat)
+h5create(geometryFilePath,strcat(group,'ZHat'),[Ntheta,Npsi])
+h5write(geometryFilePath,strcat(group,'ZHat'),ZHat)
 hdf5write(geometryFilePath,strcat(group,'psi0'),psi0, 'WriteMode', 'append')
+hdf5write(geometryFilePath, 'EFITFileName', EFITFilename, 'WriteMode', 'append')
 
 quit

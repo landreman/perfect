@@ -1,4 +1,4 @@
-function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, as, R0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff)
+function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurfs, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff)
 
 % 'BPSurfs' and 'B0' should have units of Tesla.
 % Both 'as' and 'R0' should have units of meters.
@@ -56,6 +56,7 @@ N = numel(desiredPsiNs);
 thetaSurfs = cell(N,1);
 BPSurfs = cell(N,1);
 RSurfs = cell(N,1);
+ZSurfs = cell(N,1);
 BDotGradThetaSurfs = cell(N,1);
 Rss = cell(N,1);
 Zss = cell(N,1);
@@ -81,7 +82,11 @@ for i=1:N
     BDotGradTheta = BR .* dthetadR + BZ .* dthetadZ;
     %bDotGradTheta = BDotGradTheta ./ B;
     
-    thetaSurf = interp2(R, Z, theta, Rs, Zs,'spline');
+    %thetaSurf = interp2(R, Z, theta, Rs, Zs,'spline');
+    % Recalculate thetas from the Rs and Zs on the contour instead of interpolating.
+    % Gives better results when smoothing/interpolating onto poloidal angle grid later
+    thetaSurf = atan2(Zs-efit.Zaxis, Rs-efit.Raxis);
+
     BPSurf = interp2(R, Z, BPol, Rs, Zs,'spline');
     BDotGradThetaSurf = interp2(R, Z, BDotGradTheta, Rs, Zs,'spline');
     
@@ -108,18 +113,21 @@ for i=1:N
     BPSurf = [BPSurf, BPSurf, BPSurf];
     BDotGradThetaSurf = [BDotGradThetaSurf, BDotGradThetaSurf, BDotGradThetaSurf];
     RSurf = [Rs, Rs, Rs];
+    ZSurf = [Zs, Zs, Zs];
     
     % Sort:
     [thetaSurf, permutation] = sort(thetaSurf');
     BPSurf = BPSurf(permutation)';
     BDotGradThetaSurf = BDotGradThetaSurf(permutation)';
     RSurf = RSurf(permutation)';
+    ZSurf = ZSurf(permutation)';
     
     %bSurf = BSurf / abs(efit.B0EXP);
     
     thetaSurfs{i} = thetaSurf;
     BPSurfs{i} = BPSurf;
     RSurfs{i} = RSurf;
+    ZSurfs{i} = ZSurf;
     BDotGradThetaSurfs{i} = BDotGradThetaSurf;
     as(i) = (max(Rs)-min(Rs))/2;
 end
