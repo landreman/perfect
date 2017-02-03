@@ -22,8 +22,8 @@ ISurfs = interp1(psiN, efit.T, desiredPsiNs, 'spline');
 valueForCropping = max(max(psiN2D));
 psiN2D(efit.Z_grid > topCropZ, :) = valueForCropping;
 psiN2D(efit.Z_grid < bottomCropZ, :) = valueForCropping;
-psiN2D(efit.R_grid < innerCropR, :) = valueForCropping;
-psiN2D(efit.R_grid > outerCropR, :) = valueForCropping;
+psiN2D(:, efit.R_grid < innerCropR) = valueForCropping;
+psiN2D(:, efit.R_grid > outerCropR) = valueForCropping;
 
 R0 = efit.Raxis;
 Z0 = efit.Zaxis;
