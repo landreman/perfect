@@ -495,20 +495,20 @@ module grids
     allocate(xiUniform(NxiUniform))
     allocate(LegendresOnXiUniform(NxiUniform))
     allocate(LegendresOnXiUniform_m1(NxiUniform))
-     allocate(LegendresOnXiUniform_m2(NxiUniform))
+    allocate(LegendresOnXiUniform_m2(NxiUniform))
 
-     do i=1,NxUniform
-        xUniform(i) = (i-(1d+0))/(NxUniform-1)*xUniformMax
-     end do
+    do i=1,NxUniform
+       xUniform(i) = (i-(1d+0))/(NxUniform-1)*xUniformMax
+    end do
 
-     do i=1,NxiUniform
-        xiUniform(i) = (i-(1d+0))/(NxiUniform-1)*2-1
-     end do
+    do i=1,NxiUniform
+       xiUniform(i) = (i-(1d+0))/(NxiUniform-1)*2-1
+    end do
 
-     allocate(regridPolynomialToUniformForDiagnostics(NxUniform, Nx))
-     call polynomialInterpolationMatrix(Nx, NxUniform, x, xUniform, &
-          exp(-x*x), exp(-xUniform*xUniform), regridPolynomialToUniformForDiagnostics)
-
+    allocate(regridPolynomialToUniformForDiagnostics(NxUniform, Nx))
+    call polynomialInterpolationMatrix(Nx, NxUniform, x, xUniform, &
+         exp(-x*x), exp(-xUniform*xUniform), regridPolynomialToUniformForDiagnostics)
+    
   end subroutine createGrids
 
   subroutine deallocateInitializationGridArrays()

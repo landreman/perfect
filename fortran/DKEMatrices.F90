@@ -161,10 +161,10 @@ contains
 
     ! In  preallocateMatrix, the last parameter is 0 for the global matrix, or 1 for the local matrices.
     call preallocateMatrix(matrix, 0, finalMatrix)
-    if (procThatHandlesLeftBoundary) then
+    if (procThatHandlesLeftBoundary .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
        call preallocateMatrix(leftMatrix, 1, finalMatrix)
     end if
-    if (procThatHandlesRightBoundary) then
+    if (procThatHandlesRightBoundary .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
        call preallocateMatrix(rightMatrix, 1, finalMatrix)
     end if
 
@@ -183,12 +183,12 @@ contains
           call MatSetValue(matrix, i-1, i-1, zero, ADD_VALUES, ierr)
        end do
     end if
-    if (procThatHandlesLeftBoundary) then
+    if (procThatHandlesLeftBoundary .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
        do i=1,localMatrixSize
           call MatSetValue(leftMatrix, i-1, i-1, zero, ADD_VALUES, ierr)
        end do
     end if
-    if (procThatHandlesRightBoundary) then
+    if (procThatHandlesRightBoundary .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
        do i=1,localMatrixSize
           call MatSetValue(rightMatrix, i-1, i-1, zero, ADD_VALUES, ierr)
        end do
@@ -258,24 +258,26 @@ contains
                    ! Petsc uses a transposed format relative to Fortran:
                    thetaPartMatrix = transpose(thetaPartMatrix)
                    ! Put values in matrix, 
-                   if (ipsi==1 .and. boundaryScheme /= 3 .and. leftBoundaryScheme /= 2) then
+                   if (ipsi==1 .and. boundaryScheme /= 3 .and. leftBoundaryScheme /= 2 .and. boundaryScheme /= 2) then
                       call MatSetValuesSparse(leftMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
-                         if ((signOfPsiDot < -thresh .and. boundaryScheme == 0) .or. boundaryScheme == 2) then
+                         if (signOfPsiDot < -thresh .and. boundaryScheme == 0) then
+                            ! do not enforce boundary conditions
+                            ! add default matrix
                             call MatSetValuesSparse(matrix, 1, globalRowIndices(itheta), Ntheta, globalColIndices, &
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
                       end do
-                   elseif (ipsi==Npsi .and. boundaryScheme /= 3 .and. rightBoundaryScheme /= 2) then
+                   elseif (ipsi==Npsi .and. boundaryScheme /= 3 .and. rightBoundaryScheme /= 2 .and. boundaryScheme /= 1) then
                       call MatSetValuesSparse(rightMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
-                         if ((signOfPsiDot > thresh .and. boundaryScheme == 0) .or. boundaryScheme == 1) then
+                         if (signOfPsiDot > thresh .and. boundaryScheme == 0) then
                             rowIndexArray = globalRowIndices(itheta)
                             call MatSetValuesSparse(matrix, 1, rowIndexArray, &
                                  Ntheta, globalColIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -304,24 +306,24 @@ contains
                    thetaPartMatrix = transpose(thetaPartMatrix)
 
                    ! Put values in matrix, noting that Petsc uses a transposed format relative to Fortran
-                   if (ipsi==1 .and. boundaryScheme /= 3 .and. leftBoundaryScheme /= 2) then
+                   if (ipsi==1 .and. boundaryScheme /= 3 .and. leftBoundaryScheme /= 2 .and. boundaryScheme /= 2) then
                       call MatSetValuesSparse(leftMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi)&
                               / (psiAHat*charges(ispecies))
-                         if ((signOfPsiDot < -thresh .and. boundaryScheme == 0) .or. boundaryScheme == 2) then
+                         if (signOfPsiDot < -thresh .and. boundaryScheme == 0 ) then
                             call MatSetValuesSparse(matrix, 1, globalRowIndices(itheta), Ntheta, globalColIndices, &
                                  thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
                          end if
                       end do
-                   elseif (ipsi==Npsi .and. boundaryScheme /= 3 .and. rightBoundaryScheme /= 2) then
+                   elseif (ipsi==Npsi .and. boundaryScheme /= 3 .and. rightBoundaryScheme /= 2 .and. boundaryScheme /= 1) then
                       call MatSetValuesSparse(rightMatrix, Ntheta, localRowIndices, Ntheta, localColIndices, &
                            thetaPartMatrix, ADD_VALUES, ierr)
                       do itheta=1,Ntheta
                          signOfPsiDot = -IHat(ipsi)*JHat(itheta,ipsi)*dBHatdtheta(itheta,ipsi) &
                               / (psiAHat*charges(ispecies))
-                         if ((signOfPsiDot > thresh .and. boundaryScheme == 0) .or. boundaryScheme == 1) then
+                         if (signOfPsiDot > thresh .and. boundaryScheme == 0) then
                             rowIndexArray = globalRowIndices(itheta)
                             call MatSetValuesSparse(matrix, 1, rowIndexArray, &
                                  Ntheta, globalColIndices, thetaPartMatrix(:,itheta), ADD_VALUES, ierr)
@@ -1192,7 +1194,7 @@ contains
                       end if
                    end do
 
-                   if (procThatHandlesLeftBoundary .and. ipsi==1) then
+                   if (procThatHandlesLeftBoundary .and. ipsi==1 .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
                       do itheta=1,Ntheta
                          do ix_row=min_x_for_L(L),Nx
                            rowIndex = getIndex(iSpeciesA,ix_row,L,itheta,1)
@@ -1205,7 +1207,7 @@ contains
                       end do
                    end if
 
-                   if (procThatHandlesRightBoundary .and. ipsi==Npsi) then
+                   if (procThatHandlesRightBoundary .and. ipsi==Npsi .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
                       do itheta=1,Ntheta
                          do ix_row=min_x_for_L(L),Nx
                            rowIndex = getIndex(iSpeciesA,ix_row,L,itheta,1)
@@ -1573,28 +1575,28 @@ contains
     call PetscTime(time1, ierr)
 
     call MatAssemblyBegin(matrix, MAT_FINAL_ASSEMBLY, ierr)
-    if (procThatHandlesLeftBoundary) then
+    if (procThatHandlesLeftBoundary .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
        call MatAssemblyBegin(leftMatrix, MAT_FINAL_ASSEMBLY, ierr)
     end if
-    if (procThatHandlesRightBoundary) then
+    if (procThatHandlesRightBoundary .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
        call MatAssemblyBegin(rightMatrix, MAT_FINAL_ASSEMBLY, ierr)
     end if
     CHKERRQ(ierr)
     call MatAssemblyEnd(matrix, MAT_FINAL_ASSEMBLY, ierr)
-    if (procThatHandlesLeftBoundary) then
+    if (procThatHandlesLeftBoundary .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
        call MatAssemblyEnd(leftMatrix, MAT_FINAL_ASSEMBLY, ierr)
     end if
-    if (procThatHandlesRightBoundary) then
+    if (procThatHandlesRightBoundary .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
        call MatAssemblyEnd(rightMatrix, MAT_FINAL_ASSEMBLY, ierr)
     end if
     CHKERRQ(ierr)
     
     if (whichMatrix==0) then
        preconditionerMatrix = matrix
-       if (procThatHandlesLeftBoundary) then
+       if (procThatHandlesLeftBoundary .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
           leftPreconditionerMatrix = leftMatrix
        end if
-       if (procThatHandlesRightBoundary) then
+       if (procThatHandlesRightBoundary .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
           rightPreconditionerMatrix = rightMatrix
        end if
     end if

@@ -31,50 +31,59 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
 
   MPI_Comm :: MPICommToUse
 
-  if (masterProcInSubComm) then
-     print *,"Beginning preallocation for whichMatrix = ",whichMatrix
-  end if
-
   select case (whichMatrix)
   case (0)
      thisMatrixSize = matrixSize
      MPICommToUse = MPIComm
+     if (masterProcInSubComm) then
+        print *,"Beginning preallocation for global matrix"
+     end if
+     
   case (1)
      thisMatrixSize = localMatrixSize
-     MPICommToUse = PETSC_COMM_SELF
+     MPICommToUse = PETSC_COMM_SELF    
+     if (masterProcInSubComm) then
+        print *,"Beginning preallocation for local matrix"
+     end if
+     
   case default
-     stop "Invalid whichMatrix!"
+     stop "Invalid whichMatrix!"    
   end select
 
   select case (finalMatrix)
-  case (0)
-     
+  case (0)     
      select case (preconditioner_theta)
      case (0)
-       thisThetaDerivativeScheme = thetaDerivativeScheme
+        thisThetaDerivativeScheme = thetaDerivativeScheme
+        
      case (1)
        ! Use 3-point finite difference stencil for preconditioner
        thisThetaDerivativeScheme = 1
      case default
-       stop "Unrecognized preconditioner_theta"
+        stop "Unrecognized preconditioner_theta"     
      end select
 
      select case (preconditioner_psi)
      case (0)
        ! Use full coupling
-       thisPsiDerivativeScheme = psiDerivativeScheme
+        thisPsiDerivativeScheme = psiDerivativeScheme
+        
      case (1)
        ! Use 'less accurate derivative', i.e. 3-point stencil
-       thisPsiDerivativeScheme = 1
+        thisPsiDerivativeScheme = 1
+        
      case (2)
        ! Drop ddpsi term
-       thisPsiDerivativeScheme = 8
+        thisPsiDerivativeScheme = 8
+        
      case (3)
        ! Keep only diagonal of ddpsi. Diagonal is already going to be allocated, so do nothing
-       thisPsiDerivativeScheme = 8
+        thisPsiDerivativeScheme = 8
+        
      case (4)
        ! Drop all global terms (no ddpsi stencil again?)
-       thisPsiDerivativeScheme = 8
+        thisPsiDerivativeScheme = 8
+        
      case default
        stop "Unrecognized preconditioner_psi"
      end select
@@ -83,22 +92,28 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
        select case (preconditioner_x)
        case (0)
          ! Keep full coupling
-         thisXDerivativeScheme = xDerivativeScheme
+          thisXDerivativeScheme = xDerivativeScheme
+          
        case (1)
          ! Drop everything off-diagonal
-         thisXDerivativeScheme = 8
+          thisXDerivativeScheme = 8
+          
        case (2)
          ! Keep only upper-triangular part, just preallocate for full derivative (for now)
-         thisXDerivativeScheme = xDerivativeScheme
+          thisXDerivativeScheme = xDerivativeScheme
+          
        case (3)
          ! Keep only tridiagonal terms
-         thisXDerivativeScheme = 2
+          thisXDerivativeScheme = 2
+          
        case (4)
          ! Keep only the diagonal and superdiagonal, preallocate for tridiagonal (for now)
-         thisXDerivativeScheme = 2
+          thisXDerivativeScheme = 2
+          
        case (5)
          ! Use 3-point finite differences
-         thisXDerivativeScheme = 2
+          thisXDerivativeScheme = 2
+          
        case default
          stop "Unrecognized preconditioner_x"
        end select

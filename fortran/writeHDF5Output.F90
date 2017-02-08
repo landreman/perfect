@@ -7,6 +7,7 @@ use scan
 use petscsysdef
 use HDF5
 
+use indices
 implicit none
 
 #include "PETScVersions.F90"
@@ -19,6 +20,7 @@ implicit none
 integer, private :: HDF5Error
 integer(HID_T), private :: HDF5FileID, parallelID
 integer(HID_T), dimension(:), allocatable, private :: groupIDs
+integer :: ix, itheta, ispecies, L
 interface writeVariable
   module procedure writeVariable_integer
   module procedure writeVariable_scalar
@@ -156,7 +158,19 @@ contains
     PetscScalar, dimension(:), allocatable :: genericSpeciesDependence
     allocate(genericSourceProfile(Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
     allocate(genericSpeciesDependence(Nspecies))
-    
+
+    !print *,"!!!!!!!!!!!!!!!!!!!!!"
+    !if (masterProcInSubComm) then
+    !   do itheta=1,Ntheta
+    !      do L=0,NL
+    !         do ix=min_x_for_L(L),Nx
+    !            do iSpecies=1,Nspecies              
+    !               print *,getIndex(ispecies,ix,L,itheta,1)
+    !            end do
+    !         end do
+    !      end do
+    !   end do
+    !end if
     
     if ((psiGridType == 1) .and. masterProcInSubComm) then
        call convertToPsiNDerivatives()
@@ -218,6 +232,16 @@ contains
       call writeVariable(NpsiSourcelessRight,"NpsiSourcelessRight",runNum)
       call writeVariable(sourcePoloidalVariationStrength,"sourcePoloidalVariationStrength",runNum)
       call writeVariable(sourcePoloidalVariationPhase,"sourcePoloidalVariationPhase",runNum)
+      call writeVariable(localMatrixSize,"localMatrixSize",runNum)
+      if (solveSystem) then
+         temp = integerToRepresentTrue
+      else
+         temp = integerToRepresentFalse
+      end if
+      call writeVariable(temp,"solveSystem",runNum)
+      call writeVariable(boundaryScheme,"boundaryScheme",runNum)
+      call writeVariable(leftBoundaryScheme,"leftBoundaryScheme",runNum)
+      call writeVariable(rightBoundaryScheme,"rightBoundaryScheme",runNum)
       ! todo: implement an array of strings with source names
       ! in parts of code specifying velocity space structure of sources
       do i = 1,Nsources
@@ -438,9 +462,12 @@ contains
       call writeVariable(thetaIndexForOutboard,"thetaIndexForOutboard",runNum)
       call writeVariable(thetaIndexForInboard,"thetaIndexForInboard",runNum)
       if (outputScheme > 1) then
-        call writeVariable(deltaFOutboard,"deltaFOutboard",runNum)
-        call writeVariable(fullFOutboard,"fullFOutboard",runNum)
+         call writeVariable(deltaFOutboard,"deltaFOutboard",runNum)
+         call writeVariable(fullFOutboard,"fullFOutboard",runNum)
       end if
+
+      call writeVariable(particleFluxPotentialBeforeSums,"particleFluxPotentialBeforeSums",runNum)
+      call writeVariable(particleFluxPotential,"particleFluxPotential",runNum)
     end if
 
   end subroutine writeRunToOutputFile

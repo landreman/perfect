@@ -39,19 +39,20 @@ contains
     CHKERRQ(ierr)
     call VecSet(rhs, zero,ierr)
     CHKERRQ(ierr)
-    if (procThatHandlesLeftBoundary) then
+    if (procThatHandlesLeftBoundary .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
        ! This process handles the left boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsLeft, ierr)
        CHKERRQ(ierr)
        call VecSet(rhsLeft, zero,ierr)
+       CHKERRQ(ierr)
     end if
-    if (procThatHandlesRightBoundary) then
+    if (procThatHandlesRightBoundary .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
        ! This process handles the right boundary, so solve for the local solution there.
        call VecCreateSeq(MPI_COMM_SELF, localMatrixSize, rhsRight, ierr)
        CHKERRQ(ierr)
        call VecSet(rhsRight, zero, ierr)
+       CHKERRQ(ierr)
     end if
-    CHKERRQ(ierr)
 
     do ispecies = 1, Nspecies
        do ipsi = ipsiMin, ipsiMax
@@ -75,11 +76,11 @@ contains
                 !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 call VecSetValue(rhs, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 index = getIndex(ispecies,ix,L,itheta,1)
-                if (ipsi==1) then
+                if (ipsi==1 .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
                    ! This is the left boundary
                    !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                    call VecSetValue(rhsLeft, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
-                elseif (ipsi==Npsi) then
+                elseif (ipsi==Npsi  .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
                    ! This is the right boundary
                    !call VecSetValues(rhsRight, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                    call VecSetValue(rhsRight, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
@@ -91,11 +92,11 @@ contains
                 !call VecSetValues(rhs, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 call VecSetValue(rhs, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                 index = getIndex(ispecies,ix,L,itheta,1)
-                if (ipsi==1) then
+                if (ipsi==1  .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
                    ! This is the left boundary
                    !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                    call VecSetValue(rhsLeft, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
-                elseif (ipsi==Npsi) then
+                elseif (ipsi==Npsi  .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
                    ! This is the right boundary
                    !call VecSetValues(rhsRight, 1, index, LFactor*stuffToAdd, ADD_VALUES, ierr)
                    call VecSetValue(rhsRight, index, LFactor*stuffToAdd, ADD_VALUES, ierr)

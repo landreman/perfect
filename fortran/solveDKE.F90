@@ -131,6 +131,7 @@ contains
     !
     ! *******************************************************************************
     ! *******************************************************************************
+    
     call DKECreateRhsVector()
     call deallocateInitializationGridArrays()
     ! *********************************************************************************************
@@ -202,7 +203,19 @@ contains
     PetscViewerAndFormat :: vf1, vf2
 #endif
 
-    if (procThatHandlesLeftBoundary) then
+    if (.false.) then
+    do L=0,NL
+       do itheta=1,Ntheta
+          do iSpecies=1,Nspecies
+             if (masterProcInSubComm) then
+                print *,getIndex(ispecies,ix,L,itheta,1)
+             end if
+          end do
+       end do
+    end do
+    end if
+    
+    if (procThatHandlesLeftBoundary .and. boundaryScheme /= 2  .and. boundaryScheme /= 3) then
        ! This process handles the left boundary, so solve the local kinetic equation there.
 
        call VecAssemblyBegin(rhsLeft, ierr)
@@ -323,7 +336,7 @@ contains
     end if
 
 
-    if (procThatHandlesRightBoundary) then
+    if (procThatHandlesRightBoundary .and. boundaryScheme /= 1  .and. boundaryScheme /= 3) then
        ! This process handles the right boundary, so solve the local kinetic equation there.
 
        call VecAssemblyBegin(rhsRight, ierr)

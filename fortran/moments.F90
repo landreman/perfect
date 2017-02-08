@@ -34,7 +34,8 @@ contains
     PetscScalar, dimension(:), allocatable :: particleFluxFactors, particleFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: momentumFluxFactors, momentumFluxIntegralWeights
     PetscScalar, dimension(:), allocatable :: heatFluxFactors, heatFluxIntegralWeights
-    PetscScalar, dimension(:), allocatable :: tempPTflow, pPerpTermInVpFactors
+    PetscScalar, dimension(:), allocatable :: temp, pPerpTermInVpFactors
+    PetscScalar, dimension(:), allocatable :: particleFluxPotentialFactors, expx2
     
     
     Vec :: solnOnProc0
@@ -46,6 +47,9 @@ contains
     integer :: ix, itheta, ipsi, L, index
     integer :: ispecies, isources, iextraSources, ispeciesIndepSources
     integer :: ixi
+    integer :: ispecies2
+    integer, dimension(:), allocatable :: indices2
+    PetscScalar :: temp1
 
     PetscScalar :: oneOverAbsNablaTheta,oneOverAbsNablaPhi,signBP
     
@@ -93,6 +97,9 @@ contains
        allocate(deltaFOutboard(Nspecies,Npsi,NxUniform,NxiUniform))
        allocate(fullFOutboard(Nspecies,Npsi,NxUniform,NxiUniform))
 
+       allocate(particleFluxPotentialBeforeSums(Nspecies,Ntheta,Npsi))
+       allocate(particleFluxPotential(Nspecies,Npsi))
+
        !       allocate(LHSOfKParEquation(Npsi))
        !       allocate(kThetaWith3PointStencil(Ntheta,Npsi))
        !       allocate(kThetaWith5PointStencil(Ntheta,Npsi))
@@ -113,6 +120,7 @@ contains
        allocate(momentumFluxFactors(Npsi))
        allocate(heatFluxFactors(Npsi))
        allocate(pPerpTermInVpFactors(Npsi))
+       allocate(particleFluxPotentialFactors(Npsi))
 
        allocate(flowIntegralWeights(Nx))
        allocate(densityIntegralWeights(Nx))
@@ -121,8 +129,13 @@ contains
        allocate(momentumFluxIntegralWeights(Nx))
        allocate(heatFluxIntegralWeights(Nx))
 
+       
+
        ! to calculate poloidal and toroidal flow and flow differentials
-       allocate(tempPTflow(Npsi))
+       allocate(temp(Npsi))
+       ! and sums needed for the potential contribution to particle fluxes
+       allocate(expx2(Nx))
+       expx2 = exp(-x*x)
        
        allocate(extraSourceProfile(NextraSources,Nspecies,Npsi-NpsiSourcelessLeft-NpsiSourcelessRight))
        allocate(speciesIndepSourceProfile(NspeciesIndepSources,Nspecies,Npsi))
@@ -134,12 +147,14 @@ contains
        momentumFluxIntegralWeights = x*x*x*x*x
        heatFluxIntegralWeights = x*x*x*x*x*x
 
+       
+       
        allocate(indices(Nx))
 
        ! Convert the PETSc vector into a normal Fortran array:
        call VecGetArrayF90(solnOnProc0, solnArray, ierr)
        CHKERRQ(ierr)
-
+       
        do ispecies = 1,Nspecies
           densityFactors = Delta*4*pi*THats(ispecies,:)*sqrtTHats(ispecies,:) &
                / (nHats(ispecies,:)*masses(ispecies)*sqrt(masses(ispecies)))
@@ -151,6 +166,8 @@ contains
                * IHat * ((THats(ispecies,:)/masses(ispecies)) ** (5/two))
           pPerpTermInVpFactors = (8*pi/3)*(THats(ispecies,:)/masses(ispecies))**(5/two)
           !       pPerpTermInKThetaFactors = THat ** (5/two)
+          particleFluxPotentialFactors = -particleFluxFactors * charges(ispecies) * nHats(ispecies,:) * masses(ispecies)**(3/two) &
+               /(THats(ispecies,:)**(5/two) * 2**(3/two) * pi*sqrtpi)
 
           ! The final elements of the solution vector correspond to the source profiles:
           do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
@@ -189,6 +206,14 @@ contains
                 particleFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = (8/three) * particleFluxFactors(ipsi) &
                      * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1))
 
+                particleFluxPotentialBeforeSums(ispecies,itheta,ipsi) = zero
+                do ispecies2 = 1, Nspecies
+                   indices2 = [(getIndex(ispecies2,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+                   particleFluxPotentialBeforeSums(ispecies,itheta,ipsi) = particleFluxPotentialBeforeSums(ispecies,itheta,ipsi) &
+                        + (8/three) * charges(ispecies2) &
+                        * dot_product(xWeights, expx2 * particleFluxIntegralWeights * solnArray(indices2+1))
+                end do
+
                 heatFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = (8/three) * heatFluxFactors(ipsi) &
                      * dot_product(xWeights, heatFluxIntegralWeights * solnArray(indices+1))
 
@@ -225,6 +250,18 @@ contains
                 particleFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = particleFluxBeforeThetaIntegral(ispecies,itheta,ipsi) &
                      + (four/15) * particleFluxFactors(ipsi) &
                      * dot_product(xWeights, particleFluxIntegralWeights * solnArray(indices+1))
+
+                temp1 = zero
+                do ispecies2 = 1, Nspecies
+                   indices2 = [(getIndex(ispecies2,ix,L,itheta,ipsi), ix=min_x_for_L(L),Nx)]
+                   particleFluxPotentialBeforeSums(ispecies,itheta,ipsi) = particleFluxPotentialBeforeSums(ispecies,itheta,ipsi) &
+                        + (four/15) * charges(ispecies2) &
+                        * dot_product(xWeights, expx2 * particleFluxIntegralWeights * solnArray(indices2+1))
+
+                   temp1 = temp1 + charges(ispecies2)**2 * nHats(ispecies2,ipsi)/THats(ispecies2,ipsi)
+                end do
+                particleFluxPotentialBeforeSums(ispecies,itheta,ipsi) = particleFluxPotentialBeforeSums(ispecies,itheta,ipsi) &
+                     * particleFluxPotentialFactors(ipsi)/temp1
 
                 heatFluxBeforeThetaIntegral(ispecies,itheta,ipsi) = heatFluxBeforeThetaIntegral(ispecies,itheta,ipsi) &
                      + (four/15) * heatFluxFactors(ipsi) &
@@ -269,6 +306,9 @@ contains
           heatFluxBeforeThetaIntegral(ispecies,:,:) = heatFluxBeforeThetaIntegral(ispecies,:,:) &
                * dBHatdtheta / (BHat * BHat * BHat)
 
+          particleFluxPotentialBeforeSums(ispecies,:,:) = particleFluxPotentialBeforeSums(ispecies,:,:) &
+               * dBHatdtheta / (BHat * BHat * BHat)
+
           do itheta=1,Ntheta
              pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
              toroidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:) 
@@ -292,12 +332,12 @@ contains
                   *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)*IHat)/(BHat(itheta,:)**2)
 
              !since we are not using that variable for anything else
-             tempPTflow = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
+             temp = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
                   + (2*omega*charges(ispecies)/(Delta*THats(ispecies,:)))*dPhiHatdpsi
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
-                  -THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BPHat(itheta,:)**2*RHat(itheta,:)
+                  -THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*temp*BPHat(itheta,:)**2*RHat(itheta,:)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
-                  +THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*tempPTflow*BPHat(itheta,:)*IHat(:)
+                  +THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*temp*BPHat(itheta,:)*IHat(:)
           end do
           
    !!$         if (psiDerivativeScheme == 0) then
@@ -324,6 +364,7 @@ contains
              particleFlux(ispecies,ipsi) = dot_product(thetaWeights, particleFluxBeforeThetaIntegral(ispecies,:,ipsi))
              momentumFlux(ispecies,ipsi) = dot_product(thetaWeights, momentumFluxBeforeThetaIntegral(ispecies,:,ipsi))
              heatFlux(ispecies,ipsi) = dot_product(thetaWeights, heatFluxBeforeThetaIntegral(ispecies,:,ipsi))
+             particleFluxPotential(ispecies,ipsi) = dot_product(thetaWeights, particleFluxPotentialBeforeSums(ispecies,:,ipsi))
 
              !          pPerpTermInKThetaWith3PointStencil(:,ipsi) = pPerpTermInKThetaWith3PointStencil(:,ipsi) &
              !               * 2 * pi * delta * FSABHat2(ipsi) / (nHat(ipsi) * BHat(:,ipsi) * BHat(:,ipsi) * dTHatdpsi(ipsi))
@@ -341,9 +382,9 @@ contains
 
              FSAFlow(ispecies,ipsi) = dot_product(thetaWeights, flow(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
 
-         FSAToroidalFlow(ispecies,ipsi) = dot_product(thetaWeights, toroidalFlow(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
+             FSAToroidalFlow(ispecies,ipsi) = dot_product(thetaWeights, toroidalFlow(ispecies,:,ipsi)/JHat(:,ipsi)) /VPrimeHat(ipsi)
 
-         FSAPoloidalFlow(ispecies,ipsi) = dot_product(thetaWeights, poloidalFlow(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
+             FSAPoloidalFlow(ispecies,ipsi) = dot_product(thetaWeights, poloidalFlow(ispecies,:,ipsi)/JHat(:,ipsi)) /VPrimeHat(ipsi)
 
              
              FSAkPar(ispecies,ipsi) = dot_product(thetaWeights, kPar(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
@@ -473,7 +514,7 @@ contains
     integer :: ispecies
     integer :: ixi
     
-    PetscScalar :: this_tempPTflow
+    PetscScalar :: this_temp
     ! should only be called by one processor
     !! ! First, send the entire solution vector to the master process:
     !! call VecScatterCreateToZero(soln, VecScatterContext, solnOnProc0, ierr)
@@ -637,13 +678,13 @@ contains
                   *this_densityPerturbation(ispecies,itheta)*(BPHat(itheta,ipsi)*IHat(ipsi))/(BHat(itheta,ipsi)**2)
 
              !since we are not using that variable for anything else
-             this_tempPTflow = dnHatdpsis(ispecies,ipsi)/nHats(ispecies,ipsi) +dTHatdpsis(ispecies,ipsi)/THats(ispecies,ipsi) &
+             this_temp = dnHatdpsis(ispecies,ipsi)/nHats(ispecies,ipsi) +dTHatdpsis(ispecies,ipsi)/THats(ispecies,ipsi) &
                   + (2*omega*charges(ispecies)/(Delta*THats(ispecies,ipsi)))*dPhiHatdpsi(ipsi)
              this_toroidalFlow(ispecies,itheta) = this_toroidalFlow(ispecies,itheta) &
-                  -THats(ispecies,ipsi)/(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_tempPTflow*BPHat(itheta,ipsi)**2 &
+                  -THats(ispecies,ipsi)/(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_temp*BPHat(itheta,ipsi)**2 &
                   *RHat(itheta,ipsi)
              this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) +THats(ispecies,ipsi)&
-                  /(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_tempPTflow*BPHat(itheta,ipsi)*IHat(ipsi)
+                  /(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_temp*BPHat(itheta,ipsi)*IHat(ipsi)
           end do
 
           

@@ -341,6 +341,9 @@ module globalVariables
   integer :: thetaIndexForOutboard, thetaIndexForInboard
   PetscScalar, dimension(:,:,:,:), allocatable :: deltaFOutboard, fullFOutboard
 
+  PetscScalar, dimension(:,:), allocatable :: particleFluxPotential
+  PetscScalar, dimension(:,:,:), allocatable :: particleFluxPotentialBeforeSums
+
   PetscLogDouble :: elapsedTime
   integer :: didItConverge
 
