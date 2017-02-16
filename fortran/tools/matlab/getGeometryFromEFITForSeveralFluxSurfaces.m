@@ -1,4 +1,4 @@
-function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurfs, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff)
+function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurfs, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix)
 
 % 'BPSurfs' and 'B0' should have units of Tesla.
 % Both 'as' and 'R0' should have units of meters.
@@ -62,6 +62,9 @@ Rss = cell(N,1);
 Zss = cell(N,1);
 as = zeros(N,1);
 
+BDotGradTheta = BR .* dthetadR + BZ .* dthetadZ;
+%bDotGradTheta = BDotGradTheta ./ B;
+    
 for i=1:N
     desiredPsiN = desiredPsiNs(i);
     c = contourc(efit.R_grid, efit.Z_grid, psiN2D, [desiredPsiN, desiredPsiN]);
@@ -78,9 +81,6 @@ for i=1:N
     Zs = c(2,3:end);
     Rss{i} = Rs;
     Zss{i} = Zs;
-    
-    BDotGradTheta = BR .* dthetadR + BZ .* dthetadZ;
-    %bDotGradTheta = BDotGradTheta ./ B;
     
     %thetaSurf = interp2(R, Z, theta, Rs, Zs,'spline');
     % Recalculate thetas from the Rs and Zs on the contour instead of interpolating.
@@ -133,6 +133,17 @@ for i=1:N
 end
 
 if plotStuff
+    fig0 = figure('Visible','off');
+    %contour(efit.R_grid, efit.Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
+    contour(efit.R_grid, efit.Z_grid, (efit.psi-efit.psiaxis)/efit.psiedge, linspace(.01,1.1,110))
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
+    xlabel('R (m)')
+    ylabel('Z (m)')
+    title('\psi_N')
+    print(fig0,'EFITgeometry_testFig0','-dpdf')
+
     %fig1 = figure(1)
     fig1 = figure('Visible','off');
     clf
@@ -144,11 +155,12 @@ if plotStuff
     numContours=20;
     contourf(efit.R_grid, efit.Z_grid, psiN2D, numContours)
     hold on
-    contour(efit.R_grid, efit.Z_grid, psiN2D, [1, 1],'Color','r')
+    %contour(efit.R_grid, efit.Z_grid, psiN2D, [1, 1],'Color','r')
     for i=1:N
         plot(Rss{i},Zss{i},':c')
     end
     plot(efit.Raxis, efit.Zaxis,'xw')
+    plot(efit.R_LCFS,efit.Z_LCFS,'r')
     axis equal
     colorbar
     xlabel('R (m)')
@@ -247,4 +259,15 @@ if plotStuff
     print(fig1,'EFITgeometry_testFig1','-dpdf')
     print(fig3,'EFITgeometry_testFig3','-dpdf')
     
+end
+
+if saveSeparatrix
+
+  separatrixFileName = 'EFITseparatrix.dat';
+  fileID = fopen(separatrixFileName,'w');
+  fprintf(fileID,'#Separatrix contour read from EFIT file %s\n',filename);
+  fprintf(fileID,'#R / m\t\tZ / m\n');
+  fclose(fileID);
+  dlmwrite(separatrixFileName,[efit.R_LCFS,efit.Z_LCFS],'delimiter','\t','precision',16,'-append');
+
 end

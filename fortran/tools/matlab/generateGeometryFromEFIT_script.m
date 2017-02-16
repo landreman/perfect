@@ -2,11 +2,11 @@
 % WARNING: this script assumes that Rbar=1m, Bbar=1T to compute normalized 'Hat' quantities
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-addpath(fullfile(pwd,'..','..','..','matlab'))% Add path to matlab directory to use functions from Matlab version of PERFECT
-addpath(fullfile(pwd))
+addpath(fullfile(pwd,'..','..','..','matlab'));% Add path to matlab directory to use functions from Matlab version of PERFECT
+addpath(fullfile(pwd));
 
 if exist('usePath')
-  cd(usePath)
+  cd(usePath);
 end
 
 inputFileID = fopen(strcat(pwd,'/input.namelist'));
@@ -78,7 +78,10 @@ end
 fclose(inputFileID);
 
 % Options for EFIT geometry reading
-% .mat file must contain EFITFilename, topCropZ, bottomCropZ, innerCropR, outerCropR, polynomialFitDegreeForSmoothingEFITInPsi, numFourierModesInThetaToKeepInEFITGeometry and plotStuff
+% .mat file must contain EFITFilename, topCropZ, bottomCropZ, innerCropR, outerCropR, polynomialFitDegreeForSmoothingEFITInPsi and numFourierModesInThetaToKeepInEFITGeometry
+% Optionally contain plotStuff and saveSeparatrix, which will overwrite the default values given here
+plotStuff = false;
+saveSeparatrix = false;
 EFITOptions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -143,7 +146,7 @@ end
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, ZData, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff);
+[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, ZData, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';

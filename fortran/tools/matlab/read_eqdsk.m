@@ -33,7 +33,7 @@ out.switch=fscanf(fid,'%i5');
 %end
 
 % box size
-out.nrbox=fscanf(fid,'%5i',1)		% number of R points
+out.nrbox=fscanf(fid,'%5i',1);		% number of R points
 out.nzbox=fscanf(fid,'%5i',1);	% number of Z points
 
 % first line
@@ -41,7 +41,7 @@ out.rboxlength=fscanf(fid,'%e',1);	% bow width
 out.zboxlength=fscanf(fid,'%e',1);	% box height
 out.R0EXP=fscanf(fid,'%e',1);	% Normalizing radius in CHEASE
 out.rboxleft=fscanf(fid,'%e',1);	% left position of the R grid
-fscanf(fid,'%e',1); % nothing
+out.zboxshift=fscanf(fid,'%e',1); % vertical displacement of the centre of the Z grid
 
 % second line
 out.Raxis=fscanf(fid,'%e',1);	% Raxis
@@ -93,7 +93,7 @@ out.Z_limits=tmp(2:2:end);
 
 % RZ grid for psi
 out.R_grid=linspace(out.rboxleft,out.rboxleft+out.rboxlength,out.nrbox);
-out.Z_grid=linspace(-out.zboxlength/2,out.zboxlength/2,out.nzbox);
+out.Z_grid=out.zboxshift+linspace(-out.zboxlength/2,out.zboxlength/2,out.nzbox);
 
 
 % psi grid for radial profiles
