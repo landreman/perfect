@@ -139,6 +139,7 @@ if plotStuff
     hold on
     plot(efit.Raxis,efit.Zaxis,'xk')
     plot(efit.R_LCFS,efit.Z_LCFS,'k')
+    axis equal
     xlabel('R (m)')
     ylabel('Z (m)')
     title('\psi_N')
