@@ -151,6 +151,9 @@ contains
        
        allocate(indices(Nx))
 
+       allocate(indices2(Nx))
+
+
        ! Convert the PETSc vector into a normal Fortran array:
        call VecGetArrayF90(solnOnProc0, solnArray, ierr)
        CHKERRQ(ierr)

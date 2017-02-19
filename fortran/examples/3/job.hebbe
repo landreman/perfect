@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH -A C3SE2016-1-10
+#SBATCH -A SNIC2016-1-161
 #SBATCH -p hebbe
 #SBATCH -J 3_test_perfect
 #SBATCH -N 1
