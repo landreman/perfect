@@ -134,12 +134,12 @@ module globalVariables
        sourceConstraints, RHSFromFile, extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
        miscSources, &
        constantSourcesVStructure, constantSourcesThetaStructure, &
-       speciesIndepGConstraints, speciesIndepSourcesVStructure, speciesIndepSourcesThetaStructure, &
-       speciesIndepSourcesSpeciesStructure
+       speciesIndepGConstraints, speciesIndepRHSFromFile, &
+       speciesIndepSourcesVStructure, speciesIndepSourcesThetaStructure, speciesIndepSourcesSpeciesStructure
   PetscScalar, dimension(maxNsources) :: miscSourcesStrength
   character (len=100), dimension(maxNsources) :: sourceConstraintsFilenames
   character (len=100), dimension(maxNsources) :: constantSourcesFilenames
-
+  character (len=100), dimension(maxNsources) :: speciesIndepFilenames 
   PetscScalar :: sourcePoloidalVariationStrength
   PetscScalar :: sourcePoloidalVariationPhase
 
@@ -157,6 +157,7 @@ module globalVariables
 
   PetscScalar, dimension(:,:,:), allocatable :: constantSourceProfile
 
+  PetscScalar, dimension(:,:), allocatable :: speciesIndepRHS
 
   ! this is used to write the out the source
   PetscScalar, dimension(:,:,:), allocatable :: sourceProfile

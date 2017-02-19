@@ -108,7 +108,7 @@ contains
        end do
     end do
 
-    if (NextraSources > 0) then
+    if (NextraSources > 0 .or. NspeciesIndepSources > 0) then
        allocate(this_sourceConstraintsRHS(NEnforcedPsi))
     end if
     
@@ -130,6 +130,28 @@ contains
        end do
     end do
 
+    
+    do iextraSources = 1,NspeciesIndepSources
+       ! Add the RHS of the constraint on species indep g moments
+       ! We do not care about boundaries except possibly through the enforced ipsi parameters.
+       select case(speciesIndepGConstraints(iextraSources))
+       case(1)
+          this_sourceConstraintsRHS = -speciesIndepRHS(iextraSources,:)
+       case(2)
+          this_sourceConstraintsRHS = -speciesIndepRHS(iextraSources,:)
+       case default
+          print *,"Error! Invalid sourceConstraints. Currently supported values are: 1,2."
+          stop
+       end select
+       do ipsi =1, Npsi
+          index = getIndexSpeciesIndepSources(iextraSources,ipsi)
+          call VecSetValue(rhs, index, this_sourceConstraintsRHS(ipsi), ADD_VALUES, ierr) 
+       end do
+    end do
+
+    
+    
+    
     if (NconstantSources > 0) then
        allocate(constantSourceXPart(Nx))
        allocate(constantSourceThetaPart(Ntheta))

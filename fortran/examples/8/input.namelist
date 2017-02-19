@@ -151,7 +151,12 @@
   ! and options for resulting extra sources.
   ! vectors of any number of entries, including no entries (empty line)
   speciesIndepGConstraints = 1
-  ! 1: j_r = 0
+  ! 1: j_r = RHS
+  ! 1: Z_i Gamma_r,i = RHS
+  speciesIndepRHSFromFile = 0 
+  ! 0: RHS is zero
+  ! 1: RHS is read from file below
+  speciesIndepFilenames = "no"
   speciesIndepSourcesVStructure = 3
   ! 1: particle source
   ! 2: heat source

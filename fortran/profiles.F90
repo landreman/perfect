@@ -122,6 +122,8 @@ contains
       
       allocate(constantSourceProfile(NconstantSources,Nspecies,Npsi))
 
+      allocate(speciesIndepRHS(NspeciesIndepSources,Npsi))
+      
       allocate(speciesIndepSourceThetaPart(NspeciesIndepSources,Ntheta))
       allocate(speciesIndepSourceThetaPartFSA(NspeciesIndepSources,NEnforcedPsi))
       allocate(speciesIndepSourceSpeciesPart(NspeciesIndepSources,Nspecies))
@@ -150,6 +152,32 @@ contains
             
          end select
       end do
+
+      do i = 1,NspeciesIndepSources 
+         select case (speciesIndepRHSFromFile(i))
+         case(0)
+            ! constraint is zero
+            speciesIndepRHS(i,:) = zero
+         case(1)
+            ! read RHS from file
+            ! Create groupname to be read
+            allocate(temp_RHS(NEnforcedPsi))
+            write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+            ! Open input file
+            call openInputFile(speciesIndepFilenames(i),HDF5Groupname)
+            
+            call readVariable(temp_RHS, "speciesIndepRHS")
+            speciesIndepRHS(i,:) = temp_RHS
+            call closeInputFile()
+            deallocate(temp_RHS)
+      
+         case default
+            print *,"Error! Invalid setting for speciesIndepRHSFromFile. Suppoted values: 0,1." 
+            stop
+            
+         end select
+      end do
+
 
       do i = 1,NconstantSources 
          ! read charge source from file

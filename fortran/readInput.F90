@@ -36,7 +36,8 @@ contains
          gConstraints, sourcesVStructure, sourcesThetaStructure, &
          sourceConstraints, RHSFromFile, sourceConstraintsFilenames, &
          extraSourcesVStructure, extraSourcesThetaStructure,extraSourcesSpeciesStructure, &
-         speciesIndepGConstraints, speciesIndepSourcesVStructure, speciesIndepSourcesThetaStructure, &
+         speciesIndepGConstraints, speciesIndepRHSFromFile, speciesIndepFilenames, &
+         speciesIndepSourcesVStructure, speciesIndepSourcesThetaStructure, &
          speciesIndepSourcesSpeciesStructure, &
          miscSources, miscSourcesStrength, &
          constantSourcesVStructure, constantSourcesThetaStructure, constantSourcesFilenames
@@ -76,6 +77,7 @@ contains
     sourcesThetaStructure = sourcesNotInitialized
 
     speciesIndepGConstraints = sourcesNotInitialized
+    speciesIndepRHSFromFile = sourcesNotInitialized
     speciesIndepSourcesVStructure = sourcesNotInitialized
     speciesIndepSourcesThetaStructure = sourcesNotInitialized
     speciesIndepSourcesSpeciesStructure = sourcesNotInitialized
@@ -97,6 +99,7 @@ contains
 
     do i=1,maxNsources
        sourceConstraintsFilenames = filenameNotInitialized
+       speciesIndepFilenames = filenameNotInitialized
        constantSourcesFilenames = filenameNotInitialized
     end do
 
@@ -296,6 +299,32 @@ contains
        end if
     end do
 
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (speciesIndepRHSFromFile(i) == sourcesNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+    
+    if (NsourcesTemp /= NspeciesIndepSources) then
+       print *,"Error: number of speciesIndepRHSFromFile differs from the number of species independent sources."
+       stop
+    end if
+
+    NsourcesTemp = maxNsources
+    do i=1,maxNsources
+       if (speciesIndepFilenames(i) == filenameNotInitialized) then
+          NsourcesTemp = i-1
+          exit
+       end if
+    end do
+
+    if (NsourcesTemp /= NspeciesIndepSources) then
+       print *,"Error: number of speciesIndepFilenames differs from the number of species independent sources."
+       stop
+    end if
+    
     NsourcesTemp = maxNsources
     do i=1,maxNsources
        if (speciesIndepSourcesVStructure(i) == sourcesNotInitialized) then

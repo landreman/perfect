@@ -139,7 +139,7 @@ contains
     
     select case(speciesIndepGConstraints(isources))
     case(1)
-       ! Enforce j_r = 0
+       ! Enforce j_r = RHS
        NL = 2
        allocate(L(NL))
        allocate(constraintXandLPart(NL,Nx))
@@ -158,9 +158,31 @@ contains
        do ipsi = 1,Npsi
           constraintPsiAndThetaPart(:,ipsi) = dBHatdtheta(:,ipsi) / (BHat(:,ipsi)**3)*thetaWeights
        end do
-    
+    case(2)
+       ! Enforce Z_i Gamma_i,r = RHS
+       NL = 2
+       allocate(L(NL))
+       allocate(constraintXandLPart(NL,Nx))
+       
+       
+       L= (/ 0, 2 /)
+       constraintXandLPart(1,:) = (8/three) * xWeights*x2*x2 !L=0
+       constraintXandLPart(2,:) = (four/15) * xWeights*x2*x2 !L=2
+       
+       do ispecies = 1,Nspecies
+          ! extra charges since we want Z Gamma
+          if (ispecies == 1) then
+             constraintPsiAndSpeciesPart(ispecies,:) = &
+                  -masses(ispecies)  * IHat * ((THats(ispecies,:)/masses(ispecies)) ** (5/two))
+          else
+             constraintPsiAndSpeciesPart(ispecies,:) = zero
+          end if
+       end do
+       do ipsi = 1,Npsi
+          constraintPsiAndThetaPart(:,ipsi) = dBHatdtheta(:,ipsi) / (BHat(:,ipsi)**3)*thetaWeights
+       end do
     case default
-       print *,"Error! Invalid speciesIndepGConstraints. 1 implemented. "
+       print *,"Error! Invalid speciesIndepGConstraints. 1,2 implemented. "
        stop
     end select
     
