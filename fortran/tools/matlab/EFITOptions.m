@@ -7,4 +7,5 @@ outerCropR = 5.0;
 smoothInPsi = true;
 polynomialFitDegreeForSmoothingEFITInPsi = 4;
 numFourierModesInThetaToKeepInEFITGeometry = 5;
-plotStuff = false;
+plotStuff = false; % optional variable
+saveSeparatrix = false; % optional variable
