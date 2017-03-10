@@ -135,7 +135,8 @@ end
 if plotStuff
     fig0 = figure('Visible','off');
     %contour(efit.R_grid, efit.Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
-    contour(efit.R_grid, efit.Z_grid, (efit.psi-efit.psiaxis)/efit.psiedge, linspace(.01,1.1,110))
+    %contour(efit.R_grid, efit.Z_grid, (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis), linspace(.01,1.1,1.1*N))
+    contour(efit.R_grid, efit.Z_grid, psiN2D, linspace(.01,1.1,1.1*N))
     hold on
     plot(efit.Raxis,efit.Zaxis,'xk')
     plot(efit.R_LCFS,efit.Z_LCFS,'k')
