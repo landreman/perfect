@@ -1,0 +1,5 @@
+#!/bin/bash
+
+batch perfect > output.log 2>error.log
+
+exit 0

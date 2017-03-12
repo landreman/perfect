@@ -1,6 +1,6 @@
-function [thetaSurfs, BSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, as, R0, B0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, plotStuff)
+function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurfs, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix)
 
-% 'BSurfs' and 'B0' should have units of Tesla.
+% 'BPSurfs' and 'B0' should have units of Tesla.
 % Both 'as' and 'R0' should have units of meters.
 % 'BDotGradThetaSurfs' should have units of Tesla / meters.
 
@@ -14,6 +14,7 @@ efit = read_eqdsk(filename);
 
 psiN = (efit.psi_grid-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
 psiN2D = (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
+psi0 = (efit.psiedge-efit.psiaxis); % Needed to set psiAHat for PERFECT
 
 qSurfs = interp1(psiN, efit.q, desiredPsiNs, 'spline');
 ISurfs = interp1(psiN, efit.T, desiredPsiNs, 'spline');
@@ -21,6 +22,8 @@ ISurfs = interp1(psiN, efit.T, desiredPsiNs, 'spline');
 valueForCropping = max(max(psiN2D));
 psiN2D(efit.Z_grid > topCropZ, :) = valueForCropping;
 psiN2D(efit.Z_grid < bottomCropZ, :) = valueForCropping;
+psiN2D(:, efit.R_grid < innerCropR) = valueForCropping;
+psiN2D(:, efit.R_grid > outerCropR) = valueForCropping;
 
 R0 = efit.Raxis;
 Z0 = efit.Zaxis;
@@ -51,12 +54,17 @@ dthetadR = -(Z2D-Z0) ./ hypotenuse;
 
 N = numel(desiredPsiNs);
 thetaSurfs = cell(N,1);
-BSurfs = cell(N,1);
+BPSurfs = cell(N,1);
+RSurfs = cell(N,1);
+ZSurfs = cell(N,1);
 BDotGradThetaSurfs = cell(N,1);
 Rss = cell(N,1);
 Zss = cell(N,1);
 as = zeros(N,1);
 
+BDotGradTheta = BR .* dthetadR + BZ .* dthetadZ;
+%bDotGradTheta = BDotGradTheta ./ B;
+    
 for i=1:N
     desiredPsiN = desiredPsiNs(i);
     c = contourc(efit.R_grid, efit.Z_grid, psiN2D, [desiredPsiN, desiredPsiN]);
@@ -74,47 +82,72 @@ for i=1:N
     Rss{i} = Rs;
     Zss{i} = Zs;
     
-    BDotGradTheta = BR .* dthetadR + BZ .* dthetadZ;
-    %bDotGradTheta = BDotGradTheta ./ B;
-    
-    thetaSurf = interp2(R, Z, theta, Rs, Zs);
-    BSurf = interp2(R, Z, B, Rs, Zs);
-    BDotGradThetaSurf = interp2(R, Z, BDotGradTheta, Rs, Zs);
+    %thetaSurf = interp2(R, Z, theta, Rs, Zs,'spline');
+    % Recalculate thetas from the Rs and Zs on the contour instead of interpolating.
+    % Gives better results when smoothing/interpolating onto poloidal angle grid later
+    thetaSurf = atan2(Zs-efit.Zaxis, Rs-efit.Raxis);
+
+    BPSurf = interp2(R, Z, BPol, Rs, Zs,'spline');
+    BDotGradThetaSurf = interp2(R, Z, BDotGradTheta, Rs, Zs,'spline');
     
     % Sometimes, a point can fall in the tiny sliver of the R-Z plane where theta decreases
     % from 2pi back to 0 as you move clockwise, instead of the main region
     % where theta increases as you move clockwise. We must remove these
     % points.
     thetaIncreasing = (thetaSurf - circshift(thetaSurf, [0,1])) > 0;
+    % Written for theta (mostly) decreasing around the contour, if theta generally increases, then need to take the complement of theteIncreasing
+    if sum(thetaIncreasing)>numel(thetaIncreasing)/2.
+      thetaIncreasing = ~thetaIncreasing;
+    end
     % One such point will always be present, and if there is only 1 point it is not a problem,
     % but if there are more than 1 such point, remove all but the last:
     thetaIncreasing(find(thetaIncreasing,1,'last')) = false;
     thetaSurf(thetaIncreasing) = [];
-    BSurf(thetaIncreasing) = [];
+    BPSurf(thetaIncreasing) = [];
     BDotGradThetaSurf(thetaIncreasing) = [];
+    Rs(thetaIncreasing) = [];
+    Zs(thetaIncreasing) = [];
     
     % Make 3 copies:
     thetaSurf = [thetaSurf-2*pi, thetaSurf, thetaSurf+2*pi];
-    BSurf = [BSurf, BSurf, BSurf];
+    BPSurf = [BPSurf, BPSurf, BPSurf];
     BDotGradThetaSurf = [BDotGradThetaSurf, BDotGradThetaSurf, BDotGradThetaSurf];
     RSurf = [Rs, Rs, Rs];
+    ZSurf = [Zs, Zs, Zs];
     
     % Sort:
     [thetaSurf, permutation] = sort(thetaSurf');
-    BSurf = BSurf(permutation)';
+    BPSurf = BPSurf(permutation)';
     BDotGradThetaSurf = BDotGradThetaSurf(permutation)';
     RSurf = RSurf(permutation)';
+    ZSurf = ZSurf(permutation)';
     
     %bSurf = BSurf / abs(efit.B0EXP);
     
     thetaSurfs{i} = thetaSurf;
-    BSurfs{i} = BSurf;
+    BPSurfs{i} = BPSurf;
+    RSurfs{i} = RSurf;
+    ZSurfs{i} = ZSurf;
     BDotGradThetaSurfs{i} = BDotGradThetaSurf;
     as(i) = (max(Rs)-min(Rs))/2;
 end
 
 if plotStuff
-    figure(1)
+    fig0 = figure('Visible','off');
+    %contour(efit.R_grid, efit.Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
+    %contour(efit.R_grid, efit.Z_grid, (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis), linspace(.01,1.1,1.1*N))
+    contour(efit.R_grid, efit.Z_grid, psiN2D, linspace(.01,1.1,1.1*N))
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
+    axis equal
+    xlabel('R (m)')
+    ylabel('Z (m)')
+    title('\psi_N')
+    print(fig0,'EFITgeometry_testFig0','-dpdf')
+
+    %fig1 = figure(1)
+    fig1 = figure('Visible','off');
     clf
     
     numRows=3;
@@ -124,11 +157,12 @@ if plotStuff
     numContours=20;
     contourf(efit.R_grid, efit.Z_grid, psiN2D, numContours)
     hold on
-    contour(efit.R_grid, efit.Z_grid, psiN2D, [1, 1],'Color','r')
+    %contour(efit.R_grid, efit.Z_grid, psiN2D, [1, 1],'Color','r')
     for i=1:N
         plot(Rss{i},Zss{i},':c')
     end
     plot(efit.Raxis, efit.Zaxis,'xw')
+    plot(efit.R_LCFS,efit.Z_LCFS,'r')
     axis equal
     colorbar
     xlabel('R (m)')
@@ -183,7 +217,8 @@ if plotStuff
     colorbar
     title('B.\nabla\theta (T/m)')
     
-    figure(3)
+    %fig3 = figure(3)
+    fig3 = figure('visible','off');
     clf
     
     numRows=2;
@@ -206,11 +241,11 @@ if plotStuff
     subplot(numRows,numCols,1)
     for i=1:N
         colorNum = mod(i-1,numColors)+1;
-        plot(thetaSurfs{i}, BSurfs{i},'.-','Color',colors(colorNum,:))
+        plot(thetaSurfs{i}, BPSurfs{i},'.-','Color',colors(colorNum,:))
         hold on
     end
     xlabel('\theta')
-    ylabel('B (T)')
+    ylabel('B_poloidal (T)')
     
     subplot(numRows,numCols,2)
     for i=1:N
@@ -220,6 +255,21 @@ if plotStuff
     end
     xlabel('\theta')
     ylabel('B.\nabla\theta (T/m)')
+
+    %waitfor(fig1);
+    %waitfor(fig3);
+    print(fig1,'EFITgeometry_testFig1','-dpdf')
+    print(fig3,'EFITgeometry_testFig3','-dpdf')
     
 end
 
+if saveSeparatrix
+
+  separatrixFileName = 'EFITseparatrix.dat';
+  fileID = fopen(separatrixFileName,'w');
+  fprintf(fileID,'#Separatrix contour read from EFIT file %s\n',filename);
+  fprintf(fileID,'#R / m\t\tZ / m\n');
+  fclose(fileID);
+  dlmwrite(separatrixFileName,[efit.R_LCFS,efit.Z_LCFS],'delimiter','\t','precision',16,'-append');
+
+end
