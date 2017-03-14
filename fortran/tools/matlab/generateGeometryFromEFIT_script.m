@@ -294,7 +294,13 @@ fprintf('%s%f%s%f%s\n\n','The smallest minor radius is ',min(as),...
 
 geometryFilePath = strcat(pwd,'/',geometryFilename);
 group = sprintf('%s%i%s%i%s','/Npsi',Npsi,'Ntheta',Ntheta,'/');
-hdf5write(geometryFilePath, strcat(group,'psiMin'), psiMin)
+if exist(geometryFilePath,'file') == 2
+  % File exsists, so append
+  hdf5write(geometryFilePath, strcat(group,'psiMin'), psiMin, 'WriteMode', 'append')
+else
+  % Need to create file
+  hdf5write(geometryFilePath, strcat(group,'psiMin'), psiMin, 'WriteMode', 'overwrite')
+end
 hdf5write(geometryFilePath, strcat(group,'psiMax'), psiMax, 'WriteMode', 'append')
 h5create(geometryFilePath,strcat(group,'BHat'),[Ntheta,Npsi])
 h5write(geometryFilePath,strcat(group,'BHat'),BHat)
@@ -318,6 +324,6 @@ h5write(geometryFilePath,strcat(group,'RHat'),RHat)
 h5create(geometryFilePath,strcat(group,'ZHat'),[Ntheta,Npsi])
 h5write(geometryFilePath,strcat(group,'ZHat'),ZHat)
 hdf5write(geometryFilePath,strcat(group,'psi0'),psi0, 'WriteMode', 'append')
-hdf5write(geometryFilePath, 'EFITFileName', EFITFilename, 'WriteMode', 'append')
+hdf5write(geometryFilePath, strcat(group,'EFITFileName'), EFITFilename, 'WriteMode', 'append')
 
 quit
