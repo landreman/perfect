@@ -29,6 +29,24 @@ R0 = efit.Raxis;
 Z0 = efit.Zaxis;
 B0 = efit.B0EXP;
 
+N = numel(desiredPsiNs);
+
+if plotStuff
+    fig0 = figure('Visible','off');
+    %contour(efit.R_grid, efit.Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
+    %contour(efit.R_grid, efit.Z_grid, (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis), linspace(.01,1.1,1.1*N))
+    contour(efit.R_grid, efit.Z_grid, psiN2D, linspace(.01,1.1,1.1*N))
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
+    axis equal
+    xlabel('R (m)')
+    ylabel('Z (m)')
+    title('\psi_N')
+    print(fig0,'EFITgeometry_testFig0','-dpdf')
+end
+disp('done initial plotStuff')
+
 scheme = 12;
 [R, ~, ddR, d2dR2] = differentiationMatricesForUniformGrid(efit.nrbox, efit.rboxleft, efit.rboxleft+efit.rboxlength, scheme);
 [Z, ~, ddZ, d2dZ2] = differentiationMatricesForUniformGrid(efit.nzbox, -efit.zboxlength/2, efit.zboxlength/2, scheme);
@@ -52,7 +70,6 @@ hypotenuse = (R2D-R0).^2 + (Z2D-Z0).^2;
 dthetadZ = (R2D-R0) ./ hypotenuse;
 dthetadR = -(Z2D-Z0) ./ hypotenuse;
 
-N = numel(desiredPsiNs);
 thetaSurfs = cell(N,1);
 BPSurfs = cell(N,1);
 RSurfs = cell(N,1);
@@ -133,19 +150,6 @@ for i=1:N
 end
 
 if plotStuff
-    fig0 = figure('Visible','off');
-    %contour(efit.R_grid, efit.Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
-    %contour(efit.R_grid, efit.Z_grid, (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis), linspace(.01,1.1,1.1*N))
-    contour(efit.R_grid, efit.Z_grid, psiN2D, linspace(.01,1.1,1.1*N))
-    hold on
-    plot(efit.Raxis,efit.Zaxis,'xk')
-    plot(efit.R_LCFS,efit.Z_LCFS,'k')
-    axis equal
-    xlabel('R (m)')
-    ylabel('Z (m)')
-    title('\psi_N')
-    print(fig0,'EFITgeometry_testFig0','-dpdf')
-
     %fig1 = figure(1)
     fig1 = figure('Visible','off');
     clf

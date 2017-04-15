@@ -4,9 +4,6 @@
 
 outputFilename = "perfectOutput.h5"
 
-hideRepeatedScales = True
-#hideRepeatedScales = False
-
 import matplotlib
 #import matplotlib.pyplot as plt
 import h5py
@@ -34,6 +31,9 @@ if makePDF:
    matplotlib.rc('font', **font)
    matplotlib.rc('lines',markeredgewidth=0,markersize=3,linewidth=0.5)
    matplotlib.rc('axes',linewidth=0.7)
+   hideRepeatedScales = True
+else:
+    hideRepeatedScales = False
 
 import matplotlib.pyplot as plt
 
