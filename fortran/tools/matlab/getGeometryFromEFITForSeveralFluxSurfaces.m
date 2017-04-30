@@ -33,9 +33,9 @@ N = numel(desiredPsiNs);
 
 if plotStuff
     fig0 = figure('Visible','off');
-    %contour(efit.R_grid, efit.Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
+    contour(efit.R_grid, efit.Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
     %contour(efit.R_grid, efit.Z_grid, (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis), linspace(.01,1.1,1.1*N))
-    contour(efit.R_grid, efit.Z_grid, psiN2D, linspace(.01,1.1,1.1*N))
+    %contour(efit.R_grid, efit.Z_grid, psiN2D, linspace(.01,1.1,1.1*N))
     hold on
     plot(efit.Raxis,efit.Zaxis,'xk')
     plot(efit.R_LCFS,efit.Z_LCFS,'k')
@@ -159,7 +159,8 @@ if plotStuff
     
     subplot(numRows,numCols,[1, (numCols+1)])
     numContours=20;
-    contourf(efit.R_grid, efit.Z_grid, psiN2D, numContours)
+    %contourf(efit.R_grid, efit.Z_grid, psiN2D, numContours)
+    contourf(efit.R_grid, efit.Z_grid, efit.psi, numContours)
     hold on
     %contour(efit.R_grid, efit.Z_grid, psiN2D, [1, 1],'Color','r')
     for i=1:N
