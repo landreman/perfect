@@ -535,7 +535,8 @@ for runNum in range(numRunsInScan):
     if geometryToUse == 4:
         # There is an input geometry file that we should copy
         geometryFileName = readVariable("geometryFileName","string",required=True).strip().replace("\"","")
-        shutil.copy(os.path.join("..",geometryFileName),".")
+        #shutil.copy(os.path.join("..",geometryFileName),".")
+        os.symlink(os.path.join("..",geometryFileName),geometryFileName)
     elif geometryToUse == 3:
         # Need to use scripts to make geometry file from EFIT file
         shutil.copy(os.path.join("..","EFITOptions.m"),".")

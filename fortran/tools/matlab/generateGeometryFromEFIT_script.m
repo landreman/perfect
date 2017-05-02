@@ -300,6 +300,7 @@ if exist(geometryFilePath,'file') == 2
 else
   hdf5write(geometryFilePath, strcat(group,'psiMin'), psiMin) % create file
 end
+end
 hdf5write(geometryFilePath, strcat(group,'psiMax'), psiMax, 'WriteMode', 'append')
 h5create(geometryFilePath,strcat(group,'BHat'),[Ntheta,Npsi])
 h5write(geometryFilePath,strcat(group,'BHat'),BHat)

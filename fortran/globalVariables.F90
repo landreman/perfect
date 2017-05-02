@@ -205,6 +205,7 @@ module globalVariables
   integer :: psiDerivativeScheme
   integer :: thetaDerivativeScheme
   integer :: xDerivativeScheme=2
+  logical :: pointAtX0 = .false. 
 
   ! control treatment of constraints and sources at boundary
 
