@@ -85,6 +85,9 @@ for directory in directories:
 
     try:
         finished = f["didItConverge"]
+        if finished is not 1:
+            print "Run in directory "+directory+" does not appear to have finished successfully."
+            continue
     except KeyError:
         print "Run in directory "+directory+" does not appear to have finished."
         continue
@@ -252,7 +255,7 @@ else:
 ##ADDED BY AM 2016-04 ##
 
 ##SINCE Phi1Hat CAN BE LARGE WE ONLY PLOT IT FOR THE MIN, MAX AND BASE CASE OF EACH SCAN
-#PlotPhi1Bool = False
+PlotPhi1Bool = False
 #if includePhi1: 
 #   YesOrNo = raw_input("Do you want to make a plot of Phi1? [n (default) / y]: ")
 #   if YesOrNo == "y" or YesOrNo == "Y" or YesOrNo.lower() == "yes":
