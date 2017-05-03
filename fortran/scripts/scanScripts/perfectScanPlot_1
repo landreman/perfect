@@ -84,8 +84,8 @@ for directory in directories:
         continue
 
     try:
-        finished = f["didItConverge"]
-        if finished is not 1:
+        finished = f["didItConverge"][()]
+        if finished != 1:
             print "Run in directory "+directory+" does not appear to have finished successfully."
             continue
     except KeyError:
