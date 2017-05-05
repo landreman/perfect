@@ -63,7 +63,7 @@ print "Nthetas:",Nthetas
 #####################################################################################################################3
 
 #try:
-NpsiPerDiameter = readVariable("Npsi","float",required=False)
+NpsiPerDiameter = readVariable("NpsiPerDiameter","float",required=False)
 if NpsiPerDiameter != None:
     baseValuePresent = True
 #except:
@@ -71,6 +71,10 @@ else:
     # Default
     NpsiPerDiameter = 0
     baseValuePresent = False
+psiDiameter = readVariable("psiDiameter","float",required=True)
+Npsi = int(round(NpsiPerDiameter*psiDiameter))
+if Npsi == 0:
+    Npsi = 1
 
 #try:
 NpsiPerDiameterMaxFactor = readScanVariable("NpsiPerDiameterMaxFactor","float",required=False)
