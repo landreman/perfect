@@ -39,6 +39,7 @@ contains
     
     Vec :: solnOnProc0
     PetscScalar :: speciesFactor
+    PetscScalar :: m32
     VecScatter :: VecScatterContext
     PetscScalar, pointer :: solnArray(:)
     PetscScalar, dimension(:), allocatable :: solnAtL
@@ -138,21 +139,22 @@ contains
        CHKERRQ(ierr)
 
        do ispecies = 1,numSpecies
+          m32 = sqrt(masses(ispecies))*masses(ispecies) ! Conversion factor due to species-dependent normalization
           densityFactors = Delta*4*pi*THats(ispecies,:)*sqrtTHats(ispecies,:) &
-               / (nHats(ispecies,:)*masses(ispecies)*sqrt(masses(ispecies)))
-          flowFactors = 4*pi/(three*nHats(ispecies,:)) * ((THats(ispecies,:)/masses(ispecies)) ** 2)
-          pressureFactors = Delta*8*pi/(three*nHats(ispecies,:)) * ((THats(ispecies,:)/masses(ispecies)) ** (1.5d+0))
-          particleFluxFactors = -masses(ispecies) / charges(ispecies) * IHat * ((THats(ispecies,:)/masses(ispecies)) ** (5/two))
-          momentumFluxFactors = -masses(ispecies) / charges(ispecies) * IHat*IHat * ((THats(ispecies,:)/masses(ispecies)) ** 3)
-          heatFluxFactors = -masses(ispecies) / charges(ispecies) * THats(ispecies,:) &
-               * IHat * ((THats(ispecies,:)/masses(ispecies)) ** (5/two))
-          pPerpTermInVpFactors = (8*pi/3)*(THats(ispecies,:)/masses(ispecies))**(5/two)
+               / nHats(ispecies,:)
+          flowFactors = 4*pi/(three*nHats(ispecies,:)) * THats(ispecies,:)**2 / sqrt(masses(ispecies))
+          pressureFactors = Delta*8*pi/(three*nHats(ispecies,:)) * THats(ispecies,:) ** (1.5d+0)
+          particleFluxFactors = -1d0 / charges(ispecies) * IHat * THats(ispecies,:) ** (5/two)
+          momentumFluxFactors = -1d0 / charges(ispecies) / sqrt(masses(ispecies)) * IHat*IHat * THats(ispecies,:)**3
+          heatFluxFactors = -1d0 / charges(ispecies) * THats(ispecies,:) &
+               * IHat * THats(ispecies,:)**(5/two)
+          pPerpTermInVpFactors = (8*pi/3)*m32*(THats(ispecies,:)/masses(ispecies))**(5/two)
           !       pPerpTermInKThetaFactors = THat ** (5/two)
 
           ! The final elements of the solution vector correspond to the source profiles:
           do ipsi=lowestEnforcedIpsi,highestEnforcedIpsi
              do isources = 1,Nsources
-                sourceProfile(isources,ispecies,ipsi - lowestEnforcedIpsi + 1) = solnArray(localMatrixSize*Npsi &
+                sourceProfile(isources,ispecies,ipsi - lowestEnforcedIpsi + 1) = m32 * solnArray(localMatrixSize*Npsi &
                      + (ipsi-lowestEnforcedIpsi)*numSpecies*Nsources + (ispecies-1)*Nsources + isources)
              end do
           end do
@@ -387,7 +389,7 @@ contains
             do ipsi = 1,Npsi
                indices = [(getIndex(ispecies,ix,L,thetaIndexForOutboard,ipsi), ix=min_x_for_L(L),Nx)]
                solnAtL(1:min_x_for_L(L)-1) = 0d0
-               solnAtL(min_x_for_L(L):Nx) = solnArray(indices+1)
+               solnAtL(min_x_for_L(L):Nx) = sqrt(masses(ispecies))*masses(ispecies) * solnArray(indices+1)
 
                do ixi = 1,NxiUniform
                   deltaFOutboard(ispecies,ipsi,:,ixi) = deltaFOutboard(ispecies,ipsi,:,ixi) + &
