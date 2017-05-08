@@ -835,6 +835,7 @@ contains
     PetscScalar :: temp, temp1, temp2, speciesFactor, speciesFactor2
     PetscScalar :: signOfPsiDot
     PetscScalar :: T32, sqrt_m
+    PetscScalar :: mRatio32 ! Mass conversion factor to account for species-dependent normalization
     integer :: i, j, ix, ix_row, ix_col, itheta, ipsi, L, ixMin, ixMinCol
     integer :: rowIndex, colIndex
     integer :: iSpeciesA, iSpeciesB
@@ -1082,10 +1083,11 @@ contains
           do iSpeciesA = 1,numSpecies
              sqrt_m = sqrt(masses(iSpeciesA))
              do iSpeciesB = 1,numSpecies
+                mRatio32 = sqrt(masses(iSpeciesB)/masses(iSpeciesA))*masses(iSpeciesB)/masses(iSpeciesA)
                 if (includeCollisionOperator .and. ((iSpeciesA == iSpeciesB .or. preconditioner_species==0) &
                      .or. whichMatrix==1)) then
                    ! Build M11
-                   M11 = -nu_r * CECD(iSpeciesA, iSpeciesB,:,:)
+                   M11 = -nu_r * mRatio32 * CECD(iSpeciesA, iSpeciesB,:,:)
                    if (iSpeciesA == iSpeciesB) then
                       do ix=1,Nx
                          M11(ix,ix) = M11(ix,ix) - nu_r * (-oneHalf*nuDHat(iSpeciesA,ix)*L*(L+1))
@@ -1101,7 +1103,8 @@ contains
                          do ix=1,Nx
                             ! The DKE normalization in perfect has an extra sqrt(m) compared to the normalization in SFINCS. Add the factor here:
                             M11(ix, :) = M11(ix,:) &
-                                 - nu_r * sqrt_m * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,ix,:,ipsi-ipsiMin+1) 
+                                 - nu_r * sqrt_m * mRatio32 &
+                                 * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,ix,:,ipsi-ipsiMin+1) 
                          end do
 
                          KWithoutThetaPart = M11
@@ -1117,7 +1120,7 @@ contains
                          call interpolationMatrix(NxPotentials, Nx, xPotentials, x*speciesFactor2, &
                               potentialsToFInterpolationMatrix, scheme, L)
                          
-                         speciesFactor = -nu_r * 3/(2*pi)*nHats(iSpeciesA,ipsi) &
+                         speciesFactor = -nu_r * mRatio32 * 3/(2*pi)*nHats(iSpeciesA,ipsi) &
                               * charges(iSpeciesA)*charges(iSpeciesA)*charges(iSpeciesB)*charges(iSpeciesB) &
                               / (THats(iSpeciesA,ipsi) * sqrt(THats(iSpeciesA,ipsi))) &
                               * THats(iSpeciesB,ipsi)*masses(iSpeciesA)/(THats(iSpeciesA,ipsi)*masses(iSpeciesB))
