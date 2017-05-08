@@ -55,7 +55,8 @@ contains
           do itheta = 1, Ntheta
              do ix = 1, Nx
 
-                stuffToAdd = masses(ispecies)*masses(ispecies) * nHats(ispecies,ipsi) * IHat(ipsi) &
+                !stuffToAdd = masses(ispecies)*masses(ispecies) * nHats(ispecies,ipsi) * IHat(ipsi) &
+                stuffToAdd = sqrt(masses(ispecies)) * nHats(ispecies,ipsi) * IHat(ipsi) &
                      * JHat(itheta,ipsi) * dBHatdtheta(itheta,ipsi) * x2(ix) * expx2(ix) &
                      /(2*pi*sqrtpi*charges(ispecies)*sqrtTHats(ispecies,ipsi)*psiAHatArray(ipsi) &
                      * (BHat(itheta,ipsi) ** 3)) &
