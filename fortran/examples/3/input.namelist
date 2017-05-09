@@ -274,7 +274,7 @@
   ! Tolerance used to define convergence of the Krylov solver.
   ! This parameter does not affect memory requirements but it does affect the
   ! time required for solution somewhat.
-  solverTolerance = 1d-5
+  solverTolerance = 1d-9
   solverToleranceMinFactor = 1d-1
   solverToleranceMaxFactor = 1
   solverToleranceNumRuns = 0
