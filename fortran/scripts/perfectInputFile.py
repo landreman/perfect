@@ -115,7 +115,8 @@ class perfectInput(object):
             try:
                 return self.inputfile[group][attr]
             except KeyError:
-                print "PerfectInputFile: Error: group: " + group + ", attribute: " + attr + " combination does not exist!"
+                if attr != "useGlobalTermMultiplier":
+                    print "PerfectInputFile: Error: group: " + group + ", attribute: " + attr + " combination does not exist!"
                 return None
         return getter
 

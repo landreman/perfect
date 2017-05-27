@@ -520,9 +520,13 @@ contains
     case(3)
        sourceSpeciesPart  = masses(1:Nspecies)**(1.5) &
        			 * nHats(:,1)/charges(1:Nspecies)
-   case(4)
+    case(4)
        sourceSpeciesPart = masses(1:Nspecies) &
-       			 * nHats(:,1)/charges(1:Nspecies) 
+            * nHats(:,1)/charges(1:Nspecies)
+    case(5)
+       sourceSpeciesPart = nHats(:,1)
+       sourceSpeciesPart(Nspecies) = 0
+   
     case default
        print *,"Error! Invalid speciesIndepSourcesSpeciesStructure. Currently supported values are: 0,1,2,3,4."
        stop

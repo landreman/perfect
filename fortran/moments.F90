@@ -313,34 +313,35 @@ contains
                * dBHatdtheta / (BHat * BHat * BHat)
 
           do itheta=1,Ntheta
-             pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
-             toroidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:) 
-             poloidalFlow(ispecies,itheta,:) = pPerpTermInVp(ispecies,itheta,:)
-             
-             toroidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
-                  *(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
-                  * (-BPHat(itheta,:)**2) * RHat(itheta,:) * toroidalFlow(ispecies,itheta,:)
-             poloidalFlow(ispecies,itheta,:)=(Delta/(2*psiAHat)) &
-                  *(masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:))&
-                  *BPHat(itheta,:)*IHat(:)* poloidalFlow(ispecies,itheta,:) 
+             ! parallel
+             toroidalFlow(ispecies,itheta,:) = (BTHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
+             poloidalFlow(ispecies,itheta,:) = (BPHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
 
-             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
-                  + (BTHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
-             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
-                  + (BPHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
-
-             toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -omega/(Delta*psiAHat)*dPhiHatdpsi &
-                  *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)**2*RHat(itheta,:))/(BHat(itheta,:)**2)
-             poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +omega/(Delta*psiAHat)*dPhiHatdpsi &
-                  *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)*IHat)/(BHat(itheta,:)**2)
-
-             !since we are not using that variable for anything else
+             ! diamagnetic and ExB
              temp = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
                   + (2*omega*charges(ispecies)/(Delta*THats(ispecies,:)))*dPhiHatdpsi
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
                   -THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*temp*BPHat(itheta,:)**2*RHat(itheta,:)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
                   +THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*temp*BPHat(itheta,:)*IHat(:)
+
+             if (.not. makeLocalApproximation) then
+                ! Add extra global terms
+                ! pressure gradient term
+                pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
+                toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) + &
+                     (Delta/(2*psiAHat)) * (masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
+                     * (-BPHat(itheta,:)**2) * RHat(itheta,:) * pPerpTermInVp(ispecies,itheta,:) 
+                poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) + &
+                     (Delta/(2*psiAHat)) * (masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
+                     * BPHat(itheta,:)*IHat(:)* pPerpTermInVp(ispecies,itheta,:)
+                ! ExB on the perturbed density
+                toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -omega/(Delta*psiAHat)*dPhiHatdpsi &
+                     *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)**2*RHat(itheta,:))/(BHat(itheta,:)**2)
+                poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +omega/(Delta*psiAHat)*dPhiHatdpsi &
+                     *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)*IHat)/(BHat(itheta,:)**2)
+             end if
+             
           end do
           
    !!$         if (psiDerivativeScheme == 0) then
