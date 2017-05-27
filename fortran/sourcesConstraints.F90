@@ -526,9 +526,11 @@ contains
     case(5)
        sourceSpeciesPart = nHats(:,1)
        sourceSpeciesPart(Nspecies) = 0
-   
+    case(6)
+       sourceSpeciesPart = nHats(:,1)
+       sourceSpeciesPart(Nspecies) = 0
     case default
-       print *,"Error! Invalid speciesIndepSourcesSpeciesStructure. Currently supported values are: 0,1,2,3,4."
+       print *,"Error! Invalid speciesIndepSourcesSpeciesStructure. Currently supported values are: 0,1,2,3,4,5,6."
        stop
     end select
 
