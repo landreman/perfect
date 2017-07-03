@@ -86,9 +86,11 @@ out.R_LCFS=tmp(1:2:end);
 out.Z_LCFS=tmp(2:2:end);
 
 % RZ limits
-tmp=fscanf(fid,'%e',out.nlimits*2);
-out.R_limits=tmp(1:2:end);
-out.Z_limits=tmp(2:2:end);
+if out.nlimits>0
+  tmp=fscanf(fid,'%e',out.nlimits*2);
+  out.R_limits=tmp(1:2:end);
+  out.Z_limits=tmp(2:2:end);
+end
 
 
 % RZ grid for psi
