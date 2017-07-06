@@ -9,3 +9,5 @@ polynomialFitDegreeForSmoothingEFITInPsi = 4;
 numFourierModesInThetaToKeepInEFITGeometry = 5;
 plotStuff = false; % optional variable
 saveSeparatrix = false; % optional variable
+extrapolateBeyondPsiN = 0.98
+extrapolatePsiNInterval = .01

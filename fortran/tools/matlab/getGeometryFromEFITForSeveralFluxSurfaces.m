@@ -1,4 +1,4 @@
-function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurfs, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix)
+function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurfs, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix, extrapolateBeyondPsiN, extrapolatePsiNInterval)
 
 % 'BPSurfs' and 'B0' should have units of Tesla.
 % Both 'as' and 'R0' should have units of meters.
@@ -6,7 +6,7 @@ function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurf
 
 % Good values for topCropZ and bottomCropZ for Alcator C-Mod are 0.4 and -0.4.
 
-if any(desiredPsiNs>1) || any(desiredPsiNs<0)
+if (any(desiredPsiNs>1) && extrapolateBeyondPsiN<0) || any(desiredPsiNs<0)
     error('All desired psi_N values must be between 0 and 1.')
 end
 
@@ -16,14 +16,62 @@ psiN = (efit.psi_grid-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
 psiN2D = (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
 psi0 = (efit.psiedge-efit.psiaxis); % Needed to set psiAHat for PERFECT
 
-qSurfs = interp1(psiN, efit.q, desiredPsiNs, 'spline');
-ISurfs = interp1(psiN, efit.T, desiredPsiNs, 'spline');
+if extrapolateBeyondPsiN>0
+  % extrapolate psiN along lines of constant poloidal angle theta
+  % in order to create closed flux surfaces for a buffer zone
 
-valueForCropping = max(max(psiN2D));
-psiN2D(efit.Z_grid > topCropZ, :) = valueForCropping;
-psiN2D(efit.Z_grid < bottomCropZ, :) = valueForCropping;
-psiN2D(:, efit.R_grid < innerCropR) = valueForCropping;
-psiN2D(:, efit.R_grid > outerCropR) = valueForCropping;
+  % create grids
+  nfiner = 5000;
+  nfinetheta = 5000;
+  [Rg,Zg] = meshgrid(efit.R_grid-efit.Raxis,efit.Z_grid-efit.Zaxis);
+  [theta_RZ,r_RZ] = cart2pol(Rg,Zg);
+  rmax = max(r_RZ(:));
+  % make theta grid be uniformly spaced between -pi and pi, including the points at -pi and pi and some extra points to make cubic interpolation OK around +-pi
+  %[theta,r] = meshgrid(linspace(-pi*(1-1/nfine),pi*(1-1/nfine),nfine),linspace(0,rmax,nfine));
+  %[theta,r] = meshgrid(linspace(-pi-2*2*pi/(nfine+1),pi+2*2*pi/(nfine+1),nfine+5),linspace(0,rmax,nfine));
+  [theta,r] = meshgrid(linspace(-pi-2*2*pi/(nfinetheta+1),pi+2*2*pi/(nfinetheta+1),nfinetheta+5),linspace(0,rmax,nfiner));
+  [R_rtheta,Z_rtheta] = pol2cart(theta,r);
+
+  % interpolate psiN onto r-theta grid
+  psiN2D_rtheta = interp2(Rg,Zg,psiN2D,R_rtheta,Z_rtheta,'cubic');
+
+  % extrapolate along constant theta lines
+  for itheta=1:nfinetheta+5
+    iextrap = find(psiN2D_rtheta(:,itheta)>extrapolateBeyondPsiN, 1)-1;
+    %igrad = find(psiN2D_rtheta(:,itheta)>(extrapolateBeyondPsiN-extrapolatePsiNInterval), 1)-1;
+    %if igrad<1
+    %  igrad=1;
+    %end
+    %psiN2D_rtheta((iextrap+1):end,itheta) = psiN2D_rtheta(iextrap,itheta) + (psiN2D_rtheta(iextrap,itheta)-psiN2D_rtheta(igrad,itheta))*(1:(nfiner-iextrap))/(iextrap-igrad);
+    thisinds = 1 : find(psiN2D_rtheta(:,itheta)>1,1)-1;
+    thispsiN = psiN2D_rtheta(thisinds,itheta);
+    thisr = r(thisinds,itheta);
+    r1 = interp1(thispsiN,thisr,extrapolateBeyondPsiN,'pchip');
+    r2 = interp1(thispsiN,thisr,extrapolateBeyondPsiN-extrapolatePsiNInterval,'pchip');
+    gradient = extrapolatePsiNInterval/(r1-r2);
+    psiN2D_rtheta((iextrap+1):end,itheta) = extrapolateBeyondPsiN + (r(iextrap+1:end,itheta)-r1)*gradient;
+  end
+
+  % interpolate back to R-Z grid
+  psiN2D = interp2(theta,r,psiN2D_rtheta,theta_RZ,r_RZ,'cubic');
+
+  % recalculate unnormalized psi, used for computing magnetic field components
+  efit.psi = (efit.psiedge-efit.psiaxis)*psiN2D+efit.psiaxis;
+  
+  % set I to constant in extrapolated region
+  iextrap2 = find(psiN>extrapolateBeyondPsiN,1)-1;
+  efit.T(iextrap2:end) = efit.T(iextrap2);
+
+else
+  valueForCropping = max(max(psiN2D));
+  psiN2D(efit.Z_grid > topCropZ, :) = valueForCropping;
+  psiN2D(efit.Z_grid < bottomCropZ, :) = valueForCropping;
+  psiN2D(:, efit.R_grid < innerCropR) = valueForCropping;
+  psiN2D(:, efit.R_grid > outerCropR) = valueForCropping;
+end
+
+qSurfs = interp1(psiN, efit.q, desiredPsiNs, 'pchip');
+ISurfs = interp1(psiN, efit.T, desiredPsiNs, 'pchip');
 
 R0 = efit.Raxis;
 Z0 = efit.Zaxis;
@@ -62,7 +110,7 @@ BZ = dpsidR./R2D;
 BR = -dpsidZ./R2D;
 
 BPol = sqrt(dpsidZ.^2 + dpsidR.^2)./ R2D;
-I2D = interp1(efit.psi_grid, efit.T, efit.psi,'spline',efit.T(end));
+I2D = interp1(efit.psi_grid, efit.T, efit.psi,'pchip',efit.T(end));
 BTor = I2D ./ R2D;
 
 B = sqrt(BPol.^2 + BTor.^2);
@@ -105,8 +153,8 @@ for i=1:N
     % Gives better results when smoothing/interpolating onto poloidal angle grid later
     thetaSurf = atan2(Zs-efit.Zaxis, Rs-efit.Raxis);
 
-    BPSurf = interp2(R, Z, BPol, Rs, Zs,'spline');
-    BDotGradThetaSurf = interp2(R, Z, BDotGradTheta, Rs, Zs,'spline');
+    BPSurf = interp2(R, Z, BPol, Rs, Zs,'cubic');
+    BDotGradThetaSurf = interp2(R, Z, BDotGradTheta, Rs, Zs,'cubic');
     
     % Sometimes, a point can fall in the tiny sliver of the R-Z plane where theta decreases
     % from 2pi back to 0 as you move clockwise, instead of the main region
@@ -196,31 +244,49 @@ if plotStuff
     subplot(numRows,numCols,6)
     contourf(R, Z, BPol, 20)
     colorbar
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
     title('B_{pol} (T)')
     
     subplot(numRows,numCols,7)
     contourf(R, Z, BTor, 20)
     colorbar
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
     title('B_{tor} (T)')
     
     subplot(numRows,numCols,8)
     contourf(R, Z, B, 20)
     colorbar
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
     title('B (T)')
     
     subplot(numRows,numCols,9)
     contourf(R, Z, BR, 20)
     colorbar
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
     title('B_R (T)')
     
     subplot(numRows,numCols,10)
     contourf(R, Z, BZ, 20)
     colorbar
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
     title('B_Z (T)')
     
     subplot(numRows,numCols,11)
     contourf(R, Z, BDotGradTheta, 20)
     colorbar
+    hold on
+    plot(efit.Raxis,efit.Zaxis,'xk')
+    plot(efit.R_LCFS,efit.Z_LCFS,'k')
     title('B.\nabla\theta (T/m)')
     
     %fig3 = figure(3)

@@ -82,6 +82,8 @@ fclose(inputFileID);
 % Optionally contain plotStuff and saveSeparatrix, which will overwrite the default values given here
 plotStuff = false;
 saveSeparatrix = false;
+extrapolateBeyondPsiN = -1;
+extrapolatePsiNInterval = 0;
 EFITOptions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -146,7 +148,7 @@ end
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, ZData, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix);
+[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, ZData, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix, extrapolateBeyondPsiN, extrapolatePsiNInterval);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';
