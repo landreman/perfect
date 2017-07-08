@@ -84,6 +84,7 @@ plotStuff = false;
 saveSeparatrix = false;
 extrapolateBeyondPsiN = -1;
 extrapolatePsiNInterval = 0;
+psiNFile = false;
 EFITOptions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -120,6 +121,14 @@ end
 psi = psi(:)';
 psiWeights = psiWeights(:)';
 
+if psiNFile
+  % using non-uniform psi-grid, must read psiN values from file
+  disp(psiNFile)
+  psiNvals = hdf5read(psiNFile,strcat('Npsi',num2str(Npsi),'/psiNArray'))'; % need to transpose so shape matches psi
+else
+  psiNvals = psi;
+end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Generate theta grid from options
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -148,7 +157,7 @@ end
 
 %NPsi=1;
 %psi = desiredPsi;
-[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, ZData, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psi, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix, extrapolateBeyondPsiN, extrapolatePsiNInterval);
+[thetaData, BPData, BDotGradThetaData, IHat, qData, RData, ZData, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(EFITFilename, psiNvals, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix, extrapolateBeyondPsiN, extrapolatePsiNInterval);
 
 %IHat = abs(IHat);
 dIHatdpsi = (ddpsi * IHat')';
