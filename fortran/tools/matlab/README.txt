@@ -19,3 +19,37 @@ v) If you change any of the options 'psiDerivativeScheme', 'psiMid',
   input.namelist, then re-run generateGeometryFromEFIT.sh since the geometry may
   have changed.
 
+
+Extrapolating geometry for outer buffer region
+----------------------------------------------
+
+PERFECT needs closed flux surfaces. When modelling an experiment the buffer region may need to
+extend beyond psiN=1, so we need to extrapolate in a way that does not have an X-point.
+
+Chosen algorithm: 
+- along lines of constant poloidal angle (from the magnetic axis) extrapolate psiN
+  linearly outside of some chosen value, extrapolateBeyondPsiN in the EFITOptions.m file.
+- get the gradient for the linear extrapolation from some psiN range, extrapolatePsiNInterval in the
+  EFITOptions.m file.
+
+Implementation:
+- create a fine r-theta grid (1024 points in each direction) centred on the magnetic axis, with a
+  large enough maximum r to include the entire cartesian grid in the geqdsk file.
+- interpolate psiN onto the r-theta grid using interp2
+- for each theta:
+  - find the largest psiN below extrapolateBeyondPsiN
+  - extrapolate linearly for larger r
+- interpolate back to the cartesian grid using interp2
+- recalculate psi from psiN so that BR, BZ, etc. get calculated using the extrapolated field.
+- set I to constant from extrapolateBeyondPsiN outwards.
+- continue with the usual flux surface reconstruction, but now psiMax can be greater than 1
+
+
+Non-uniform psiN grids
+----------------------
+
+It is useful, especially for global PERFECT runs, to have a non-uniform grid in psiN. This is now
+implemented in the matlab geometry generation scripts.
+The array of psiN values on which to output the geometry is specified in an HDF5 file, whose name is
+input in the psiNFile option in EFITOptions.m. The array is called psiNArray in a group labelled by
+the value of Npsi, e.g. 'Npsi100'.

@@ -1,0 +1,5 @@
+It is useful, especially for global PERFECT runs, to have a non-uniform grid in psiN. This is now
+implemented in the matlab geometry generation scripts.
+The array of psiN values on which to output the geometry is specified in an HDF5 file, whose name is
+input in the psiNFile option in EFITOptions.m. The array is called psiNArray in a group labelled by
+the value of Npsi, e.g. 'Npsi100'.
