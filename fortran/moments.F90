@@ -321,24 +321,24 @@ contains
              temp = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
                   + (2*omega*charges(ispecies)/(Delta*THats(ispecies,:)))*dPhiHatdpsi
              toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) &
-                  -THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*temp*BPHat(itheta,:)**2*RHat(itheta,:)
+                  -THats(ispecies,:)/(2*psiAHatArray(:)*charges(ispecies)*BHat(itheta,:)**2)*temp*BPHat(itheta,:)**2*RHat(itheta,:)
              poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) &
-                  +THats(ispecies,:)/(2*psiAHat*charges(ispecies)*BHat(itheta,:)**2)*temp*BPHat(itheta,:)*IHat(:)
+                  +THats(ispecies,:)/(2*psiAHatArray(:)*charges(ispecies)*BHat(itheta,:)**2)*temp*BPHat(itheta,:)*IHat(:)
 
              if (.not. makeLocalApproximation) then
                 ! Add extra global terms
                 ! pressure gradient term
                 pPerpTermInVp(ispecies,itheta,:) = matmul(ddpsiLeft, pPerpTermInVpBeforePsiDerivative(ispecies,itheta,:))
                 toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) + &
-                     (Delta/(2*psiAHat)) * (masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
+                     (Delta/(2*psiAHatArray(:))) * (masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
                      * (-BPHat(itheta,:)**2) * RHat(itheta,:) * pPerpTermInVp(ispecies,itheta,:) 
                 poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) + &
-                     (Delta/(2*psiAHat)) * (masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
+                     (Delta/(2*psiAHatArray(:))) * (masses(ispecies))/(charges(ispecies)*BHat(itheta,:)**2*nHats(ispecies,:)) &
                      * BPHat(itheta,:)*IHat(:)* pPerpTermInVp(ispecies,itheta,:)
                 ! ExB on the perturbed density
-                toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -omega/(Delta*psiAHat)*dPhiHatdpsi &
+                toroidalFlow(ispecies,itheta,:) = toroidalFlow(ispecies,itheta,:) -omega/(Delta*psiAHatArray(:))*dPhiHatdpsi &
                      *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)**2*RHat(itheta,:))/(BHat(itheta,:)**2)
-                poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +omega/(Delta*psiAHat)*dPhiHatdpsi &
+                poloidalFlow(ispecies,itheta,:) = poloidalFlow(ispecies,itheta,:) +omega/(Delta*psiAHatArray(:))*dPhiHatdpsi &
                      *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)*IHat)/(BHat(itheta,:)**2)
              end if
              
@@ -665,10 +665,10 @@ contains
              this_poloidalFlow(ispecies,itheta) = this_pPerpTermInVp(ispecies,itheta)
              
              this_toroidalFlow(ispecies,itheta) &
-                  = (Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,ipsi)**2*nHats(ispecies,ipsi)) &
+                  =(Delta/(2*psiAHatArray(ipsi)))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,ipsi)**2*nHats(ispecies,ipsi))&
                   *BPHat(itheta,ipsi)**2 * RHat(itheta,ipsi) * this_toroidalFlow(ispecies,itheta)
              this_poloidalFlow(ispecies,itheta) &
-                  = (Delta/(2*psiAHat))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,ipsi)**2*nHats(ispecies,ipsi))&
+                  = (Delta/(2*psiAHatArray(ipsi)))*(masses(ispecies))/(charges(ispecies)*BHat(itheta,ipsi)**2*nHats(ispecies,ipsi))&
                   *(-1)*BPHat(itheta,ipsi)*IHat(ipsi)* this_poloidalFlow(ispecies,itheta) 
 
              this_toroidalFlow(ispecies,itheta) = this_toroidalFlow(ispecies,itheta) &
@@ -676,19 +676,21 @@ contains
              this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) &
                   + (BPHat(itheta,ipsi)/BHat(itheta,ipsi))*this_flow(ispecies,itheta)
 
-             this_toroidalFlow(ispecies,itheta) = this_toroidalFlow(ispecies,itheta) -omega/(Delta*psiAHat)*dPhiHatdpsi(ipsi) &
-                  *this_densityPerturbation(ispecies,itheta)*(BPHat(itheta,ipsi)**2*RHat(itheta,ipsi))/(BHat(itheta,ipsi)**2)
-             this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) +omega/(Delta*psiAHat)*dPhiHatdpsi(ipsi) &
-                  *this_densityPerturbation(ispecies,itheta)*(BPHat(itheta,ipsi)*IHat(ipsi))/(BHat(itheta,ipsi)**2)
+             this_toroidalFlow(ispecies,itheta) = this_toroidalFlow(ispecies,itheta) &
+                  - omega/(Delta*psiAHatArray(ipsi))*dPhiHatdpsi(ipsi) &
+                  * this_densityPerturbation(ispecies,itheta)*(BPHat(itheta,ipsi)**2*RHat(itheta,ipsi))/(BHat(itheta,ipsi)**2)
+             this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) &
+                  + omega/(Delta*psiAHatArray(ipsi))*dPhiHatdpsi(ipsi) &
+                  * this_densityPerturbation(ispecies,itheta)*(BPHat(itheta,ipsi)*IHat(ipsi))/(BHat(itheta,ipsi)**2)
 
              !since we are not using that variable for anything else
              this_temp = dnHatdpsis(ispecies,ipsi)/nHats(ispecies,ipsi) +dTHatdpsis(ispecies,ipsi)/THats(ispecies,ipsi) &
                   + (2*omega*charges(ispecies)/(Delta*THats(ispecies,ipsi)))*dPhiHatdpsi(ipsi)
              this_toroidalFlow(ispecies,itheta) = this_toroidalFlow(ispecies,itheta) &
-                  -THats(ispecies,ipsi)/(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_temp*BPHat(itheta,ipsi)**2 &
-                  *RHat(itheta,ipsi)
+                  -THats(ispecies,ipsi)/(2*psiAHatArray(ipsi)*charges(ispecies)*BHat(itheta,ipsi)**2) &
+                  *this_temp*BPHat(itheta,ipsi)**2 *RHat(itheta,ipsi)
              this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) +THats(ispecies,ipsi)&
-                  /(2*psiAHat*charges(ispecies)*BHat(itheta,ipsi)**2)*this_temp*BPHat(itheta,ipsi)*IHat(ipsi)
+                  /(2*psiAHatArray(ipsi)*charges(ispecies)*BHat(itheta,ipsi)**2)*this_temp*BPHat(itheta,ipsi)*IHat(ipsi)
           end do
 
           
