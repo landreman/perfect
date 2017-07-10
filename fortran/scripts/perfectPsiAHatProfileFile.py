@@ -7,7 +7,7 @@ from sys import exit,argv
 from perfectInputFile import perfectInput
 
 
-def create_psiAHat_of_Npsi(psiAHatFilename, Npsi, psiAHatArray,psiArray=None):
+def create_psiAHat_of_Npsi(psiAHatFilename, Npsi, psiAHatArray,psiArray=None,psiNArray=None):
 
     # psiAHatArray: relates derivatives on uniform (psiN) and non-uniform (psi) grid
     # psiArray: optional array of f^{-1}(psiN[i]), psiN=f(psi). Needed to intepret simulation outputs on nonuniform grid
@@ -34,6 +34,13 @@ def create_psiAHat_of_Npsi(psiAHatFilename, Npsi, psiAHatArray,psiArray=None):
             print "Error: psiArray has dimensions " + str(psiArray.shape) + " instead of (Npsi,) = " + str((Npsi,))  
         profilesgroup.create_dataset("psiArray",data=psiArray)
     
+    if psiNArray is not None:
+        psiNArray = numpy.array(psiNArray)
+        if psiNArray.shape != (Npsi,):
+            print "Error: psiNArray has dimensions " + str(psiNArray.shape) + " instead of (Npsi,) = " + str((Npsi,))  
+        profilesgroup.create_dataset("psiNArray",data=psiNArray)
+    
+
         
 if __name__=="__main__":
     inputfilename = argv[1]
