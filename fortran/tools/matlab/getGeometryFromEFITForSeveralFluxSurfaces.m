@@ -47,6 +47,10 @@ if extrapolateBeyondPsiN>0
     thispsiN = psiN2D_rtheta(thisinds,itheta);
     thisr = r(thisinds,itheta);
     r1 = interp1(thispsiN,thisr,extrapolateBeyondPsiN,'pchip');
+    % extrapolatePsiNInterval should be small for a continuous
+    % dpsi/dr
+    % TODO: perhaps respect derivative scheme to be used.
+    % Might not matter after smoothing?      
     r2 = interp1(thispsiN,thisr,extrapolateBeyondPsiN-extrapolatePsiNInterval,'pchip');
     gradient = extrapolatePsiNInterval/(r1-r2);
     psiN2D_rtheta((iextrap+1):end,itheta) = extrapolateBeyondPsiN + (r(iextrap+1:end,itheta)-r1)*gradient;
@@ -59,9 +63,21 @@ if extrapolateBeyondPsiN>0
   efit.psi = (efit.psiedge-efit.psiaxis)*psiN2D+efit.psiaxis;
   
   % set I to constant in extrapolated region
+  constantI = false
+  constantDIHatDPsi = true
   iextrap2 = find(psiN>extrapolateBeyondPsiN,1)-1;
-  efit.T(iextrap2:end) = efit.T(iextrap2);
-
+  if constantI
+      efit.T(iextrap2:end) = efit.T(iextrap2);
+  elseif constantDIHatDPsi
+      % TODO: perhaps respect derivative scheme to be used.
+      % Might not matter after smoothing?
+      DI = efit.T(iextrap2) - efit.T(iextrap2-1);
+      Dpsi = psiN(iextrap2) - psiN(iextrap2-1);
+      DIDpsi = DI/Dpsi;
+      efit.T(iextrap2:end) = efit.T(iextrap2) + DIDpsi * (psiN(iextrap2:end) - psiN(iextrap2))
+  else
+      disp('Invalid I extrapolation!')
+  end
 else
   valueForCropping = max(max(psiN2D));
   psiN2D(efit.Z_grid > topCropZ, :) = valueForCropping;
