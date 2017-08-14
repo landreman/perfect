@@ -72,10 +72,25 @@ while ischar(line)
       geometryFilename = strtrim(strsplit(split_line{2},'!'));
       geometryFilename = geometryFilename{1}(2:end-1); % (2:end-1) to get rid of " characters needed by Fortran
     end
+    if strcmp( strtrim(split_line{1}), 'forceOddNtheta' )
+        value = strtrim(strsplit(split_line{2},'!'));
+        value = value{1};
+        if strcmp( value, '.true.' )
+            forceOddNtheta = true;
+        elseif strcmp( value, '.false.' )
+            forceOddNtheta = false;
+        else
+            fprintf('Cannot parse forceOddNtheta string: %s\n',value)
+        end  
+    end
   end
   line = fgetl(inputFileID);
 end
 fclose(inputFileID);
+
+if forceOddNtheta && mod(Ntheta,2) == 0
+    Ntheta = Ntheta + 1;
+end
 
 % Options for EFIT geometry reading
 % .mat file must contain EFITFilename, topCropZ, bottomCropZ, innerCropR, outerCropR, polynomialFitDegreeForSmoothingEFITInPsi and numFourierModesInThetaToKeepInEFITGeometry
