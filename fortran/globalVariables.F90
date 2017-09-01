@@ -293,6 +293,7 @@ module globalVariables
   ! ********************************************************
 
   logical :: includeNeutrals
+  logical :: calculateNeutralFluxes = .false.
   PetscScalar :: CXCrossSectionHat
   PetscScalar, dimension(:,:), allocatable :: nHatNeutral, dnHatNeutraldpsi
   PetscScalar, dimension(:,:), allocatable :: fullNeutralMomentumFluxBeforeThetaIntegralNC, &

@@ -343,31 +343,33 @@ contains
     end if
 
     if (includeNeutrals) then
-      call writeVariable(nHatNeutral,"nHatNeutral",runNum)
-      call writeVariable(dnHatNeutraldpsi,"dnHatNeutraldpsi",runNum)
       call writeVariable(CXCrossSectionHat,"CXCrossSectionHat",runNum)
-      call writeVariable(neutralMomentumFlux1,"neutralMomentumFlux1",runNum)
-      call writeVariable(neutralMomentumFlux2,"neutralMomentumFlux2",runNum)
-      call writeVariable(neutralMomentumFlux3,"neutralMomentumFlux3",runNum)
-      call writeVariable(neutralMomentumFluxDiamagnetic,"neutralMomentumFluxDiamagnetic",runNum)
-      call writeVariable(neutralMomentumFluxBeforeThetaIntegral1,"neutralMomentumFluxBeforeThetaIntegral1",runNum)
-      call writeVariable(neutralMomentumFluxBeforeThetaIntegral2,"neutralMomentumFluxBeforeThetaIntegral2",runNum)
-      call writeVariable(neutralMomentumFluxBeforeThetaIntegral3,"neutralMomentumFluxBeforeThetaIntegral3",runNum)
-      call writeVariable(neutralMomentumFluxBeforeThetaIntegralDiamagnetic,&
-        "neutralMomentumFluxBeforeThetaIntegralDiamagnetic",runNum)
       call writeVariable(fullNeutralMomentumFluxFactorDiamagnetic,"fullNeutralMomentumFluxFactorDiamagnetic",runNum)
       call writeVariable(fullNeutralMomentumFluxFactorNC,"fullNeutralMomentumFluxFactorNC",runNum)
-      call writeVariable(fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic, &
-          "fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic",runNum)
-      call writeVariable(fullNeutralMomentumFluxBeforeThetaIntegralNC,&
-          "fullNeutralMomentumFluxBeforeThetaIntegralNC",runNum)
-      call writeVariable(fullNeutralMomentumFluxDiamagnetic,"fullNeutralMomentumFluxDiamagnetic",runNum)
-      call writeVariable(fullNeutralMomentumFluxNC,"fullNeutralMomentumFluxNC",runNum)
-      call writeVariable(fullNeutralMomentumFlux,"fullNeutralMomentumFlux",runNum)
-      call writeVariable(nonIntrinsicNeutralMomentumFluxFactor,"nonIntrinsicNeutralMomentumFluxFactor",runNum)
-      call writeVariable(nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral, &
-          "nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral",runNum)
-      call writeVariable(nonIntrinsicNeutralMomentumFlux,"nonIntrinsicNeutralMomentumFlux",runNum)
+      if (calculateNeutralFluxes) then
+        call writeVariable(nHatNeutral,"nHatNeutral",runNum)
+        call writeVariable(dnHatNeutraldpsi,"dnHatNeutraldpsi",runNum)
+        call writeVariable(neutralMomentumFlux1,"neutralMomentumFlux1",runNum)
+        call writeVariable(neutralMomentumFlux2,"neutralMomentumFlux2",runNum)
+        call writeVariable(neutralMomentumFlux3,"neutralMomentumFlux3",runNum)
+        call writeVariable(neutralMomentumFluxDiamagnetic,"neutralMomentumFluxDiamagnetic",runNum)
+        call writeVariable(neutralMomentumFluxBeforeThetaIntegral1,"neutralMomentumFluxBeforeThetaIntegral1",runNum)
+        call writeVariable(neutralMomentumFluxBeforeThetaIntegral2,"neutralMomentumFluxBeforeThetaIntegral2",runNum)
+        call writeVariable(neutralMomentumFluxBeforeThetaIntegral3,"neutralMomentumFluxBeforeThetaIntegral3",runNum)
+        call writeVariable(neutralMomentumFluxBeforeThetaIntegralDiamagnetic,&
+          "neutralMomentumFluxBeforeThetaIntegralDiamagnetic",runNum)
+        call writeVariable(fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic, &
+            "fullNeutralMomentumFluxBeforeThetaIntegralDiamagnetic",runNum)
+        call writeVariable(fullNeutralMomentumFluxBeforeThetaIntegralNC,&
+            "fullNeutralMomentumFluxBeforeThetaIntegralNC",runNum)
+        call writeVariable(fullNeutralMomentumFluxDiamagnetic,"fullNeutralMomentumFluxDiamagnetic",runNum)
+        call writeVariable(fullNeutralMomentumFluxNC,"fullNeutralMomentumFluxNC",runNum)
+        call writeVariable(fullNeutralMomentumFlux,"fullNeutralMomentumFlux",runNum)
+        call writeVariable(nonIntrinsicNeutralMomentumFluxFactor,"nonIntrinsicNeutralMomentumFluxFactor",runNum)
+        call writeVariable(nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral, &
+            "nonIntrinsicNeutralMomentumFluxBeforeThetaIntegral",runNum)
+        call writeVariable(nonIntrinsicNeutralMomentumFlux,"nonIntrinsicNeutralMomentumFlux",runNum)
+      end if
     end if
 
   end subroutine writeRunToOutputFile

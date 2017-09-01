@@ -90,7 +90,7 @@ contains
        ! Close input file
        call closeInputFile()
 
-       if (includeNeutrals) then
+       if (includeNeutrals .and. calculateNeutralFluxes) then
          allocate(nHatNeutral(Ntheta,Npsi))
          allocate(dnHatNeutraldpsi(Ntheta,Npsi))
 

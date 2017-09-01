@@ -4,22 +4,25 @@ import matplotlib.pyplot as plt
 import numpy
 import h5py
 import inspect, os
-from sys import exit
+from sys import argv,exit
 
 filename = 'PERFECTOutput.h5'
 
 # Try to be case insensitive
-allfiles = os.listdir(".")
-matches = [x for x in allfiles if x.lower()==filename.lower()]
-print matches
-if len(matches) > 1:
-    print "Error: there is more than one output file (names differing only by upper/lower case)"
-    exit(1)
-elif len(matches)==1:
-    filename = matches[0]
+if len(argv)>1:
+    filename = argv[1]
 else:
-    print "No PERFECT output file found"
-    exit(1)
+    allfiles = os.listdir(".")
+    matches = [x for x in allfiles if x.lower()==filename.lower()]
+    print matches
+    if len(matches) > 1:
+        print "Error: there is more than one output file (names differing only by upper/lower case)"
+        exit(1)
+    elif len(matches)==1:
+        filename = matches[0]
+    else:
+        print "No PERFECT output file found"
+        exit(1)
 
 try:
     f = h5py.File(filename,'r')

@@ -31,7 +31,7 @@ contains
          exponent, setTPrimeToBalanceHeatFlux, &
          includeCollisionOperator, includeddpsiTerm, &
          leftBoundaryShift, rightBoundaryShift, leftBoundaryScheme, rightBoundaryScheme, &
-         includeNeutrals, CXCrossSectionHat
+         includeNeutrals, calculateNeutralFluxes, CXCrossSectionHat
 
     namelist / resolutionParameters / forceOddNtheta, &
          NpsiPerDiameter, NpsiMaxFactor, NpsiMinFactor, NpsiNumRuns, &
