@@ -203,7 +203,7 @@ module globalVariables
   ! layout is not presently used.
 
   integer :: PETSCPreallocationStrategy = 1
-  integer :: Nxi_for_x_option = 1
+  integer :: Nxi_for_x_option = 0
 
   ! ********************************************************
   ! ********************************************************
@@ -226,7 +226,7 @@ module globalVariables
 
   PetscScalar, dimension(:), allocatable :: psi, theta
   PetscScalar, dimension(:,:), allocatable :: BHat, JHat, dBHatdtheta, dBHatdpsi
-  PetscScalar, dimension(:), allocatable :: IHat, dIHatdpsi, dPhiHatdpsi, PhiHat
+  PetscScalar, dimension(:), allocatable :: IHat, dIHatdpsi, dPhiHatdpsi, PhiHat, FSAEParallelBHat
   PetscScalar, dimension(:,:), allocatable :: THats, dTHatdpsis, nHats, dnHatdpsis, etaHats, detaHatdpsis
   PetscScalar, dimension(:,:), allocatable :: particleSourceProfile, heatSourceProfile
 !  PetscScalar, dimension(:,:), allocatable :: LHSOfKParEquation

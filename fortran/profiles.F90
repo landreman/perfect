@@ -56,6 +56,7 @@ contains
     allocate(detaHatdpsis(numSpecies,Npsi))
     allocate(nHats(numSpecies,Npsi))
     allocate(dnHatdpsis(numSpecies,Npsi))
+    allocate(FSAEParallelBHat(Npsi))
 
     if (profilesScheme .eq. 7) then
        ! Read in profiles from file
@@ -81,6 +82,7 @@ contains
        call readVariable(dnHatdpsis, "dnHatdpsis")
        call readVariable(etaHats, "etaHats")
        call readVariable(detaHatdpsis, "detaHatdpsis")
+       call readVariable(FSAEParallelBHat, "FSAEParallelBHat")
        
        ! Close input file
        call closeInputFile()
@@ -265,6 +267,8 @@ contains
                            + etaHat*2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
 
+          FSAEParallelBHat = 0d0
+
        case (3)
           ! Radial profiles with a Gaussian U(psi) which should have a constant
           ! radial heat flux, according to the incorrect analytic theory.
@@ -441,6 +445,8 @@ contains
                            - etaHat*2d0*omega/delta*dPhiHatdpsi/THat &
                            + etaHat*2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
+
+          FSAEParallelBHat = 0d0
 
        case (4,5,6)
 
@@ -626,6 +632,8 @@ contains
                            - etaHat*2d0*omega/delta*dPhiHatdpsi/THat &
                            + etaHat*2d0*omega/delta*PhiHat*dTHatdpsi/THat**2 ) * exp(-2*omega/delta*PhiHat/THat)
           end if
+
+          FSAEParallelBHat = 0d0
 
        case default
           if (masterProcInSubComm) then

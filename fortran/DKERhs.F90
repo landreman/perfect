@@ -28,7 +28,7 @@ contains
     integer :: ix, itheta, ipsi, L, index
     integer :: ispecies
     PetscScalar :: LFactor
-    PetscScalar :: stuffToAdd
+    PetscScalar :: stuffToAdd, EParallelTerm
 
     call VecCreateMPI(MPIComm, PETSC_DECIDE, matrixSize, rhs, ierr)
     CHKERRQ(ierr)
@@ -73,6 +73,24 @@ contains
                    !call VecSetValues(rhsRight, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
                    call VecSetValue(rhsRight, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
                 end if
+
+                L = 1
+                index = getIndex(ispecies,ix,L,itheta,ipsi)
+                EParallelTerm = 2d0*omega/Delta*charges(ispecies)*masses(ispecies)**1.5d0 &
+                    *BHat(itheta,ipsi)*nHats(ispecies,ipsi)*x(ix)*exp(-x2(ix))*FSAEParallelBHat(ipsi) &
+                    /(pi*sqrtpi*THats(ispecies,ipsi)*THats(ispecies,ipsi)*FSABHat2(ipsi))
+                call VecSetValue(rhs, index, EParallelTerm, INSERT_VALUES, ierr)
+                index = getIndex(ispecies,ix,L,itheta,1)
+                if (ipsi==1) then
+                   ! This is the left boundary
+                   !call VecSetValues(rhsLeft, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
+                   call VecSetValue(rhsLeft, index, EParallelTerm, INSERT_VALUES, ierr)
+                elseif (ipsi==Npsi) then
+                   ! This is the right boundary
+                   !call VecSetValues(rhsRight, 1, index, LFactor*stuffToAdd, INSERT_VALUES, ierr)
+                   call VecSetValue(rhsRight, index, EParallelTerm, INSERT_VALUES, ierr)
+                end if
+
 
                 L = 2
                 LFactor = 2/three

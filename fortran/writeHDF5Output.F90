@@ -189,6 +189,7 @@ contains
       call writeVariable(dnHatdpsis,"d(nHat)d(psi)",runNum)
       call writeVariable(etaHats,"etaHat",runNum)
       call writeVariable(detaHatdpsis,"d(etaHat)d(psi)",runNum)
+      call writeVariable(FSAEParallelBHat,"FSAEParallelBHat",runNum)
       call writeVariable(elapsedTime,"elapsed time (s)",runNum)
       call writeVariable(sourcePoloidalVariation,"sourcePoloidalVariation",runNum)
       call writeVariable(particleSourceProfile,"particleSourceProfile",runNum)
