@@ -529,8 +529,14 @@ contains
     case(6)
        sourceSpeciesPart = masses(1:Nspecies)*nHats(:,1)
        sourceSpeciesPart(Nspecies) = 0
+    case(7)
+       sourceSpeciesPart = masses(1:Nspecies)
+       sourceSpeciesPart(Nspecies) = 0
+    case(8)
+       sourceSpeciesPart = charges(1:Nspecies)*masses(1:Nspecies)*nHats(:,1)
+       sourceSpeciesPart(Nspecies) = 0
     case default
-       print *,"Error! Invalid speciesIndepSourcesSpeciesStructure. Currently supported values are: 0,1,2,3,4,5,6."
+       print *,"Error! Invalid speciesIndepSourcesSpeciesStructure. Currently supported values are: 0,1,2,3,4,5,6,7,8."
        stop
     end select
 
