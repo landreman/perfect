@@ -1,4 +1,4 @@
-function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurfs, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix, extrapolateBeyondPsiN, extrapolatePsiNInterval)
+function [thetaSurfs, BPSurfs, BDotGradThetaSurfs, ISurfs, qSurfs, RSurfs, ZSurfs, as, R0, Z0, B0, psi0] = getGeometryFromEFITForSeveralFluxSurfaces(filename, desiredPsiNs, topCropZ, bottomCropZ, innerCropR, outerCropR, plotStuff, saveSeparatrix, extrapolateBeyondPsiN, extrapolatePsiNInterval, rmaxExpansionFactor)
 
 % 'BPSurfs' and 'B0' should have units of Tesla.
 % Both 'as' and 'R0' should have units of meters.
@@ -16,16 +16,17 @@ psiN = (efit.psi_grid-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
 psiN2D = (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis);
 psi0 = (efit.psiedge-efit.psiaxis); % Needed to set psiAHat for PERFECT
 
+R_grid = efit.R_grid;
+Z_grid = efit.Z_grid;
+
 if extrapolateBeyondPsiN>0
   % extrapolate psiN along lines of constant poloidal angle theta
   % in order to create closed flux surfaces for a buffer zone
 
   % create grids
-  nfiner = 5000;
-  nfinetheta = 5000;
-  [Rg,Zg] = meshgrid(efit.R_grid-efit.Raxis,efit.Z_grid-efit.Zaxis);
+  [Rg,Zg] = meshgrid(R_grid-efit.Raxis,Z_grid-efit.Zaxis);
   [theta_RZ,r_RZ] = cart2pol(Rg,Zg);
-  rmax = max(r_RZ(:));
+  rmax = max(r_RZ(:))*rmaxExpansionFactor;
   % make theta grid be uniformly spaced between -pi and pi, including the points at -pi and pi and some extra points to make cubic interpolation OK around +-pi
   %[theta,r] = meshgrid(linspace(-pi*(1-1/nfine),pi*(1-1/nfine),nfine),linspace(0,rmax,nfine));
   %[theta,r] = meshgrid(linspace(-pi-2*2*pi/(nfine+1),pi+2*2*pi/(nfine+1),nfine+5),linspace(0,rmax,nfine));
@@ -56,15 +57,21 @@ if extrapolateBeyondPsiN>0
     psiN2D_rtheta((iextrap+1):end,itheta) = extrapolateBeyondPsiN + (r(iextrap+1:end,itheta)-r1)*gradient;
   end
 
+  % Make new R-Z grid to make sure values interpolated from r-theta do not fall off the edge of the grid
+  rmax = max(r(:));
+  R_grid = linspace(efit.Raxis-rmax,efit.Raxis+rmax,nfiner);
+  Z_grid = linspace(efit.Zaxis-rmax,efit.Zaxis+rmax,nfiner);
+  [Rg,Zg] = meshgrid(R_grid-efit.Raxis,Z_grid-efit.Zaxis);
   % interpolate back to R-Z grid
+  [theta_RZ,r_RZ] = cart2pol(Rg,Zg);
   psiN2D = interp2(theta,r,psiN2D_rtheta,theta_RZ,r_RZ,'cubic');
 
   % recalculate unnormalized psi, used for computing magnetic field components
   efit.psi = (efit.psiedge-efit.psiaxis)*psiN2D+efit.psiaxis;
   
   % set I to constant in extrapolated region
-  constantI = false
-  constantDIHatDPsi = true
+  constantI = false;
+  constantDIHatDPsi = true;
   iextrap2 = find(psiN>extrapolateBeyondPsiN,1)-1;
   if constantI
       efit.T(iextrap2:end) = efit.T(iextrap2);
@@ -74,16 +81,16 @@ if extrapolateBeyondPsiN>0
       DI = efit.T(iextrap2) - efit.T(iextrap2-1);
       Dpsi = psiN(iextrap2) - psiN(iextrap2-1);
       DIDpsi = DI/Dpsi;
-      efit.T(iextrap2:end) = efit.T(iextrap2) + DIDpsi * (psiN(iextrap2:end) - psiN(iextrap2))
+      efit.T(iextrap2:end) = efit.T(iextrap2) + DIDpsi * (psiN(iextrap2:end) - psiN(iextrap2));
   else
       disp('Invalid I extrapolation!')
   end
 else
   valueForCropping = max(max(psiN2D));
-  psiN2D(efit.Z_grid > topCropZ, :) = valueForCropping;
-  psiN2D(efit.Z_grid < bottomCropZ, :) = valueForCropping;
-  psiN2D(:, efit.R_grid < innerCropR) = valueForCropping;
-  psiN2D(:, efit.R_grid > outerCropR) = valueForCropping;
+  psiN2D(Z_grid > topCropZ, :) = valueForCropping;
+  psiN2D(Z_grid < bottomCropZ, :) = valueForCropping;
+  psiN2D(:, R_grid < innerCropR) = valueForCropping;
+  psiN2D(:, R_grid > outerCropR) = valueForCropping;
 end
 
 qSurfs = interp1(psiN, efit.q, desiredPsiNs, 'pchip');
@@ -97,13 +104,24 @@ N = numel(desiredPsiNs);
 
 if plotStuff
     fig0 = figure('Visible','off');
-    %contour(efit.R_grid, efit.Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
-    %contour(efit.R_grid, efit.Z_grid, (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis), linspace(.01,1.1,1.1*N))
-    contour(efit.R_grid, efit.Z_grid, psiN2D, linspace(.01,1.1,1.1*N))
+    %contour(R_grid, Z_grid, efit.psi, efit.psiaxis+efit.psiedge*linspace(.01,1.1,110))
+    %contour(R_grid, Z_grid, (efit.psi-efit.psiaxis)/(efit.psiedge-efit.psiaxis), linspace(.01,1.1,1.1*N))
+    if extrapolateBeyondPsiN>0
+      contour(R_grid, Z_grid, psiN2D, linspace(.01,max(desiredPsiNs),1.1*N))
+    else
+      contour(R_grid, Z_grid, psiN2D, linspace(.01,1.1,1.1*N))
+    end
     colorbar
     hold on
     plot(efit.Raxis,efit.Zaxis,'xk')
     plot(efit.R_LCFS,efit.Z_LCFS,'k')
+    if extrapolateBeyondPsiN<=0
+      % add box showing crop values
+      line([innerCropR,innerCropR,outerCropR,outerCropR,innerCropR],[bottomCropZ,topCropZ,topCropZ,bottomCropZ,bottomCropZ])
+    else
+      % add circle showing the interpolation grid boundary
+      plot(efit.Raxis+rmax*cos(theta),efit.Zaxis+rmax*sin(theta))
+    end
     axis equal
     xlabel('R (m)')
     ylabel('Z (m)')
@@ -119,14 +137,16 @@ scheme = 12;
 [R2D, Z2D] = meshgrid(R, Z);
 theta = atan2(Z2D - efit.Zaxis, R2D-efit.Raxis);
 
-dpsidZ = ddZ * efit.psi;
-dpsidR = (ddR * (efit.psi'))';
+psiNoNAN = efit.psi;
+psiNoNAN(isnan(psiNoNAN)) = 0.;
+dpsidZ = ddZ * psiNoNAN;
+dpsidR = (ddR * (psiNoNAN'))';
 
 BZ = dpsidR./R2D;
 BR = -dpsidZ./R2D;
 
 BPol = sqrt(dpsidZ.^2 + dpsidR.^2)./ R2D;
-I2D = interp1(efit.psi_grid, efit.T, efit.psi,'pchip',efit.T(end));
+I2D = interp1(efit.psi_grid, efit.T, psiNoNAN,'pchip',efit.T(end));
 BTor = I2D ./ R2D;
 
 B = sqrt(BPol.^2 + BTor.^2);
@@ -149,7 +169,7 @@ BDotGradTheta = BR .* dthetadR + BZ .* dthetadZ;
     
 for i=1:N
     desiredPsiN = desiredPsiNs(i);
-    c = contourc(efit.R_grid, efit.Z_grid, psiN2D, [desiredPsiN, desiredPsiN]);
+    c = contourc(R_grid, Z_grid, psiN2D, [desiredPsiN, desiredPsiN]);
     
     if size(c,2) < 10
         error(['There do not appear to be enough points in the contour for psi_N = ',num2str(desiredPsiN)])
@@ -224,10 +244,10 @@ if plotStuff
     
     subplot(numRows,numCols,[1, (numCols+1)])
     numContours=20;
-    %contourf(efit.R_grid, efit.Z_grid, psiN2D, numContours)
-    contourf(efit.R_grid, efit.Z_grid, efit.psi, numContours)
+    %contourf(R_grid, Z_grid, psiN2D, numContours)
+    contourf(R_grid, Z_grid, efit.psi, numContours)
     hold on
-    %contour(efit.R_grid, efit.Z_grid, psiN2D, [1, 1],'Color','r')
+    %contour(R_grid, Z_grid, psiN2D, [1, 1],'Color','r')
     for i=1:N
         plot(Rss{i},Zss{i},':c')
     end
