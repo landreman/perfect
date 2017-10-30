@@ -133,8 +133,8 @@ end
 disp('done initial plotStuff')
 
 scheme = 12;
-[R, ~, ddR, d2dR2] = differentiationMatricesForUniformGrid(efit.nrbox, efit.rboxleft, efit.rboxleft+efit.rboxlength, scheme);
-[Z, ~, ddZ, d2dZ2] = differentiationMatricesForUniformGrid(efit.nzbox, -efit.zboxlength/2, efit.zboxlength/2, scheme);
+[R, ~, ddR, d2dR2] = differentiationMatricesForUniformGrid(length(R_grid), R_grid(1), R_grid(end), scheme);
+[Z, ~, ddZ, d2dZ2] = differentiationMatricesForUniformGrid(length(Z_grid), Z_grid(1), Z_grid(end), scheme);
 
 [R2D, Z2D] = meshgrid(R, Z);
 theta = atan2(Z2D - efit.Zaxis, R2D-efit.Raxis);
