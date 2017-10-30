@@ -24,6 +24,8 @@ if extrapolateBeyondPsiN>0
   % in order to create closed flux surfaces for a buffer zone
 
   % create grids
+  nfiner = 5000;
+  nfinetheta = 5000;
   [Rg,Zg] = meshgrid(R_grid-efit.Raxis,Z_grid-efit.Zaxis);
   [theta_RZ,r_RZ] = cart2pol(Rg,Zg);
   rmax = max(r_RZ(:))*rmaxExpansionFactor;
