@@ -317,6 +317,7 @@ contains
              toroidalFlow(ispecies,itheta,:) = (BTHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
              poloidalFlow(ispecies,itheta,:) = (BPHat(itheta,:)/BHat(itheta,:))*flow(ispecies,itheta,:)
 
+
              ! diamagnetic and ExB
              temp = dnHatdpsis(ispecies,:)/nHats(ispecies,:) +dTHatdpsis(ispecies,:)/THats(ispecies,:) &
                   + (2*omega*charges(ispecies)/(Delta*THats(ispecies,:)))*dPhiHatdpsi
@@ -342,6 +343,7 @@ contains
                      *densityPerturbation(ispecies,itheta,:)*(BPHat(itheta,:)*IHat)/(BHat(itheta,:)**2)
              end if
              
+
           end do
           
    !!$         if (psiDerivativeScheme == 0) then
@@ -397,7 +399,7 @@ contains
                   pressurePerturbation(ispecies,:,ipsi)/JHat(:,ipsi)) / VPrimeHat(ipsi)
           end do
 
-          !       LHSOfKParEquation = FSAKPar - omega*delta/(psiAHat*psiAHat) * IHat*IHat * dphidpsi / FSABHat2 &
+          !       LHSOfKParEquation = FSAKPar - omega*delta/(psiAHatArray*psiAHatArray) * IHat*IHat * dphidpsi / FSABHat2 &
           !            * matmul(ddpsiLeft,FSAKPar)
 
           !       kThetaWith3PointStencil = kpar + PhiTermInKTheta + pPerpTermInKThetaWith3PointStencil
@@ -691,6 +693,7 @@ contains
                   *this_temp*BPHat(itheta,ipsi)**2 *RHat(itheta,ipsi)
              this_poloidalFlow(ispecies,itheta) = this_poloidalFlow(ispecies,itheta) +THats(ispecies,ipsi)&
                   /(2*psiAHatArray(ipsi)*charges(ispecies)*BHat(itheta,ipsi)**2)*this_temp*BPHat(itheta,ipsi)*IHat(ipsi)
+
           end do
 
           

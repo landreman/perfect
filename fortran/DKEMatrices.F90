@@ -46,7 +46,7 @@ contains
     PetscScalar :: signOfPsiDot
     logical :: makeLocalApproximationOriginal
     logical, intent(in) :: upwinding
-    integer :: i, j, ix, itheta, ipsi, L, index
+    !integer :: i, j, ix, itheta, ipsi, L, index
     integer :: scheme
     integer :: whichMatrix, whichMatrixMin
     integer, dimension(:), allocatable :: rowIndices, colIndices
@@ -108,6 +108,11 @@ contains
        ! *******************************************************************************
        call radialBoundaryConditionDiagonal()
        
+       ! *******************************************************************************
+       ! Enforce boundary condition at x=0 if needed (if there is a point there)
+       ! *******************************************************************************
+       call xBoundaryCondition(whichMatrix)
+
        ! *******************************************************************************
        ! Add sources:
        ! *******************************************************************************
@@ -209,7 +214,7 @@ contains
     PetscScalar, dimension(:,:), allocatable :: thetaPartMatrix
     PetscScalar, dimension(:,:), allocatable :: thetaPartOfStreamingTerm
     integer, dimension(:), allocatable :: localRowIndices, localColIndices, globalRowIndices, globalColIndices
-    integer :: i, ix, itheta, ipsi, L
+    integer :: i, ix, itheta, ipsi, L, ixMin
     integer :: ispecies
     integer :: rowIndexArray(1)
     PetscScalar :: signOfPsiDot
@@ -218,6 +223,12 @@ contains
        ddthetaToUse = ddtheta
     else
        ddthetaToUse = ddtheta_preconditioner
+    end if
+
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
     end if
 
     allocate(thetaPartOfMirrorTerm(Ntheta))
@@ -237,7 +248,7 @@ contains
              thetaPartOfStreamingTerm(itheta,:) = JHat(itheta,ipsi)*sqrtTHats(ispecies,ipsi) &
                   / BHat(itheta,ipsi)*ddthetaToUse(itheta,:)
           end do
-          do ix=1,Nx
+          do ix=ixMin,Nx
              do L=0,Nxi_for_x(ix)-1
                 localRowIndices = [(getIndex(ispecies,ix,L,itheta,1), itheta=1,Ntheta)]
                 globalRowIndices = [(getIndex(ispecies,ix,L,itheta,ipsi), itheta=1,Ntheta)]
@@ -364,10 +375,16 @@ contains
     PetscScalar, dimension(:,:), allocatable :: spatialPartOfStreamingTermDiagonal3
     PetscScalar, dimension(:,:), allocatable :: spatialPartOfStreamingTermOffDiagonal
     integer, dimension(:), allocatable :: rowIndices, colIndices
-    integer :: i, ix, itheta, ipsi, L
+    integer :: i, ix, itheta, ipsi, L, ixMin
     integer :: ispecies
     PetscScalar :: signOfPsiDot
     PetscScalar :: sqrtMass
+
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
+    end if
 
     if (.not. makeLocalApproximation) then
 
@@ -408,8 +425,8 @@ contains
                     * (IHat(ipsi)/(two*BHat(itheta,ipsi))*dBHatdpsi(itheta,ipsi) - dIHatdpsi(ipsi)) &
                     * ddthetaToUse(itheta,:)
             end do
-            do ix=1,Nx
-               thetaPartOfMirrorTerm =  globalTermMultiplier(ipsi) &
+            do ix=ixMin,Nx
+               thetaPartOfMirrorTerm = globalTermMultiplier(ipsi) &
                * sqrt(masses(ispecies))*(omega*dPhiHatdpsi(ipsi)*IHat(ipsi) &
                     + delta*x2(ix)*THats(ispecies,ipsi)/charges(ispecies)*dIHatdpsi(ipsi)) &
                     * JHat(:,ipsi)*dBHatdtheta(:,ipsi) / (two*psiAHatArray(ipsi)*(BHat(:,ipsi) ** 3))
@@ -559,7 +576,7 @@ contains
     integer :: rowIndex, colIndex
     PetscScalar, dimension(:,:), allocatable :: xPartOfXDot
     PetscScalar, dimension(:), allocatable :: diagonalOfXDot
-    integer :: ix, itheta, ipsi, L, ell, ix_row, ix_col
+    integer :: ix, itheta, ipsi, L, ell, ix_row, ix_col, ixMin
     integer :: ispecies
     integer :: keepXCoupling
     PetscScalar :: xDotFactor, LFactor
@@ -571,6 +588,12 @@ contains
     end if
     ! When keepXCoupling==1, keep the full x coupling.
     ! When keepXCoupling==0, drop everything off-diagonal in x.
+
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
+    end if
 
     if (.not. makeLocalApproximation) then
 
@@ -606,9 +629,9 @@ contains
                       ! Term that is diagonal in L:
                       LFactor = two*(3*L*L+3*L-2)/((two*L+3)*(2*L-1))*xDotFactor
                       ell = L
-                      do ix_col=min_x_for_L(ell),Nx
+                      do ix_col=max(ixMin,min_x_for_L(ell)),Nx
                          colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
-                         do ix_row=min_x_for_L(L),Nx
+                         do ix_row=max(ixMin,min_x_for_L(L)),Nx
                             rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
                             call MatSetValueSparse(matrix, rowIndex, colIndex, &
                                  LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
@@ -620,9 +643,9 @@ contains
                          if (L<(Nxi-2)) then
                             ell = L+2
                             LFactor = (L+1)*(L+2)/((two*L+5)*(2*L+3))*xDotFactor
-                            do ix_col=min_x_for_L(ell),Nx
+                            do ix_col=max(ixMin,min_x_for_L(ell)),Nx
                                colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
-                               do ix_row=min_x_for_L(L),Nx
+                               do ix_row=max(ixMin,min_x_for_L(L)),Nx
                                   rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
                                   call MatSetValueSparse(matrix, rowIndex, colIndex, &
                                        LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
@@ -634,9 +657,9 @@ contains
                          if (L>1) then
                             ell = L-2
                             LFactor = L*(L-1)/((two*L-3)*(2*L-1))*xDotFactor
-                            do ix_col=min_x_for_L(ell),Nx
+                            do ix_col=max(ixMin,min_x_for_L(ell)),Nx
                                colIndex = getIndex(ispecies,ix_col,ell,itheta,ipsi)
-                               do ix_row=min_x_for_L(L),Nx                            
+                               do ix_row=max(ixMin,min_x_for_L(L)),Nx                            
                                   rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
                                   call MatSetValueSparse(matrix, rowIndex, colIndex, &
                                        LFactor*xPartOfXDot(ix_row,ix_col), ADD_VALUES, ierr)
@@ -670,11 +693,17 @@ contains
     PetscScalar, dimension(:,:), allocatable :: ddpsiToUse
     PetscScalar, dimension(:,:), allocatable :: localddpsiToUse, everythingButLInPsiDot
     integer :: ipsiMinInterior, ipsiMaxInterior, ell
-    integer :: i, ix, itheta, ipsi, L
+    integer :: i, ix, itheta, ipsi, L, ixMin
     integer :: ispecies
     logical :: includeddpsiTermThisTime
     integer :: ipsiMinForThisTheta, ipsiMaxForThisTheta, NpsiToUse
     PetscScalar :: LFactor
+
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
+    end if
 
     includeddpsiTermThisTime = includeddpsiTerm
     if (makeLocalApproximation) then
@@ -748,7 +777,7 @@ contains
              !else
              !   localddpsiToUse = localddpsiRightInterior
              !end if
-             do ix = 1, Nx
+             do ix = ixMin, Nx
                 do ipsi=1,NpsiToUse
                    ! Build everythingButLInPsiDot as the transpose of what it would normally be
                    ! because of the difference between Fortran and Petsc convention.
@@ -822,7 +851,7 @@ contains
     PetscScalar :: temp, temp1, temp2, speciesFactor, speciesFactor2
     PetscScalar :: signOfPsiDot
     PetscScalar :: T32, sqrt_m
-    integer :: i, j, ix, ix_row, ix_col, itheta, ipsi, L
+    integer :: i, j, ix, ix_row, ix_col, itheta, ipsi, L, ixMin, ixMinCol
     integer :: rowIndex, colIndex
     integer :: iSpeciesA, iSpeciesB
     integer :: scheme
@@ -835,24 +864,29 @@ contains
     allocate(Psi_Chandra(Nx))
     allocate(nuDHat(Nspecies, Nx))
 
-    allocate(M21(NxPotentials, Nx))
-    allocate(M32(NxPotentials, NxPotentials))
-    allocate(M22BackslashM21(NxPotentials, Nx))
-    allocate(M33BackslashM32(NxPotentials, NxPotentials))
-    allocate(M22BackslashM21s(NL,NxPotentials, Nx))
-    allocate(M33BackslashM32s(NL,NxPotentials, NxPotentials))
-    allocate(LaplacianTimesX2WithoutL(NxPotentials, NxPotentials))
-    allocate(M11(Nx,Nx))
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      allocate(M21(NxPotentials, Nx))
+      allocate(M32(NxPotentials, NxPotentials))
+      allocate(M22BackslashM21(NxPotentials, Nx))
+      allocate(M33BackslashM32(NxPotentials, NxPotentials))
+      allocate(M22BackslashM21s(NL,NxPotentials, Nx))
+      allocate(M33BackslashM32s(NL,NxPotentials, NxPotentials))
+      allocate(LaplacianTimesX2WithoutL(NxPotentials, NxPotentials))
 
-    allocate(M12(Nx,NxPotentials))
-    allocate(M13(Nx,NxPotentials))
-    allocate(M22(NxPotentials,NxPotentials))
-    allocate(M33(NxPotentials,NxPotentials))
+      allocate(M12(Nx,NxPotentials))
+      allocate(M13(Nx,NxPotentials))
+      allocate(M22(NxPotentials,NxPotentials))
+      allocate(M33(NxPotentials,NxPotentials))
+
+      allocate(potentialsToFInterpolationMatrix(Nx, NxPotentials))
+    endif
+
+    allocate(M11(Nx,Nx))
 
     allocate(KWithoutThetaPart(Nx,Nx))
     allocate(fToFInterpolationMatrix(Nx,Nx))
-    allocate(potentialsToFInterpolationMatrix(Nx, NxPotentials))
     allocate(CECD(Nspecies, Nspecies, Nx, Nx))
+
 
     allocate(IPIV(NxPotentials))
 
@@ -863,9 +897,16 @@ contains
 
     allocate(rowIndices(Nx))
     allocate(colIndices(Nx))
-    allocate(tempMatrix(Nx, NxPotentials))
-    allocate(tempMatrix2(NxPotentials, NxPotentials))
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      allocate(tempMatrix(Nx, NxPotentials))
+      allocate(tempMatrix2(NxPotentials, NxPotentials))
+    endif
 
+    if (pointAtX0) then
+       ixMin = 2
+    else
+       ixMin = 1
+    end if
 
     if (whichMatrix==0 .and. preconditioner_x==5) then
        ! For other preconditioner_x values, the simplified x derivative
@@ -880,79 +921,83 @@ contains
        d2dx2ToUse = d2dx2
     end if
 
-    ! First assemble rows 2 and 3 of the block linear system, since they
-    ! are independent of psi and independent of species.
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      ! Matrices that are only needed if using the old Rosenbluth potential scheme
 
-    M32 = zero
-    M21 = 4*pi*regridPolynomialToUniform
-    do i=2,NxPotentials-1
-       M21(i,:) = M21(i,:)*xPotentials(i)*xPotentials(i)
-       M32(i,i) = -2*xPotentials(i)*xPotentials(i)
-    end do
-    M21(1,:)=zero
-    M21(NxPotentials,:)=zero
-    M32(1,:)=zero
-    M32(NxPotentials,:)=zero
-    do i=1,NxPotentials
-       LaplacianTimesX2WithoutL(i,:) = xPotentials(i)*xPotentials(i)*d2dx2Potentials(i,:) &
-            + 2 * xPotentials(i) * ddxPotentials(i,:)
-    end do
+      ! First assemble rows 2 and 3 of the block linear system, since they
+      ! are independent of psi and independent of species.
 
-    do L=0,(NL-1)
-       M22 = LaplacianTimesX2WithoutL
-       do i=1,NxPotentials
-          M22(i,i) = M22(i,i) - L*(L+1)
-       end do
+      M32 = zero
+      M21 = 4*pi*regridPolynomialToUniform
+      do i=2,NxPotentials-1
+         M21(i,:) = M21(i,:)*xPotentials(i)*xPotentials(i)
+         M32(i,i) = -2*xPotentials(i)*xPotentials(i)
+      end do
+      M21(1,:)=zero
+      M21(NxPotentials,:)=zero
+      M32(1,:)=zero
+      M32(NxPotentials,:)=zero
+      do i=1,NxPotentials
+         LaplacianTimesX2WithoutL(i,:) = xPotentials(i)*xPotentials(i)*d2dx2Potentials(i,:) &
+              + 2 * xPotentials(i) * ddxPotentials(i,:)
+      end do
 
-       ! Add Dirichlet or Neumann boundary condition for potentials at x=0:
-       if (L==0) then
-          M22(1,:)=ddxPotentials(1,:)
-       else
-          M22(1,:) = 0
-          M22(1,1) = 1
-       end if
-       M33 = M22;
+      do L=0,(NL-1)
+         M22 = LaplacianTimesX2WithoutL
+         do i=1,NxPotentials
+            M22(i,i) = M22(i,i) - L*(L+1)
+         end do
 
-       ! Add Robin boundary condition for potentials at x=xMax:
-       M22(NxPotentials,:) = xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
-       M22(NxPotentials,NxPotentials) = M22(NxPotentials,NxPotentials) + L+1
+         ! Add Dirichlet or Neumann boundary condition for potentials at x=0:
+         if (L==0) then
+            M22(1,:)=ddxPotentials(1,:)
+         else
+            M22(1,:) = 0
+            M22(1,1) = 1
+         end if
+         M33 = M22;
 
-       ! Boundary condition for G:
-       M33(NxPotentials,:) = xMaxNotTooSmall*xMaxNotTooSmall*d2dx2Potentials(NxPotentials,:) &
-            + (2*L+1)*xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
-       M33(NxPotentials,NxPotentials) = M33(NxPotentials,NxPotentials) + (L*L-1)
+         ! Add Robin boundary condition for potentials at x=xMax:
+         M22(NxPotentials,:) = xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
+         M22(NxPotentials,NxPotentials) = M22(NxPotentials,NxPotentials) + L+1
 
-       if (L /= 0) then
-          M22(NxPotentials,1)=0
-          M33(NxPotentials,1)=0
-       end if
+         ! Boundary condition for G:
+         M33(NxPotentials,:) = xMaxNotTooSmall*xMaxNotTooSmall*d2dx2Potentials(NxPotentials,:) &
+              + (2*L+1)*xMaxNotTooSmall*ddxPotentials(NxPotentials,:)
+         M33(NxPotentials,NxPotentials) = M33(NxPotentials,NxPotentials) + (L*L-1)
 
-       ! Call LAPACK subroutine DGESV to solve a linear system
-       ! Note: this subroutine changes M22 and M33!
-       M22BackslashM21 = M21  ! This will be overwritten by LAPACK.
+         if (L /= 0) then
+            M22(NxPotentials,1)=0
+            M33(NxPotentials,1)=0
+         end if
+
+         ! Call LAPACK subroutine DGESV to solve a linear system
+         ! Note: this subroutine changes M22 and M33!
+         M22BackslashM21 = M21  ! This will be overwritten by LAPACK.
 #if defined(PETSC_USE_REAL_SINGLE)
-       call SGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
+         call SGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
 #else
-       call DGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
+         call DGESV(NxPotentials, Nx, M22, NxPotentials, IPIV, M22BackslashM21, NxPotentials, LAPACKInfo)
 #endif
-       if (LAPACKInfo /= 0) then
-          print *, "Error in LAPACK call: info = ", LAPACKInfo
-          stop
-       end if
-       M33BackslashM32 = M32  ! This will be overwritten by LAPACK.
+         if (LAPACKInfo /= 0) then
+            print *, "Error in LAPACK call: info = ", LAPACKInfo
+            stop
+         end if
+         M33BackslashM32 = M32  ! This will be overwritten by LAPACK.
 #if defined(PETSC_USE_REAL_SINGLE)
-       call SGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
+         call SGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
 #else
-       call DGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
+         call DGESV(NxPotentials, NxPotentials, M33, NxPotentials, IPIV, M33BackslashM32, NxPotentials, LAPACKInfo)
 #endif
-       if (LAPACKInfo /= 0) then
-          print *, "Error in LAPACK call: info = ", LAPACKInfo
-          stop
-       end if
+         if (LAPACKInfo /= 0) then
+            print *, "Error in LAPACK call: info = ", LAPACKInfo
+            stop
+         end if
 
-       M33BackslashM32s(L+1,:,:) = M33BackslashM32
-       M22BackslashM21s(L+1,:,:) = M22BackslashM21
-    end do
+         M33BackslashM32s(L+1,:,:) = M33BackslashM32
+         M22BackslashM21s(L+1,:,:) = M22BackslashM21
+      end do
+    end if
 
     do ipsi = ipsiMin, ipsiMax
 
@@ -994,8 +1039,8 @@ contains
                      expxb2, fToFInterpolationMatrix)
              else
                 fToFInterpolationMatrix = zero
-                do i=1,Nx
-                   fToFInterpolationMatrix(i, i) = one
+                do ix=1,Nx
+                   fToFInterpolationMatrix(ix, ix) = one
                 end do
              end if
 
@@ -1044,6 +1089,12 @@ contains
        ! *****************************************************************
 
        do L=0, Nxi-1
+          if (L>0 .and. pointAtX0) then
+             ixMinCol = 2
+          else
+             ixMinCol = 1
+          end if
+
           !print *,"Adding L=",L
           do iSpeciesA = 1,Nspecies
              sqrt_m = sqrt(masses(iSpeciesA))
@@ -1053,8 +1104,8 @@ contains
                    ! Build M11
                    M11 = -nu_r * CECD(iSpeciesA, iSpeciesB,:,:)
                    if (iSpeciesA == iSpeciesB) then
-                      do i=1,Nx
-                         M11(i,i) = M11(i,i) - nu_r * (-oneHalf*nuDHat(iSpeciesA,i)*L*(L+1))
+                      do ix=1,Nx
+                         M11(ix,ix) = M11(ix,ix) - nu_r * (-oneHalf*nuDHat(iSpeciesA,ix)*L*(L+1))
                       end do
                    end if
 
@@ -1062,12 +1113,12 @@ contains
                    !   if (.false.) then
                       ! Add Rosenbluth potential terms.
 
-                      if (xDerivativeScheme==2) then
+                      if (xDerivativeScheme==2 .or. xDerivativeScheme==3) then
                          ! New scheme for the Rosenbluth potential terms.
-                         do i=1,Nx
+                         do ix=1,Nx
                             ! The DKE normalization in perfect has an extra sqrt(m) compared to the normalization in SFINCS. Add the factor here:
-                            M11(i, :) = M11(i,:) &
-                                 - nu_r * sqrt_m * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,i,:,ipsi-ipsiMin+1) 
+                            M11(ix, :) = M11(ix,:) &
+                                 - nu_r * sqrt_m * RosenbluthPotentialTerms(iSpeciesA,iSpeciesB,L+1,ix,:,ipsi-ipsiMin+1) 
                          end do
 
                          KWithoutThetaPart = M11
@@ -1089,8 +1140,8 @@ contains
                               * THats(iSpeciesB,ipsi)*masses(iSpeciesA)/(THats(iSpeciesA,ipsi)*masses(iSpeciesB))
                          
                          tempMatrix = matmul(potentialsToFInterpolationMatrix, d2dx2Potentials)
-                         do i=1,Nx
-                            M13(i, :) = speciesFactor*expx2(i)*x2(i)*tempMatrix(i,:)
+                         do ix=1,Nx
+                            M13(ix, :) = speciesFactor*expx2(ix)*x2(ix)*tempMatrix(ix,:)
                          end do
                          
                          ! Build M12:
@@ -1104,8 +1155,8 @@ contains
                             tempMatrix2(i,i) = tempMatrix2(i,i) + one
                          end do
                          tempMatrix = matmul(potentialsToFInterpolationMatrix, tempMatrix2)
-                         do i=1,Nx
-                            M12(i,:) = -speciesFactor*expx2(i)*tempMatrix(i,:)
+                         do ix=1,Nx
+                            M12(ix,:) = -speciesFactor*expx2(ix)*tempMatrix(ix,:)
                          end do
                          
                          ! Possibly add Dirichlet boundary condition for potentials at x=0:
@@ -1183,9 +1234,9 @@ contains
                          ! We're either in the interior, or on a boundary point at which trajectories leave the domain,
                          ! so impose the kinetic equation here.
 
-                         do ix_row=min_x_for_L(L),Nx
+                         do ix_row=max(ixMin,min_x_for_L(L)),Nx
                            rowIndex = getIndex(iSpeciesA,ix_row,L,itheta,ipsi)
-                           do ix_col=min_x_for_L(L),Nx
+                           do ix_col=max(ixMinCol,min_x_for_L(L)),Nx
                              colIndex = getIndex(iSpeciesB,ix_col,L,itheta,ipsi)
                              call MatSetValueSparse(matrix, rowIndex, colIndex, &
                                   KWithoutThetaPart(ix_row,ix_col), ADD_VALUES, ierr)
@@ -1228,8 +1279,10 @@ contains
 
     deallocate(rowIndices)
     deallocate(colIndices)
-    deallocate(tempMatrix)
-    deallocate(tempMatrix2)
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      deallocate(tempMatrix)
+      deallocate(tempMatrix2)
+    endif
 
     deallocate(xb)
     deallocate(expxb2)
@@ -1237,23 +1290,27 @@ contains
     deallocate(Psi_Chandra)
     deallocate(nuDHat)
 
-    deallocate(M21)
-    deallocate(M32)
-    deallocate(M22BackslashM21)
-    deallocate(M33BackslashM32)
-    deallocate(M22BackslashM21s)
-    deallocate(M33BackslashM32s)
-    deallocate(LaplacianTimesX2WithoutL)
-    deallocate(M11)
+    if (xDerivativeScheme == 0 .or. xDerivativeScheme == 1) then
+      deallocate(M21)
+      deallocate(M32)
+      deallocate(M22BackslashM21)
+      deallocate(M33BackslashM32)
+      deallocate(M22BackslashM21s)
+      deallocate(M33BackslashM32s)
+      deallocate(LaplacianTimesX2WithoutL)
 
-    deallocate(M12)
-    deallocate(M13)
-    deallocate(M22)
-    deallocate(M33)
+      deallocate(M12)
+      deallocate(M13)
+      deallocate(M22)
+      deallocate(M33)
+
+      deallocate(potentialsToFInterpolationMatrix)
+    endif
+
+    deallocate(M11)
 
     deallocate(KWithoutThetaPart)
     deallocate(fToFInterpolationMatrix)
-    deallocate(potentialsToFInterpolationMatrix)
     deallocate(CECD)
 
     deallocate(IPIV)
@@ -1316,6 +1373,53 @@ contains
     end if
 
   end subroutine radialBoundaryConditionDiagonal
+
+  subroutine xBoundaryCondition(whichMatrix)
+
+    ! *******************************************************************************
+    ! Enforce boundary condition at x=0 if needed (if there is a point there)
+    ! *******************************************************************************
+
+    PetscErrorCode :: ierr
+    integer :: ix, L, itheta, ipsi, index, ix_row, ix_col, rowIndex, colIndex, ispecies
+    integer, intent(in) :: whichMatrix
+
+    if (pointAtX0) then
+       ! For L > 0 modes, impose f=0 at x=0:
+       ix = 1
+       do ipsi = ipsiMin,ipsiMax
+          do L = 1,(Nxi_for_x(ix)-1)
+             do itheta = 1,Ntheta
+                do ispecies = 1,Nspecies
+                   index = getIndex(ispecies,ix,L,itheta,ipsi)
+                   call MatSetValue(matrix, index, index, one, ADD_VALUES, ierr)
+                end do
+             end do
+          end do
+       end do
+
+       ! For L=0 mode, impose regularity (df/dx=0) at x=0:
+       L=0
+       if (whichMatrix==0 .and. L >= preconditioner_x_min_L) then
+          ddxToUse = ddxPreconditioner
+       else
+          ddxToUse = ddx
+       end if
+       ix_row = 1
+       do ipsi = ipsiMin,ipsiMax
+          do itheta = 1,Ntheta
+             do ispecies = 1,Nspecies
+                rowIndex = getIndex(ispecies,ix_row,L,itheta,ipsi)
+                do ix_col = 1,Nx
+                   colIndex = getIndex(ispecies,ix_col,L,itheta,ipsi)
+                   call MatSetValueSparse(matrix, rowIndex, colIndex, ddxToUse(ix_row,ix_col), ADD_VALUES, ierr)
+                end do
+             end do
+          end do
+       end do
+    end if
+
+  end subroutine xBoundaryCondition
 
   subroutine sources()
 

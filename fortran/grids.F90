@@ -136,6 +136,29 @@ module grids
     allocate(psi(Npsi))
     allocate(psiAHatArray(Npsi))
 
+    select case (psiGridType)
+    case(0)
+       ! uniform grid
+       do i=1,Npsi
+          psiAHatArray(i) = psiAHat
+       end do
+    case(1)
+       ! Create groupname to be read
+       write (HDF5Groupname,"(A4,I0)") "Npsi", Npsi
+     
+       ! Open input file
+       call openInputFile(psiAHatFilename,HDF5Groupname)
+
+       call readVariable(psiAHatArray, "psiAHatArray")
+
+       call closeInputFile() 
+     
+    case default
+       print *,"Error! Invalid setting for psiGridType"
+       stop
+
+    end select
+         
     if (Npsi<5) then ! if Npsi<5 then we can do without psi-derivatives, but the simulation must be local
       
       !Sanity checks
@@ -180,7 +203,7 @@ module grids
       end if
       call uniformDiffMatrices(Npsi, psiMin, psiMax, scheme, psi, psiWeights, ddpsiForPreconditioner, d2dpsi2)
       ! All of the returned arrays above will be over-written except for ddpsiForPreconditioner
-  
+
       select case (psiDerivativeScheme)
       case (1)
          ! centered finite differences, 3-point stencil
@@ -344,6 +367,15 @@ module grids
 
        deallocate(dgdx)
        deallocate(d2gdx2)
+       
+    case (3)
+       ! Polynomial spectral collocation with point at x=0
+       pointAtX0 = .true.
+       call makeXGrid(Nx, x, xWeights, .true.)
+       xWeights = xWeights / exp(-x*x)
+       x = x * xScaleFactor
+       xWeights = xWeights * xScaleFactor
+       call makeXPolynomialDiffMatrices(x,ddx,d2dx2)
        
     case default
        print *,"Error! Invalid setting for xDerivativeScheme"

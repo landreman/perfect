@@ -104,7 +104,7 @@ contains
     call computeDerivedProfileQuantities()
 
 
-    if (xDerivativeScheme==2 .and. localNpsi>0) then
+    if ((xDerivativeScheme==2 .or. xDerivativeScheme==3) .and. localNpsi>0) then
        ! The localNpsi>0 test is included above to avoid problems with array dimensions of size 0
        ! in case the # of procs exceeds Npsi.
        allocate(RosenbluthPotentialTerms(Nspecies,Nspecies,NL,Nx,Nx,localNpsi))

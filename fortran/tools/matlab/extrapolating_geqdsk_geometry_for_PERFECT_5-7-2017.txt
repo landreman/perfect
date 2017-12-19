@@ -1,0 +1,20 @@
+PERFECT needs closed flux surfaces. When modelling an experiment the buffer region may need to
+extend beyond psiN=1, so we need to extrapolate in a way that does not have an X-point.
+
+Chosen algorithm: 
+- along lines of constant poloidal angle (from the magnetic axis) extrapolate psiN
+  linearly outside of some chosen value, extrapolateBeyondPsiN in the EFITOptions.m file.
+- get the gradient for the linear extrapolation from some psiN range, extrapolatePsiNInterval in the
+  EFITOptions.m file.
+
+Implementation:
+- create a fine r-theta grid (1024 points in each direction) centred on the magnetic axis, with a
+  large enough maximum r to include the entire cartesian grid in the geqdsk file.
+- interpolate psiN onto the r-theta grid using interp2
+- for each theta:
+  - find the largest psiN below extrapolateBeyondPsiN
+  - extrapolate linearly for larger r
+- interpolate back to the cartesian grid using interp2
+- recalculate psi from psiN so that BR, BZ, etc. get calculated using the extrapolated field.
+- set I to constant from extrapolateBeyondPsiN outwards.
+- continue with the usual flux surface reconstruction, but now psiMax can be greater than 1
