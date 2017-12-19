@@ -840,11 +840,11 @@ contains
 
        do i=1,Npsi
           deltaT(ispecies,i) = -delta*sqrt(masses(ispecies))*IHat(i)/(psiAHatArray(i)*typicalB(i) &
-               *charges(ispecies)*sqrt(THats(ispecies,i)))*dTHatdpsis(ispecies,i)
+               *abs(charges(ispecies))*sqrt(THats(ispecies,i)))*dTHatdpsis(ispecies,i)
           deltaN(ispecies,i) = -delta*sqrt(masses(ispecies)*THats(ispecies,i))*IHat(i) &
-               / (psiAHatArray(i)*charges(ispecies)*typicalB(i)*nHats(ispecies,i)) * dnHatdpsis(ispecies,i)
+               / (psiAHatArray(i)*abs(charges(ispecies))*typicalB(i)*nHats(ispecies,i)) * dnHatdpsis(ispecies,i)
           deltaEta(ispecies,i) = -delta*sqrt(masses(ispecies)*THats(ispecies,i))*IHat(i) &
-               / (psiAHatArray(i)*charges(ispecies)*typicalB(i)*etaHats(ispecies,i)) * detaHatdpsis(ispecies,i)
+               / (psiAHatArray(i)*abs(charges(ispecies))*typicalB(i)*etaHats(ispecies,i)) * detaHatdpsis(ispecies,i)
        end do
 
        do i=1,Npsi
