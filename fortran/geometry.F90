@@ -93,7 +93,7 @@ contains
     implicit none
 
     PetscScalar, allocatable, dimension(:) :: bs_1D, dbdthetas_1D, oneOverqRbDotGradThetas_1D, R_1D
-    PetscScalar :: input_psiMin, input_psiMax, psiRangeTolerance
+    PetscScalar :: input_psiMin, input_psiMax, input_psi0, psiRangeTolerance
     integer :: i, psiRangeErrorFlags
 
     allocate(BHat(Ntheta,Npsi))
@@ -148,13 +148,8 @@ contains
        psiRangeTolerance = 1.d-13
        call readVariable(input_psiMin, "psiMin")
        call readVariable(input_psiMax, "psiMax")
+       call readVariable(input_psi0, "psi0")
        psiRangeErrorFlags = 0
-       if ( abs(input_psiMin-psiMin) > psiRangeTolerance ) then
-         psiRangeErrorFlags = psiRangeErrorFlags + 1
-       end if
-       if ( abs(input_psiMax-psiMax) > psiRangeTolerance ) then
-         psiRangeErrorFlags = psiRangeErrorFlags + 2
-       end if
        if (Npsi==1) then
          ! If there is only one point in the psi-grid only psiMid matters
          if ( abs((input_psiMax+input_psiMin)/2d0 - psiMid) < psiRangeTolerance ) then
@@ -164,7 +159,20 @@ contains
            print *,"from the input.namelist file. Perhaps you need to rebuild the geometry input file."
            stop
          end if
+       else
+         ! check consistency of psi range from the geometry input and the input.namelist
+         if ( abs(input_psiMin-psiMin) > psiRangeTolerance ) then
+            psiRangeErrorFlags = psiRangeErrorFlags + 1
+         end if
+         if ( abs(input_psiMax-psiMax) > psiRangeTolerance ) then
+            psiRangeErrorFlags = psiRangeErrorFlags + 2
+         end if
        end if
+       ! always need to check that psiAHat is correct
+       if ( abs(input_psi0-psiAHat) > psiRangeTolerance ) then
+         psiRangeErrorFlags = psiRangeErrorFlags + 4
+       end if
+       
        select case (psiRangeErrorFlags)
        case (0)
          ! All correct
@@ -179,6 +187,27 @@ contains
        case (3)
          print *,"psiMin and psiMax used to compute the geometry input file are both different from the value"
          print *,"calculated from the input.namelist file. Perhaps you need to rebuild the geometry input file."
+         stop
+      case (4)
+         print *,"psi0 used to compute the geometry input file is different from the value of psiAHat"
+         print *,"from the input.namelist file. Is RBar=BBar=1?"
+         print *,"Perhaps you need to rebuild the geometry input file or change psiAHat in the input.namelist."
+         stop
+      case (5)
+         print *,"psiMin used to compute the geometry input file is different from the value calculated"
+         print *,"from the input.namelist file. psiAHat is different from psi0 in the geometry input file."
+         print *,"Perhaps you need to rebuild the geometry input file; change input.namelist or ensure RBar=BBar=1"
+         stop
+      case (6)
+         print *,"psiMax used to compute the geometry input file is different from the value calculated"
+         print *,"from the input.namelist file. psiAHat is different from psi0 in the geometry input file."
+         print *,"Perhaps you need to rebuild the geometry input file; change input.namelist or ensure RBar=BBar=1"
+         stop
+      case (7)
+         print *,"psiMin and psiMax used to compute the geometry input file is different from the value calculated"
+         print *,"from the input.namelist file. psiAHat is different from psi0 in the geometry input file."
+         print *,"Perhaps you need to rebuild the geometry input file; change input.namelist or ensure RBar=BBar=1"
+         stop
        case default
          stop "This should never happen."
        end select
