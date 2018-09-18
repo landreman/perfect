@@ -3,15 +3,17 @@ module scan
   use globalVariables
   use petscsysdef
 
-  implicit none
-
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
-#else
+#elif (PETSC_VERSION_MAJOR < 3 && PETSC_VERSION_MAJOR<=7)
 #include <petsc/finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsys.h>
 #endif
-
+  
+  implicit none
+  
   integer, allocatable :: NthetasForScan(:), NxisForScan(:), &
        NLsForScan(:), NxsForScan(:), NpsisForScan(:), psiDerivativeSchemesForScan(:)
   PetscScalar, allocatable :: NxPotentialsPerVthsForScan(:), xMaxsForScan(:), NpsiPerDiametersForScan(:)
