@@ -4,10 +4,15 @@ module DKEMatrices
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
 #include <finclude/petscdmdadef.h>
-#else
+#elif (PETSC_VERSION_MAJOR < 3 && PETSC_VERSION_MAJOR<=7)
 #include <petsc/finclude/petsckspdef.h>
 #include <petsc/finclude/petscdmdadef.h>
+#else
+#include <petsc/finclude/petscsys.h>
+#include <petsc/finclude/petscdmda.h>
 #endif
+
+
   
   use globalVariables
   use grids

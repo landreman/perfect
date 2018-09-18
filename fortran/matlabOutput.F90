@@ -7,10 +7,12 @@ module matlabOutput
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
-#else
+#elif (PETSC_VERSION_MAJOR < 3 && PETSC_VERSION_MAJOR<=7)
 #include <petsc/finclude/petsckspdef.h>
+#else
+#include <petsc/finclude/petscksp.h>
 #endif
-
+  
   implicit none
 
 contains

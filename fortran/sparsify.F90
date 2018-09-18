@@ -7,15 +7,19 @@ module sparsify
   ! sparsity.
   use globalVariables, only: threshholdForInclusion
 
-  implicit none
 
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscmatdef.h>
-#else
+#elif (PETSC_VERSION_MAJOR < 3 && PETSC_VERSION_MAJOR<=7)
 #include <petsc/finclude/petscmatdef.h>
+#else
+#include <petsc/finclude/petscmat.h>
+  use petscmat
 #endif
 
+  implicit none
+  
 contains
 
   subroutine MatSetValueSparse(myMat, row, col, valueToSet, mode, err)

@@ -9,14 +9,16 @@ module profiles
   use readHDF5Input
   use sourcesConstraints
 
-  implicit none
-
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
-#else
+#elif (PETSC_VERSION_MAJOR < 3 && PETSC_VERSION_MAJOR<=7)
 #include <petsc/finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsys.h>
 #endif
+
+  implicit none
 
 contains
 
