@@ -11,13 +11,14 @@ module grids
 
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscsysdef.h>
-#elif (PETSC_VERSION_MAJOR < 3 && PETSC_VERSION_MAJOR<=7)
-#include <petsc/finclude/petscsysdef.h>
+#include <finclude/petsckspdef.h>
+#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+#include <petsc/finclude/petsckspdef.h>
 #else
-#include <petsc/finclude/petscsys.h>
-#include <petsc/finclude/petscdm.h>
-!#include <petsc/finclude/petscdmda.h>
+!#include <petsc/finclude/petscsys.h>
+!#include <petsc/finclude/petscdm.h>
+  !#include <petsc/finclude/petscdmda.h>
+#include <petsc/finclude/petscksp.h>
 #endif
 
   implicit none

@@ -5,7 +5,7 @@
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
-#elif (PETSC_VERSION_MAJOR < 3 && PETSC_VERSION_MAJOR<=7)
+#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
 #include <petsc/finclude/petscsysdef.h>
 #else
 #include <petsc/finclude/petscsys.h>
@@ -30,12 +30,24 @@ program perfect
 
 
   call PetscInitialize(PETSC_NULL_CHARACTER, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+  CHKERRQ(ierr)
+#else
   CHKERRA(ierr)
+#endif
 
   call MPI_COMM_SIZE(PETSC_COMM_WORLD, numProcs, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+  CHKERRQ(ierr)
+#else
   CHKERRA(ierr)
+#endif
   call MPI_COMM_RANK(PETSC_COMM_WORLD, myRank, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+  CHKERRQ(ierr)
+#else
   CHKERRA(ierr)
+#endif
   ! This program uses 1-based indices to number the MPI processes, consistent with the Fortran
   ! convention for array indices, not the 0-based indexing used by C and MPI.
   myRank = myRank + 1
@@ -102,7 +114,11 @@ program perfect
      call openOutputFile()
      call setupOutput(GIT_COMMIT)
      call PetscTime(time1, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+     CHKERRQ(ierr)
+#else
      CHKERRA(ierr)
+#endif
      
      do runNum = minScanUnit,maxScanUnit
         if (masterProcInSubComm) then
@@ -127,7 +143,11 @@ program perfect
         call deallocateArrays()
      end do
      call PetscTime(time2, ierr)
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+     CHKERRQ(ierr)
+#else
      CHKERRA(ierr)
+#endif
      if (masterProcInSubComm) then
         print *,"[",myCommunicatorIndex,"] --------------------------------------------------------------"
         print *,"[",myCommunicatorIndex,"] Total time for scan on this communicator: ", &

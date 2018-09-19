@@ -57,17 +57,18 @@
 
 #define line "******************************************************************"
 
-  module xGrid
-
-    implicit none
+module xGrid
 
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
-#else
+#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
 #include <petsc/finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsys.h>
 #endif
 
+    implicit none
     private
 
     PetscScalar, allocatable :: a(:), b(:), c(:)

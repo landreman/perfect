@@ -32,7 +32,7 @@ module polynomialDiffMatrices
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
-#elif (PETSC_VERSION_MAJOR < 3 && PETSC_VERSION_MAJOR<=7)
+#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
 #include <petsc/finclude/petscsysdef.h>
 #else
 #include <petsc/finclude/petscsys.h>
