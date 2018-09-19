@@ -14,6 +14,7 @@ module solveDKE
   use profiles
   use sparsify
   
+  
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petsckspdef.h>
@@ -21,6 +22,9 @@ module solveDKE
 #include <petsc/finclude/petsckspdef.h>
 #else
 #include <petsc/finclude/petscksp.h>
+#include <petsc/finclude/petscpc.h>
+  use petscksp
+  use petscpc
 #endif
   
   implicit none
@@ -38,6 +42,7 @@ contains
   subroutine solveDKEMain()
 
     use petscksp
+    use petscpc
     
     PetscErrorCode :: ierr
     ! integer :: scheme
@@ -564,6 +569,9 @@ contains
   ! ***********************************************************************
   subroutine solveDKEGlobal(time1)
 
+    use petscpc
+    use petscksp
+    
     PetscErrorCode :: ierr
     integer :: NNZMain, NNZPreconditioner
     PC :: preconditionerContext
@@ -635,12 +643,12 @@ contains
     if (.true.) then
        select case (whichParallelSolverToFactorPreconditioner)
        case (1)
-          call PCFactorSetMatSolverPackage(preconditionerContext, MATSOLVERMUMPS, ierr)
+          call PCFactorSetMatSolverType(preconditionerContext, MATSOLVERMUMPS, ierr)
           if (masterProcInSubComm) then
              print *,"[",myCommunicatorIndex,"] Using mumps to factorize the preconditioner."
           end if
        case (2)
-          call PCFactorSetMatSolverPackage(preconditionerContext, MATSOLVERSUPERLU_DIST, ierr)
+          call PCFactorSetMatSolverType(preconditionerContext, MATSOLVERSUPERLU_DIST, ierr)
           if (masterProcInSubComm) then
              print *,"[",myCommunicatorIndex,"] Using superlu_dist to factorize the preconditioner."
           end if

@@ -33,3 +33,9 @@
 #endif
 !Hereafter in this code, use DM_BOUNDARY_NONE.
 
+! For PETSc versions prior to 3.9, MatSolvePackage was used in place of MatSolverType.
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 9))
+#define PCFactorSetMatSolverType PCFactorSetMatSolverPackage
+#endif
+!Hereafter in this code, use PCFactorSetMatSolverType.
+

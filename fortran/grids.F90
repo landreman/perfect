@@ -17,6 +17,7 @@ module grids
 #else
 #include <petsc/finclude/petscsys.h>
 #include <petsc/finclude/petscdm.h>
+!#include <petsc/finclude/petscdmda.h>
 #endif
 
   implicit none
@@ -97,9 +98,10 @@ module grids
     ! Assign a range of psi indices to each processor.
     ! This is done by creating a PETSc DM that is not actually used for anything else.
     call DMDACreate1d(MPIComm, DM_BOUNDARY_NONE, Npsi, 1, 0, PETSC_NULL_INTEGER, myDM, ierr)
+    call DMSetup(myDM, ierr)
     call DMDAGetCorners(myDM, ipsiMin, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, &
          localNpsi, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, ierr)
-    call DMDestroy(myDM, ierr) ! dubious
+    call DMDestroy(myDM, ierr)
     ! Switch to 1-based indices:
     ipsiMin = ipsiMin + 1
 
