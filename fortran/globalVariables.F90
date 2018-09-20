@@ -1,7 +1,5 @@
 module globalVariables
 
-  implicit none
-
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
@@ -11,9 +9,8 @@ module globalVariables
 #include <petsc/finclude/petscsys.h>
 #endif
 
-!#if (PETSC_VERSION_MAJOR >= 3 && PETSC_VERSION_MAJOR>=8)
-!  use petscsysdef
-!#endif
+  implicit none
+  
   integer, parameter :: integerToRepresentTrue  =  1
   integer, parameter :: integerToRepresentFalse = -1
 

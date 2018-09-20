@@ -1,4 +1,12 @@
 module DKEMatrices
+  
+  use globalVariables
+  use grids
+  use indices
+  use petscksp
+  use petscdmda
+  use sparsify
+  use sourcesConstraints
 
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
@@ -11,17 +19,7 @@ module DKEMatrices
 #include <petsc/finclude/petscsys.h>
 #include <petsc/finclude/petscdmda.h>
 #endif
-
-
   
-  use globalVariables
-  use grids
-  use indices
-  use petscksp
-  use petscdmda
-  use sparsify
-  use sourcesConstraints
-
   implicit none
 
   private

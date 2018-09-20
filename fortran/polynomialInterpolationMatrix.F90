@@ -1,12 +1,3 @@
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscsysdef.h>
-#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
-#include <petsc/finclude/petscsysdef.h>
-#else
-#include <petsc/finclude/petscsys.h>
-#endif
-  
 subroutine polynomialInterpolationMatrix(N, M, xk, x, alpxk, alpx, matrix)
   ! This module returns the matrix for spectral interpolation from any grid to
   ! any other grid, using any weights. However, the method is poorly
@@ -55,6 +46,15 @@ subroutine polynomialInterpolationMatrix(N, M, xk, x, alpxk, alpx, matrix)
   ! x and alpx should be 1D arrays with the same size. (Call it M.)
   ! matrix should be preallocated with size (M rows) x (N columns).
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
+#include <finclude/petscsysdef.h>
+#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+#include <petsc/finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsys.h>
+#endif
+  
   implicit none
 
   integer, intent(in) :: N, M

@@ -2,8 +2,6 @@ module readHDF5Input
 
   use HDF5
 
-  implicit none
-
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
@@ -13,6 +11,8 @@ module readHDF5Input
 #include <petsc/finclude/petscsys.h>
 #endif
 
+  implicit none
+  
   interface readVariable
     module procedure readVariable_integer
     module procedure readVariable_scalar

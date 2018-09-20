@@ -1,12 +1,3 @@
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscsysdef.h>
-#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
-#include <petsc/finclude/petscsysdef.h>
-#else
-#include <petsc/finclude/petscsys.h>
-#endif
-
 subroutine uniformDiffMatrices(N, xMin, xMax, scheme, x, weights, ddx, d2dx2)
   ! Finite difference and spectral differentiation matrices and integration
   ! weights for a uniform grid.
@@ -87,6 +78,15 @@ subroutine uniformDiffMatrices(N, xMin, xMax, scheme, x, weights, ddx, d2dx2)
   !   ddx = matrix for differentiation.
   !   d2dx2 = matrix for the 2nd derivative.
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
+#include <finclude/petscsysdef.h>
+#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+#include <petsc/finclude/petscsysdef.h>
+#else
+#include <petsc/finclude/petscsys.h>
+#endif
+  
   implicit none
 
   integer, intent(in) :: N, scheme

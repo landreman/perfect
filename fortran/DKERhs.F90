@@ -3,7 +3,6 @@ module DKERhs
   use globalVariables
   use grids
   use sourcesConstraints
-  !use petscksp
 
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))

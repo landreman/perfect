@@ -27,8 +27,6 @@
 !
 module polynomialDiffMatrices
 
-  implicit none
-
 #include "PETScVersions.F90"
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
 #include <finclude/petscsysdef.h>
@@ -38,7 +36,7 @@ module polynomialDiffMatrices
 #include <petsc/finclude/petscsys.h>
 #endif
 
-  
+  implicit none
   
   public :: makeXPolynomialDiffMatrices
   private :: weight, dweightdxOverWeight, d2weightdx2OverWeight

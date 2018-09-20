@@ -1,12 +1,3 @@
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscmatdef.h>
-#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
-#include <petsc/finclude/petscmatdef.h>
-#else
-#include <petsc/finclude/petscmat.h>
-#endif
-
 subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   ! whichMatrix = 0 for global, 1 for local.
   ! finalMatrix = 0 for preconditioner matrix, 1 for final matrix.
@@ -20,6 +11,15 @@ subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
        lowestEnforcedIpsi, highestEnforcedIpsi, NEnforcedPsi
   use indices
 
+#include "PETScVersions.F90"
+#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
+#include <finclude/petscmatdef.h>
+#elif (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 8))
+#include <petsc/finclude/petscmatdef.h>
+#else
+#include <petsc/finclude/petscmat.h>
+#endif
+  
   implicit none
 
   integer, intent(in) :: whichMatrix, finalMatrix
