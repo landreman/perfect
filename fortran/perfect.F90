@@ -1,16 +1,11 @@
 ! Main program
 
+
 #include "perfectVersion.h"
 
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscsysdef.h>
-#else
-#include <petsc/finclude/petscsysdef.h>
-#endif
-
-
 program perfect
+#include "PETScVersions.F90"
+  
   use globalVariables
   use geometry
   use printToStdout

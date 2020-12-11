@@ -1,16 +1,12 @@
 module geometry
   ! Subroutines and functions related to determining B(theta).
+#include "PETScVersions.F90"
 
   use globalVariables
   use grids
   use readHDF5Input
 
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscsysdef.h>
-#else
-#include <petsc/finclude/petscsysdef.h>
-#endif
+
 
 
   implicit none

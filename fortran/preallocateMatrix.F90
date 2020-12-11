@@ -1,13 +1,10 @@
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscmatdef.h>
-#else
-#include <petsc/finclude/petscmatdef.h>
-#endif
+
 
 subroutine preallocateMatrix(matrix, whichMatrix, finalMatrix)
   ! whichMatrix = 0 for global, 1 for local.
   ! finalMatrix = 0 for preconditioner matrix, 1 for final matrix.
+
+#include "PETScVersions.F90"
 
   use petscmat
   use globalVariables, only: Nx, Nxi, Ntheta, Npsi, Nspecies, Nsources,matrixSize, localMatrixSize, &

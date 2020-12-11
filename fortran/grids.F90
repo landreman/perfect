@@ -1,4 +1,5 @@
 module grids
+#include "PETScVersions.F90"
 
   use globalVariables
   use indices
@@ -9,12 +10,7 @@ module grids
   use xGrid
   use readHDF5Input
 
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petsckspdef.h>
-#else
-#include <petsc/finclude/petsckspdef.h>
-#endif
+
 
   implicit none
 
@@ -94,6 +90,9 @@ module grids
     ! Assign a range of psi indices to each processor.
     ! This is done by creating a PETSc DM that is not actually used for anything else.
     call DMDACreate1d(MPIComm, DM_BOUNDARY_NONE, Npsi, 1, 0, PETSC_NULL_INTEGER, myDM, ierr)
+#if (PETSC_VERSION_MAJOR > 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR > 7))
+    call DMSetUp(myDM, ierr)
+#endif
     call DMDAGetCorners(myDM, ipsiMin, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, &
          localNpsi, PETSC_NULL_INTEGER, PETSC_NULL_INTEGER, ierr)
     call DMDestroy(myDM, ierr) ! dubious

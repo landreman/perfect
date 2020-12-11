@@ -1,16 +1,14 @@
 module moments
 
+#include "PETScVersions.F90"
+
+  
   use globalVariables
   use grids
   use writeHDF5Output ! used to write output for debugging
   use geometry ! used to get poloidal and toroidal flows (only Miller supported ATM)
 
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petsckspdef.h>
-#else
-#include <petsc/finclude/petsckspdef.h>
-#endif
+
 
   implicit none
 

@@ -1,9 +1,4 @@
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscsysdef.h>
-#else
-#include <petsc/finclude/petscsysdef.h>
-#endif
+
 
 subroutine interpolationMatrix(N, M, x, y, matrix, scheme, L)
   ! Builds a matrix for interpolating from a uniform grid to any
@@ -42,6 +37,9 @@ subroutine interpolationMatrix(N, M, x, y, matrix, scheme, L)
   !     potentials off the grid, so the 'L' and 'GOrH' parameters do not
   !     matter.  They do matter in the impure-plasma code however.
 
+#include "PETScVersions.F90"
+
+  
   implicit none
 
   integer, intent(in) :: N, M, scheme, L

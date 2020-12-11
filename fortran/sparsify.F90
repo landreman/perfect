@@ -1,5 +1,8 @@
 module sparsify
 
+#include "PETScVersions.F90"
+
+  
   ! This module provides wrappers for Petsc's MatSetValue and MatSetValues subroutines.
   ! The wrappers act exactly the same as the original Petsc subroutines, except that
   ! values are only added when they exceed a small positive threshhold. This threshholding
@@ -9,12 +12,6 @@ module sparsify
 
   implicit none
 
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petscmatdef.h>
-#else
-#include <petsc/finclude/petscmatdef.h>
-#endif
 
 contains
 

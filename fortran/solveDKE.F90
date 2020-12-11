@@ -4,6 +4,9 @@
 
 module solveDKE
 
+#include "PETScVersions.F90"
+
+  
   use DKEMatrices
   use DKERhs
   use geometry
@@ -14,12 +17,7 @@ module solveDKE
   use profiles
   use sparsify
 
-#include "PETScVersions.F90"
-#if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 6))
-#include <finclude/petsckspdef.h>
-#else
-#include <petsc/finclude/petsckspdef.h>
-#endif
+
 
   
   implicit none
@@ -247,8 +245,8 @@ contains
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
 #else
-             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf1, ierr)
-             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf1, PetscViewerAndFormatDestroy, ierr)
+             ! call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf1, ierr)
+             ! call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf1, PetscViewerAndFormatDestroy, ierr)
 #endif
           else
              ! Direct solver:
@@ -368,8 +366,8 @@ contains
 #if (PETSC_VERSION_MAJOR < 3 || (PETSC_VERSION_MAJOR==3 && PETSC_VERSION_MINOR < 7))
              call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, PETSC_NULL_OBJECT, PETSC_NULL_FUNCTION, ierr)
 #else
-             call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf2, ierr)
-             call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf2, PetscViewerAndFormatDestroy, ierr)
+             ! call PetscViewerAndFormatCreate(PETSC_VIEWER_STDOUT_WORLD, PETSC_VIEWER_DEFAULT, vf2, ierr)
+             ! call KSPMonitorSet(KSPBoundary, KSPMonitorDefault, vf2, PetscViewerAndFormatDestroy, ierr)
 #endif
           else
              ! Direct solver:
@@ -632,12 +630,12 @@ contains
     if (.true.) then
        select case (whichParallelSolverToFactorPreconditioner)
        case (1)
-          call PCFactorSetMatSolverPackage(preconditionerContext, MATSOLVERMUMPS, ierr)
+          call PCFactorSetMatSolverType(preconditionerContext, MATSOLVERMUMPS, ierr)
           if (masterProcInSubComm) then
              print *,"[",myCommunicatorIndex,"] Using mumps to factorize the preconditioner."
           end if
        case (2)
-          call PCFactorSetMatSolverPackage(preconditionerContext, MATSOLVERSUPERLU_DIST, ierr)
+          call PCFactorSetMatSolverType(preconditionerContext, MATSOLVERSUPERLU_DIST, ierr)
           if (masterProcInSubComm) then
              print *,"[",myCommunicatorIndex,"] Using superlu_dist to factorize the preconditioner."
           end if
